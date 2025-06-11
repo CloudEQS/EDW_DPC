@@ -1,0 +1,36 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "\r\nSELECT $1 as SUPPLIER_ID,$2 AS SUPPLIER_CODE,$3 AS SUPLIER_NAME,$4\
+          \ AS SUPLIER_TYPE FROM @EDW_LAB.PUBLIC.ecommerce_stage/supplier_data_100.csv"
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "SQL"
+      parameters:
+        componentName: "Rewrite Table"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_SUPPLIER"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL:
+      position:
+        x: -140
+        "y": 0
+      tempMetlId: 1
+    Rewrite Table:
+      position:
+        x: 20
+        "y": 0
+      tempMetlId: 2

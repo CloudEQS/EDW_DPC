@@ -1,0 +1,83 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Merge"
+      parameters:
+        componentName: "Start"
+    Merge:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success"
+        failure:
+        - "End Failure 2"
+      parameters:
+        componentName: "Merge"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO EDW_LAB.PUBLIC.DIM_PRODUCT_SCD2 AS TGT\r\nUSING EDW_LAB.PUBLIC.PROD_STREAM_STG_UPDATE\
+          \ AS SRC\r\nON TGT.PRODUCT_ID = SRC.PRODUCT_ID\r\n   AND TGT.END_TIME IS\
+          \ NULL\r\n \r\nWHEN MATCHED \r\n     AND METADATA$ACTION = 'DELETE' \r\n\
+          \     AND METADATA$ISUPDATE = 'TRUE' \r\nTHEN \r\n    UPDATE \r\n    SET\
+          \ END_TIME = (SELECT CURRENT_TIMESTAMP())\r\n \r\nWHEN NOT MATCHED \r\n\
+          THEN \r\n    INSERT (\r\n        PRODUCT_ID,\r\n        PRODUCT_NAME,\r\n\
+          \        PRODUCT_CATEGORY,\r\n        PRODUCT_SUBCATEGORY,\r\n        BRAND_NAME,\r\
+          \n        PRICE,\r\n        CURRENCY_CODE,\r\n        SOURCE_SYSTEM,\r\n\
+          \        LOAD_TIMESTAMP,\r\n        END_TIME\r\n    )\r\n    VALUES (\r\n\
+          \        SRC.PRODUCT_ID,\r\n        SRC.PRODUCT_NAME,\r\n        SRC.PRODUCT_CATEGORY,\r\
+          \n        SRC.PRODUCT_SUBCATEGORY,\r\n        SRC.BRAND_NAME,\r\n      \
+          \  SRC.PRICE,\r\n        SRC.CURRENCY_CODE,\r\n        SRC.SOURCE_SYSTEM,\r\
+          \n        CURRENT_TIMESTAMP,\r\n        NULL\r\n    );\r\nINSERT INTO EDW_LAB.PUBLIC.DIM_PRODUCT_SCD2\
+          \ (\r\n    PRODUCT_ID,\r\n    PRODUCT_NAME,\r\n    PRODUCT_CATEGORY,\r\n\
+          \    PRODUCT_SUBCATEGORY,\r\n    BRAND_NAME,\r\n    PRICE,\r\n    CURRENCY_CODE,\r\
+          \n    SOURCE_SYSTEM,\r\n    LOAD_TIMESTAMP,\r\n    END_TIME\r\n)\r\nSELECT\
+          \ \r\n    PRODUCT_ID,\r\n    PRODUCT_NAME,\r\n    PRODUCT_CATEGORY,\r\n\
+          \    PRODUCT_SUBCATEGORY,\r\n    BRAND_NAME,\r\n    PRICE,\r\n    CURRENCY_CODE,\r\
+          \n    SOURCE_SYSTEM,\r\n    CURRENT_TIMESTAMP,\r\n    NULL\r\nFROM EDW_LAB.PUBLIC.PROD_STREAM_STG_INSERT\r\
+          \nWHERE METADATA$ACTION = 'INSERT' \r\n  AND METADATA$ISUPDATE = 'TRUE';\r\
+          \n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure 2:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure 2"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: -480
+        "y": 10
+      tempMetlId: 1
+    Merge:
+      position:
+        x: -310
+        "y": 10
+      tempMetlId: 2
+    End Success:
+      position:
+        x: -150
+        "y": -20
+      tempMetlId: 3
+    End Failure 2:
+      position:
+        x: -150
+        "y": 90
+      tempMetlId: 5

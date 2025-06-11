@@ -1,0 +1,125 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Append To load log Grid:
+      type: "append-to-grid"
+      skipped: false
+      parameters:
+        componentName: "Append To load log Grid"
+        operation: "Append"
+        targetGridVariable: "load_log"
+        fixedGridMode: "Fixed"
+        valuesGrid:
+        - - "${ev_load_id}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${jv_job_parent}"
+          - "${jv_table_name}"
+          - "${jv_table_type}"
+          - "${ev_inserted_rows}"
+          - "${ev_updated_rows}"
+          - "${jv_subject_area}"
+          - "${ev_curr_run_dt}"
+          - "${jv_success_flag}"
+          - "${ev_curr_run_dt}"
+          - "${ev_end_time}"
+          - "${ev_row_count}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${ev_status}"
+          - "${ev_message}"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Append To load log Grid"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+  variables:
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_table_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_success_flag:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    load_log:
+      metadata:
+        type: "GRID"
+        description: "This Grid variable will be used to append audit values for load_log"
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Append To load log Grid:
+      position:
+        x: 128
+        "y": 0
+      tempMetlId: 4161
+    Start 0:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 4162

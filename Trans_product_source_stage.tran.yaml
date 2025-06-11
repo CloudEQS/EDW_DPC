@@ -1,0 +1,36 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "SELECT $1 as PRODUCT_ID,$2 AS PRODUCT_NAME,$3 AS PRODUCT_CATEGORY,$4\
+          \ AS PRODUCT_SUBCATEGORY,$5 AS BRAND_NAME,$6 AS PRICE FROM @EDW_LAB.PUBLIC.ecommerce_stage/product_100_records.csv"
+    STG_PRODUCT:
+      type: "rewrite-table"
+      sources:
+      - "SQL"
+      parameters:
+        componentName: "STG_PRODUCT"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL:
+      position:
+        x: -200
+        "y": -20
+      tempMetlId: 1
+    STG_PRODUCT:
+      position:
+        x: -40
+        "y": -20
+      tempMetlId: 2

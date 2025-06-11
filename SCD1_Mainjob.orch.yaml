@@ -1,0 +1,285 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Read Source Object Metada"
+      parameters:
+        componentName: "Start"
+    Run product_scd1_UPDATE_TAB_method1:
+      type: "run-transformation"
+      parameters:
+        componentName: "Run product_scd1_UPDATE_TAB_method1"
+        transformationJob: "${V_JOB_Source_system_code}_LOAD_SCD1"
+        setScalarVariables:
+        - - "SV_Source_object_id"
+          - "${V_Job_Source_object_id}"
+        - - "SV_Source_system_code"
+          - "${V_JOB_Source_system_code}"
+        - - "SV_ACTIVE_FLAG"
+          - "${V_Job_ACTIVE_FLAG}"
+        - - "SV_OBJECT_NAME"
+          - "${V_Job_OBJECT_NAME}"
+        - - "SV_OBJECT_TYPE"
+          - "${V_Job_OBJECT_TYPE}"
+        - - "SV_REFRESH_FREQUENCY"
+          - "${V_Job_REFRESH_FREQUENCY}"
+        - - "SV_REFRESH_TYPE"
+          - "${V_Job_REFRESH_TYPE}"
+        - - "SV_Source_system_id"
+          - "${V_Job_Source_system_id}"
+        - - "SV_TARGET_TABLE"
+          - "${V_Job_TARGET_TABLE}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Read Source Object Metada:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "LOG START"
+      parameters:
+        componentName: "Read Source Object Metada"
+        mode: "Advanced"
+        gridVariable: "gv_source_object_metadata"
+        gridVariableMapping:
+        - - "SOURCE_OBJECT_ID"
+          - "G_SOURCE_OBJECT_ID"
+        - - "SOURCE_SYSTEM_ID"
+          - "G_SOURCE_SYSTEM_ID"
+        - - "OBJECT_TYPE"
+          - "G_OBJECT_TYPE"
+        - - "OBJECT_NAME"
+          - "G_OBJECT_NAME"
+        - - "REFRESH_FREQUENCY"
+          - "G_REFRESH_FREQUENCY"
+        - - "REFRESH_TYPE"
+          - "G_REFRESH_TYPE"
+        - - "ACTIVE_FLAG"
+          - "G_ACTIVE_FLAG"
+        - - "TARGET_TABLE"
+          - "G_TARGET_TABLE"
+        - - "SOURCE_SYSTEM_CODE"
+          - "G_SOURCE_SYSTEM_CODE"
+        query: "SELECT SS.SOURCE_SYSTEM_CODE,SO.*\r\n   from EDW_LAB.PUBLIC.SOURCE_OBJECTS\
+          \ SO\r\n   LEFT JOIN EDW_LAB.PUBLIC.SOURCE_SYSTEM SS \r\n   ON SS.SOURCE_SYSTEM_ID\
+          \ = SO.SOURCE_SYSTEM_ID\r\n   WHERE SO.ACTIVE_FLAG = 1 and SS.ACTIVE_FLAG\
+          \ = 1"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    LOG START:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Grid Iterator"
+      parameters:
+        componentName: "LOG START"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into EDW_LAB.PUBLIC.Source_Object_Ingestion_log\r\n(Batch_run_id,Source_system_id,Source_object_id,Status,Run_start_time)\
+          \ \r\nvalues ('${task_id}','${jv_source_system_id}','${jv_source_object_id}','STARTED',current_timestamp);"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "SQL Script 2"
+        failure:
+        - "End Failure"
+      iterationTarget: "Run product_scd1_UPDATE_TAB_method1"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_source_object_metadata"
+        gridIteratorVariableMapping:
+        - - "G_SOURCE_OBJECT_ID"
+          - "V_Job_Source_object_id"
+        - - "G_SOURCE_SYSTEM_ID"
+          - "V_Job_Source_system_id"
+        - - "G_OBJECT_TYPE"
+          - "V_Job_OBJECT_TYPE"
+        - - "G_OBJECT_NAME"
+          - "V_Job_OBJECT_NAME"
+        - - "G_REFRESH_FREQUENCY"
+          - "V_Job_REFRESH_FREQUENCY"
+        - - "G_REFRESH_TYPE"
+          - "V_Job_REFRESH_TYPE"
+        - - "G_ACTIVE_FLAG"
+          - "V_Job_ACTIVE_FLAG"
+        - - "G_TARGET_TABLE"
+          - "V_Job_TARGET_TABLE"
+        - - "G_SOURCE_SYSTEM_CODE"
+          - "V_JOB_Source_system_code"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    SQL Script 2:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success"
+      parameters:
+        componentName: "SQL Script 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.Source_Object_Ingestion_log\r\n(Batch_run_id,Source_system_id,Source_object_id,Status,Run_start_time)\
+          \ \r\nvalues ('${task_id}','${v_job_source_system_id}','${v_job_source_object_id}','Sucessfully\
+          \ Completed',current_timestamp);"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    V_Job_Source_object_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    V_Job_OBJECT_NAME:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_Job_TARGET_TABLE:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_Job_REFRESH_FREQUENCY:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_Job_REFRESH_TYPE:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_Job_Source_system_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    V_Job_OBJECT_TYPE:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_Job_ACTIVE_FLAG:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_JOB_Source_system_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SNOWFLAKE"
+    gv_source_object_metadata:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          G_SOURCE_OBJECT_ID:
+            columnType: "NUMBER"
+          G_SOURCE_SYSTEM_ID:
+            columnType: "NUMBER"
+          G_OBJECT_TYPE:
+            columnType: "TEXT"
+          G_OBJECT_NAME:
+            columnType: "TEXT"
+          G_REFRESH_FREQUENCY:
+            columnType: "TEXT"
+          G_REFRESH_TYPE:
+            columnType: "TEXT"
+          G_ACTIVE_FLAG:
+            columnType: "TEXT"
+          G_TARGET_TABLE:
+            columnType: "TEXT"
+          G_SOURCE_SYSTEM_CODE:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -1540
+        "y": -190
+      tempMetlId: 1
+    Run product_scd1_UPDATE_TAB_method1:
+      position:
+        x: -1120
+        "y": -160
+      tempMetlId: 2
+    Read Source Object Metada:
+      position:
+        x: -1460
+        "y": -140
+      tempMetlId: 3
+    LOG START:
+      position:
+        x: -1220
+        "y": -140
+      tempMetlId: 4
+    Grid Iterator:
+      position:
+        x: -1120
+        "y": -160
+      tempMetlId: 5
+    SQL Script 2:
+      position:
+        x: -990
+        "y": -170
+      tempMetlId: 6
+    End Success:
+      position:
+        x: -810
+        "y": -180
+      tempMetlId: 7
+    End Failure:
+      position:
+        x: -950
+        "y": -50
+      tempMetlId: 8

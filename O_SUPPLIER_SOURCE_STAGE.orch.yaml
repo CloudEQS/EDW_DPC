@@ -1,0 +1,23 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    SQL Script:
+      type: "sql-executor"
+      parameters:
+        componentName: "SQL Script"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "\r\nSELECT $1 as SUPPLIER_ID,$2 AS SUPPLIER_CODE,$3 AS SUPLIER_NAME,$4\
+          \ AS SUPPLIER_TYPE FROM @EDW_LAB.PUBLIC.ecommerce_stage/supplier_data_100.csv"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL Script:
+      position:
+        x: -290
+        "y": -80
+      tempMetlId: 1

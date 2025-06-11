@@ -1,0 +1,343 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_FACT_SALES:
+      type: "table-input"
+      parameters:
+        componentName: "STG_FACT_SALES"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_FACT_SALES"
+        columnNames:
+        - "SALES_ID"
+        - "PRODUCT_ID"
+        - "SALES_AMOUNT"
+        - "SALES_TIME"
+        timeOffset:
+    DIM_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "LOAD_TIME"
+        - "END_TIME"
+        timeOffset:
+    LATE DIMENTION:
+      type: "filter"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "LATE DIMENTION"
+        filterConditions:
+        - - "IS_EARLY"
+          - "Is"
+          - "Equal to"
+          - "TRUE"
+        combineCondition: "And"
+    ON_TIME:
+      type: "filter"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "ON_TIME"
+        filterConditions:
+        - - "IS_EARLY"
+          - "Is"
+          - "Equal to"
+          - "FALSE"
+        combineCondition: "And"
+    FACT_SALES:
+      type: "table-output"
+      sources:
+      - "ON TIME PROCESS DATA"
+      parameters:
+        componentName: "FACT_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "FACT_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_ID"
+          - "SALES_ID"
+        - - "stg_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "SALES_TIME"
+          - "SALES_TIME_V"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    AUDIT_LATE_SALES:
+      type: "table-output"
+      sources:
+      - "Late arrived"
+      parameters:
+        componentName: "AUDIT_LATE_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "AUDIT_LATE_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_ID"
+          - "SALES_ID"
+        - - "stg_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "SALES_TIME"
+          - "SALES_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Join:
+      type: "join"
+      sources:
+      - "STG_FACT_SALES"
+      - "DIM_PRODUCT_SCD2"
+      parameters:
+        componentName: "Join"
+        mainTable: "STG_FACT_SALES"
+        mainTableAlias: "stg"
+        joins:
+        - - "DIM_PRODUCT_SCD2"
+          - "dim"
+          - "Left"
+        joinExpressions:
+        - - "\"stg\".\"PRODUCT_ID\"=\"dim\".\"PRODUCT_ID\" and \"stg\".\"SALES_TIME\"\
+            > \"dim\".\"LOAD_TIME\"AND\"dim\".\"END_TIME\" IS NULL"
+          - "stg_Left_dim"
+        columnMappings:
+        - - "stg.SALES_ID"
+          - "SALES_ID"
+        - - "stg.PRODUCT_ID"
+          - "stg_PRODUCT_ID"
+        - - "stg.SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "stg.SALES_TIME"
+          - "SALES_TIME"
+        - - "dim.PRODUCT_ID"
+          - "dim_PRODUCT_ID"
+        - - "dim.LOAD_TIME"
+          - "LOAD_TIME"
+        - - "dim.END_TIME"
+          - "END_TIME"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Join"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CASE \r\nWHEN \"dim_PRODUCT_ID\" IS NULL THEN 'TRUE'\r\nELSE\r\n'FALSE'\r\
+            \nEND"
+          - "IS_EARLY"
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "Join 2"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CASE WHEN \"SALES_TIME\"> \"Last_processed_time\" THEN \r\n   'TRUE'\r\
+            \nELSE\r\n    'FALSE'\r\nEND"
+          - "ON_TIME_DATA"
+    LAST_PROCESSED_TIME:
+      type: "sql"
+      sources:
+      - "ON_TIME"
+      parameters:
+        componentName: "LAST_PROCESSED_TIME"
+        query: "SELECT MAX(SALES_TIME_V) AS MAX_TME FROM EDW_LAB.PUBLIC.FACT_SALES "
+    ON TIME PROCESS DATA:
+      type: "filter"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "ON TIME PROCESS DATA"
+        filterConditions:
+        - - "ON_TIME_DATA"
+          - "Is"
+          - "Equal to"
+          - "TRUE"
+        combineCondition: "And"
+    Join 2:
+      type: "join"
+      sources:
+      - "ON_TIME"
+      - "LAST_PROCESSED_TIME"
+      parameters:
+        componentName: "Join 2"
+        mainTable: "ON_TIME"
+        mainTableAlias: "on"
+        joins:
+        - - "LAST_PROCESSED_TIME"
+          - "l"
+          - "Left"
+        joinExpressions:
+        - - "\"on\".\"stg_PRODUCT_ID\"=\"on\".\"dim_PRODUCT_ID\""
+          - "on_Left_l"
+        columnMappings:
+        - - "l.MAX_TME"
+          - "Last_processed_time"
+        - - "on.SALES_ID"
+          - "SALES_ID"
+        - - "on.stg_PRODUCT_ID"
+          - "stg_PRODUCT_ID"
+        - - "on.SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "on.SALES_TIME"
+          - "SALES_TIME"
+        - - "on.dim_PRODUCT_ID"
+          - "dim_PRODUCT_ID"
+        - - "on.LOAD_TIME"
+          - "LOAD_TIME"
+        - - "on.END_TIME"
+          - "END_TIME"
+        - - "on.IS_EARLY"
+          - "IS_EARLY"
+    AUDIT_LATE_SALES 2:
+      type: "table-output"
+      sources:
+      - "LATE DIMENTION"
+      parameters:
+        componentName: "AUDIT_LATE_SALES 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "AUDIT_LATE_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_ID"
+          - "SALES_ID"
+        - - "stg_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "SALES_TIME"
+          - "SALES_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Late arrived:
+      type: "filter"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "Late arrived"
+        filterConditions:
+        - - "ON_TIME_DATA"
+          - "Is"
+          - "Equal to"
+          - "FALSE"
+        combineCondition: "And"
+design:
+  components:
+    STG_FACT_SALES:
+      position:
+        x: -1500
+        "y": -380
+      tempMetlId: 1
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -1510
+        "y": -180
+      tempMetlId: 2
+    LATE DIMENTION:
+      position:
+        x: -1000
+        "y": -160
+      tempMetlId: 4
+    ON_TIME:
+      position:
+        x: -990
+        "y": -290
+      tempMetlId: 10
+    FACT_SALES:
+      position:
+        x: 40
+        "y": -320
+      tempMetlId: 12
+    AUDIT_LATE_SALES:
+      position:
+        x: 50
+        "y": -220
+      tempMetlId: 14
+    Join:
+      position:
+        x: -1310
+        "y": -260
+      tempMetlId: 18
+    Calculator:
+      position:
+        x: -1160
+        "y": -260
+      tempMetlId: 19
+    Calculator 3:
+      position:
+        x: -540
+        "y": -280
+      tempMetlId: 20
+    LAST_PROCESSED_TIME:
+      position:
+        x: -800
+        "y": -400
+      tempMetlId: 21
+    ON TIME PROCESS DATA:
+      position:
+        x: -360
+        "y": -320
+      tempMetlId: 24
+    Join 2:
+      position:
+        x: -710
+        "y": -290
+      tempMetlId: 26
+    AUDIT_LATE_SALES 2:
+      position:
+        x: -620
+        "y": -150
+      tempMetlId: 27
+    Late arrived:
+      position:
+        x: -370
+        "y": -220
+      tempMetlId: 28
+  notes:
+    "1":
+      position:
+        x: -1250
+        "y": -400
+      size:
+        height: 288
+        width: 340
+      theme: "white"
+      content: "customer_id  is exsting in ]the dim or not.if yes then redirect to\
+        \ success path other wise it will store those recored into temp or audit table\
+        \ further analyse."
+    "2":
+      position:
+        x: -600
+        "y": -410
+      size:
+        height: 278
+        width: 400
+      theme: "white"
+      content: "WHEN \"STG_SALES_TIME\"> \"FACT_Last_processed_time\" THEN DIRECTLY\
+        \ MOVE INTO THE TARGET TABLE, OTHERWISE FAILES AND STORING ISSUE RECORD STORING\
+        \ TO AUIT OR TEMPP TABLE FOR FURTHER WE ANALYSE"

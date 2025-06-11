@@ -1,0 +1,99 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Stream Input:
+      type: "stream-input-sf"
+      parameters:
+        componentName: "Stream Input"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetStream: "PROD_STREAM1"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIME"
+        - "METADATA$ACTION"
+        - "METADATA$ISUPDATE"
+        - "METADATA$ROW_ID"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Stream Input"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "OLD_REC_END"
+    SCD TYP2 IMPLEMENTATION:
+      type: "table-update"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "SCD TYP2 IMPLEMENTATION"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\" AND \"target\".\"\
+            END_TIME\" IS NULL AND  \"input\".\"METADATA$ACTION\"='DELETE' AND \"\
+            input\".\"METADATA$ISUPDATE\"='TRUE'"
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\" AND \"target\".\"\
+            END_TIME\" IS NULL AND  \"input\".\"METADATA$ACTION\"='DELETE' AND \"\
+            input\".\"METADATA$ISUPDATE\"='TRUE'"
+          - "Update"
+        updateMapping:
+        - - "OLD_REC_END"
+          - "END_TIME"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIMESTAMP"
+          - "LOAD_TIMESTAMP"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Stream Input:
+      position:
+        x: -390
+        "y": -20
+      tempMetlId: 1
+    Calculator:
+      position:
+        x: -230
+        "y": -20
+      tempMetlId: 2
+    SCD TYP2 IMPLEMENTATION:
+      position:
+        x: -70
+        "y": -20
+      tempMetlId: 3

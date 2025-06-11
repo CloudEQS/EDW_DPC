@@ -1,0 +1,36 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    load stg to dim:
+      type: "sql"
+      parameters:
+        componentName: "load stg to dim"
+        query: "SELECT $1 AS CUSTOMER_ID,$2 AS CUSTOMER_NAME,$3 AS CUST_EMAIL,$4 AS\
+          \ COUNTRY FROM @edw_lab.public.ecommerce_stage/customer_data_100.csv\r\n"
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "load stg to dim"
+      parameters:
+        componentName: "Rewrite Table"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_CUSTOMER"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    load stg to dim:
+      position:
+        x: -340
+        "y": -90
+      tempMetlId: 1
+    Rewrite Table:
+      position:
+        x: -90
+        "y": -90
+      tempMetlId: 3

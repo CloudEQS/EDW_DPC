@@ -1,0 +1,211 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STAGE SUPPLIER:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE SUPPLIER"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_SUPPLIER"
+        columnNames:
+        - "SUPPLIER_ID"
+        - "SUPPLIER_CODE"
+        - "SUPLIER_NAME"
+        - "SUPLIER_TYPE"
+        timeOffset:
+    Dim Supplier:
+      type: "sql"
+      parameters:
+        componentName: "Dim Supplier"
+        query: "SELECT * FROM EDW_LAB.PUBLIC.DIM_SUPPLIER WHERE END_TIME IS NULL"
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "STAGE SUPPLIER"
+      - "Dim Supplier"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "Dim Supplier"
+        matchKeys:
+        - "SUPPLIER_ID"
+        compareColumns:
+        - "SUPPLIER_CODE"
+        - "SUPLIER_NAME"
+        - "SUPLIER_TYPE"
+        outputColumnMapping:
+        - - "compare_SUPPLIER_CODE"
+          - "v_SUPPLIER_CODE"
+        - - "compare_SUPLIER_NAME"
+          - "V_SUPLIER_NAME"
+        - - "compare_SUPLIER_TYPE"
+          - "v_SUPLIER_TYPE"
+        - - "master_LOAD_TIME"
+          - "V_LOAD_TIME"
+        indicatorColumn: "Indicator"
+    Filter:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "And"
+    Filter 2:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Filter 2"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "And"
+    Unite:
+      type: "unite"
+      sources:
+      - "Filter"
+      - "Filter 2"
+      parameters:
+        componentName: "Unite"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Unite"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "NEW_LOAD_TIME"
+        - - "NULL"
+          - "NEW_END_TIME"
+    DIM_SUPPLIER:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_SUPPLIER"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_SUPPLIER"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SUPPLIER_ID"
+          - "SUPPLIER_ID"
+        - - "v_SUPPLIER_CODE"
+          - "SUPPLIER_CODE"
+        - - "V_SUPLIER_NAME"
+          - "SUPLIER_NAME"
+        - - "v_SUPLIER_TYPE"
+          - "SUPLIER_TYPE"
+        - - "NEW_LOAD_TIME"
+          - "LOAD_TIME"
+        - - "NEW_END_TIME"
+          - "END_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "Filter"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "OLD_END_TIME"
+    DIM_SUPPLIER 2:
+      type: "table-update"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "DIM_SUPPLIER 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_SUPPLIER"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"SUPPLIER_ID\"=\"target\".\"SUPPLIER_ID\" AND \"target\".\"\
+            END_TIME\" IS NULL AND \"input\".\"V_LOAD_TIME\"=\"target\".\"LOAD_TIME\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"SUPPLIER_ID\"=\"target\".\"SUPPLIER_ID\" AND \"target\".\"\
+            END_TIME\" IS NULL AND \"input\".\"V_LOAD_TIME\"=\"target\".\"LOAD_TIME\""
+          - "Update"
+        updateMapping:
+        - - "OLD_END_TIME"
+          - "END_TIME"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    STAGE SUPPLIER:
+      position:
+        x: -840
+        "y": -10
+      tempMetlId: 1
+    Dim Supplier:
+      position:
+        x: -840
+        "y": 110
+      tempMetlId: 2
+    Detect Changes:
+      position:
+        x: -620
+        "y": 30
+      tempMetlId: 3
+    Filter:
+      position:
+        x: -360
+        "y": 100
+      tempMetlId: 4
+    Filter 2:
+      position:
+        x: -340
+        "y": -30
+      tempMetlId: 5
+    Unite:
+      position:
+        x: -220
+        "y": 20
+      tempMetlId: 6
+    Calculator:
+      position:
+        x: -120
+        "y": 20
+      tempMetlId: 7
+    DIM_SUPPLIER:
+      position:
+        x: 40
+        "y": 20
+      tempMetlId: 8
+    Calculator 2:
+      position:
+        x: -190
+        "y": 150
+      tempMetlId: 10
+    DIM_SUPPLIER 2:
+      position:
+        x: -30
+        "y": 150
+      tempMetlId: 11

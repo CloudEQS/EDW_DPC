@@ -1,0 +1,201 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_FACT_SALES:
+      type: "table-input"
+      parameters:
+        componentName: "STG_FACT_SALES"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_FACT_SALES"
+        columnNames:
+        - "SALES_ID"
+        - "PRODUCT_ID"
+        - "SALES_AMOUNT"
+        - "SALES_TIME"
+        timeOffset:
+    DIM_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        columnNames:
+        - "LOAD_TIME"
+        - "END_TIME"
+        - "PRODUCT_ID"
+        timeOffset:
+    Join:
+      type: "join"
+      sources:
+      - "DIM_PRODUCT_SCD2"
+      - "STG_FACT_SALES"
+      parameters:
+        componentName: "Join"
+        mainTable: "DIM_PRODUCT_SCD2"
+        mainTableAlias: "DIM"
+        joins:
+        - - "STG_FACT_SALES"
+          - "STG"
+          - "Right"
+        joinExpressions:
+        - - "\"DIM\".\"PRODUCT_ID\"=\"STG\".\"PRODUCT_ID\""
+          - "DIM_Right_STG"
+        columnMappings:
+        - - "STG.SALES_ID"
+          - "SALES_ID_S"
+        - - "STG.PRODUCT_ID"
+          - "STG_PRODUCT_ID_S"
+        - - "STG.SALES_AMOUNT"
+          - "SALES_AMOUNT_S"
+        - - "STG.SALES_TIME"
+          - "SALES_TIME"
+        - - "DIM.LOAD_TIME"
+          - "LOAD_TIME"
+        - - "DIM.END_TIME"
+          - "END_TIME"
+        - - "DIM.PRODUCT_ID"
+          - "DIM_PRODUCT_ID"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "On Time"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "SALE_TIME_NEW"
+    FACT_SALES:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "FACT_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "FACT_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_ID_S"
+          - "SALES_ID"
+        - - "STG_PRODUCT_ID_S"
+          - "PRODUCT_ID"
+        - - "SALES_AMOUNT_S"
+          - "SALES_AMOUNT"
+        - - "SALE_TIME_NEW"
+          - "SALES_TIME_V"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    On Time:
+      type: "filter"
+      sources:
+      - "Join"
+      parameters:
+        componentName: "On Time"
+        filterConditions:
+        - - "LOAD_TIME"
+          - "Not"
+          - "Null"
+          - ""
+        combineCondition: "And"
+    'LATE ':
+      type: "filter"
+      sources:
+      - "Join"
+      parameters:
+        componentName: "LATE "
+        filterConditions:
+        - - "LOAD_TIME"
+          - "Is"
+          - "Null"
+          - ""
+        combineCondition: "And"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "LATE "
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LATE_TIME"
+    AUDIT_LATE_SALES:
+      type: "table-output"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "AUDIT_LATE_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "AUDIT_LATE_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_ID_S"
+          - "SALES_ID"
+        - - "STG_PRODUCT_ID_S"
+          - "PRODUCT_ID"
+        - - "SALES_AMOUNT_S"
+          - "SALES_AMOUNT"
+        - - "LATE_TIME"
+          - "SALES_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    STG_FACT_SALES:
+      position:
+        x: -300
+        "y": -40
+      tempMetlId: 1
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -300
+        "y": 90
+      tempMetlId: 2
+    Join:
+      position:
+        x: -170
+        "y": 30
+      tempMetlId: 3
+    Calculator:
+      position:
+        x: 90
+        "y": 110
+      tempMetlId: 4
+    FACT_SALES:
+      position:
+        x: 270
+        "y": 110
+      tempMetlId: 5
+    On Time:
+      position:
+        x: -10
+        "y": 110
+      tempMetlId: 8
+    'LATE ':
+      position:
+        x: -10
+        "y": -10
+      tempMetlId: 9
+    Calculator 2:
+      position:
+        x: 150
+        "y": -10
+      tempMetlId: 10
+    AUDIT_LATE_SALES:
+      position:
+        x: 310
+        "y": -10
+      tempMetlId: 11

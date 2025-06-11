@@ -1,0 +1,69 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    DIM_PRODUCT_SCD1:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD1"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD1"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_SUBCATEGORY"
+        - "PRODUCT_CATEGORY"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "BRAND_NAME"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        timeOffset:
+    DIM_PRODUCT_SCD1 2:
+      type: "table-output"
+      sources:
+      - "DIM_PRODUCT_SCD1"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD1 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD1"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIMESTAMP"
+          - "LOAD_TIMESTAMP"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    DIM_PRODUCT_SCD1:
+      position:
+        x: -190
+        "y": -10
+      tempMetlId: 1
+    DIM_PRODUCT_SCD1 2:
+      position:
+        x: -10
+        "y": -10
+      tempMetlId: 2

@@ -1,0 +1,404 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Check Prev Load completion:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "If 0"
+      skipped: false
+      parameters:
+        componentName: "Check Prev Load completion"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),-1) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 1 \n\n"
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Check Prev Load completion"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Ins run status for start:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Get Load Id"
+      skipped: false
+      parameters:
+        componentName: "Ins run status for start"
+        sqlScript: |-
+          INSERT INTO ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS
+          (
+            SubjectArea,RunStatus, StartDateTime, IsRunning, Success
+          )
+          VALUES
+          ('${jv_subject_area}', 'STARTED', CAST(CURRENT_TIMESTAMP AS TIMESTAMPNTZ), 1,0);
+    If 0:
+      type: "if"
+      transitions:
+        "true":
+        - "End Failure 0"
+        "false":
+        - "Get Last Run Dt"
+      skipped: false
+      parameters:
+        componentName: "If 0"
+        mode: "Simple"
+        condition:
+        - - "jv_load_id"
+          - "Not"
+          - "Equal to"
+          - "-1"
+        combineConditions: "And"
+    End Failure 0:
+      type: "end-failure"
+      skipped: false
+      parameters:
+        componentName: "End Failure 0"
+    Get process Date:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Startability check"
+      skipped: false
+      parameters:
+        componentName: "Get process Date"
+        mode: "Advanced"
+        query: "SELECT CAST(CURRENT_DATE() AS DATE) AS PROCESS_DATE"
+        scalarVariableMapping:
+        - - "jv_process_date"
+          - "PROCESS_DATE"
+    Startability check:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Run condition"
+      skipped: false
+      parameters:
+        componentName: "Startability check"
+        mode: "Advanced"
+        query: "SELECT IFF((SELECT COUNT(0) from ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS)\
+          \ > 0, \n(SELECT \nCASE \nWHEN RUNSTATUS =  'COMPLETED' THEN 0\nWHEN RUNSTATUS\
+          \ =  'FAILED' THEN 1\nEND \nFROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 0 \nAND LOAD_ID = \n(SELECT MAX(LOAD_ID) FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ WHERE SUBJECTAREA = '${jv_subject_area}' \nAND CAST(ISRUNNING AS INTEGER)\
+          \ = 0)),0 ) as STATUS"
+        scalarVariableMapping:
+        - - "jv_restart_check"
+          - "STATUS"
+    Get Load Id:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "Get Load Id"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),1) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND ISRUNNING = 1 "
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Run condition:
+      type: "if"
+      transitions:
+        "true":
+        - "Ins run status for start"
+        "false":
+        - "Get Load Id 1"
+      skipped: false
+      parameters:
+        componentName: "Run condition"
+        mode: "Simple"
+        condition:
+        - - "jv_restart_check"
+          - "Is"
+          - "Equal to"
+          - "0"
+        combineConditions: "And"
+    Update run status for restart:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "Update run status for restart"
+        sqlScript: "update  ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nSet ISRUNNING = 1 ,SUCCESS = 0,RUNSTATUS = 'STARTED',\nENDDATETIME =\
+          \ NULL\nWHERE  SUBJECTAREA = '${jv_subject_area}' AND LOAD_ID = ${jv_load_id}"
+    Get Last Run Dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Get process Date"
+      skipped: false
+      parameters:
+        componentName: "Get Last Run Dt"
+        mode: "Advanced"
+        query: |-
+          SELECT NVL(LastRunDt, '2020-01-01 00:00:00.000') AS LastRunDt FROM
+          (
+            SELECT  MAX(StartDateTime) AS LastRunDt
+          FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS WHERE SubjectArea = '${jv_subject_area}' AND CAST(Success AS INTEGER)= 1
+            )
+        scalarVariableMapping:
+        - - "jv_last_run_dt"
+          - "LASTRUNDT"
+    Or 0:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Get Current Date"
+      skipped: false
+      parameters:
+        componentName: "Or 0"
+    Get Load Id 1:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Update run status for restart"
+      skipped: false
+      parameters:
+        componentName: "Get Load Id 1"
+        mode: "Advanced"
+        query: "SELECT MAX(LOAD_ID) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 0 AND  RUNSTATUS = 'FAILED'"
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Get Current Date:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Check last run dt"
+      skipped: false
+      parameters:
+        componentName: "Get Current Date"
+        mode: "Advanced"
+        query: |-
+          SELECT NVL(CurrDtTime, CAST(CURRENT_TIMESTAMP() AS TIMESTAMPNTZ)) AS CurrDtTime FROM
+          (
+            SELECT  MAX(STARTDATETIME) AS CurrDtTime
+          FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS WHERE SubjectArea = '${jv_subject_area}' AND Load_Id= ${jv_load_id}
+            )
+        scalarVariableMapping:
+        - - "jv_curr_run_dt"
+          - "CURRDTTIME"
+    Check last run dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Check current run dt"
+      skipped: false
+      parameters:
+        componentName: "Check last run dt"
+        mode: "Advanced"
+        query: |-
+          SELECT IFNULL(LAST_RUN_DATE, '${jv_last_run_dt}') AS LAST_RUN_DATE FROM EDP_CURATED.ADHOC_RUN
+          WHERE SUBJECT_AREA = '${jv_subject_area}'
+        scalarVariableMapping:
+        - - "jv_last_run_dt"
+          - "LAST_RUN_DATE"
+    Check current run dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "If 1"
+      skipped: false
+      parameters:
+        componentName: "Check current run dt"
+        mode: "Advanced"
+        query: |-
+          SELECT IFNULL(CURRENT_RUN_DATE, '${jv_curr_run_dt}') AS CURR_RUN_DATE FROM EDP_CURATED.ADHOC_RUN
+          WHERE SUBJECT_AREA = '${jv_subject_area}'
+        scalarVariableMapping:
+        - - "jv_curr_run_dt"
+          - "CURR_RUN_DATE"
+    Main ETL Log Entry Start:
+      type: "sql-script"
+      skipped: false
+      parameters:
+        componentName: "Main ETL Log Entry Start"
+        sqlScript: "insert into ${ev_edp_curated_schema}.load_log \n(LOAD_ID,PROCEDURE_NAME,PROCEDURE_PARENT,TABLE_NAME,TABLE_TYPE,SUBJECT_AREA,\n\
+          \ PROCESS_DATE,START_TIME,\n FROMDATEPARAMETER,TODATEPARAMETER,COMMENTS)\n\
+          \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
+          \ '${jv_process_date}',current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
+          \ ETL for ${jv_subject_area} Started')"
+    Main ETL Log Entry RE-Start:
+      type: "sql-script"
+      skipped: false
+      parameters:
+        componentName: "Main ETL Log Entry RE-Start"
+        sqlScript: "insert into ${ev_edp_curated_schema}.load_log \n(LOAD_ID,PROCEDURE_NAME,PROCEDURE_PARENT,TABLE_NAME,TABLE_TYPE,SUBJECT_AREA,\n\
+          \ PROCESS_DATE,START_TIME,\n FROMDATEPARAMETER,TODATEPARAMETER,COMMENTS)\n\
+          \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
+          \ '${jv_process_date}',current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
+          \ ETL for ${jv_subject_area} RE-Started')"
+    If 1:
+      type: "if"
+      transitions:
+        "true":
+        - "Main ETL Log Entry Start"
+        "false":
+        - "Main ETL Log Entry RE-Start"
+      skipped: false
+      parameters:
+        componentName: "If 1"
+        mode: "Simple"
+        condition:
+        - - "jv_restart_check"
+          - "Is"
+          - "Equal to"
+          - "0"
+        combineConditions: "And"
+  variables:
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2021-01-01"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SALES Load"
+    jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+design:
+  components:
+    Check Prev Load completion:
+      position:
+        x: -208
+        "y": -48
+      tempMetlId: 29132
+    Start 0:
+      position:
+        x: -352
+        "y": -48
+      tempMetlId: 29133
+    Ins run status for start:
+      position:
+        x: 336
+        "y": -96
+      tempMetlId: 29134
+    If 0:
+      position:
+        x: -208
+        "y": 48
+      tempMetlId: 29135
+    End Failure 0:
+      position:
+        x: -80
+        "y": 48
+      tempMetlId: 29136
+    Get process Date:
+      position:
+        x: 16
+        "y": -48
+      tempMetlId: 29137
+    Startability check:
+      position:
+        x: 112
+        "y": -48
+      tempMetlId: 29138
+    Get Load Id:
+      position:
+        x: 448
+        "y": -96
+      tempMetlId: 29139
+    Run condition:
+      position:
+        x: 208
+        "y": -48
+      tempMetlId: 29140
+    Update run status for restart:
+      position:
+        x: 448
+        "y": 0
+      tempMetlId: 29141
+    Get Last Run Dt:
+      position:
+        x: -80
+        "y": -48
+      tempMetlId: 29142
+    Or 0:
+      position:
+        x: 560
+        "y": -48
+      tempMetlId: 29143
+    Get Load Id 1:
+      position:
+        x: 336
+        "y": 0
+      tempMetlId: 29144
+    Get Current Date:
+      position:
+        x: 640
+        "y": -48
+      tempMetlId: 29145
+    Check last run dt:
+      position:
+        x: 752
+        "y": -48
+      tempMetlId: 29146
+    Check current run dt:
+      position:
+        x: 864
+        "y": -48
+      tempMetlId: 29147
+    Main ETL Log Entry Start:
+      position:
+        x: 1104
+        "y": -99
+      tempMetlId: 29162
+    Main ETL Log Entry RE-Start:
+      position:
+        x: 1104
+        "y": -3
+      tempMetlId: 29163
+    If 1:
+      position:
+        x: 960
+        "y": -51
+      tempMetlId: 29164

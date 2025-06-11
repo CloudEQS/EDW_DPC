@@ -1,0 +1,41 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Ins failed audit values in Run Status table:
+      type: "sql-script"
+      skipped: false
+      parameters:
+        componentName: "Ins failed audit values in Run Status table"
+        sqlScript: "UPDATE ${ev_sf_schema}.RUN_STATUS \nSET ISRUNNING = 0,\nSUCCESS\
+          \   = 0,\nRUNSTATUS = 'FAILED',\nENDDATETIME = CAST(CURRENT_TIMESTAMP AS\
+          \ TIMESTAMPNTZ)\nWHERE LOAD_ID = ${ev_load_id} AND SUBJECTAREA = '${jv_subj_area}'\
+          \ AND IsRunning = 1"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Ins failed audit values in Run Status table"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+  variables:
+    jv_subj_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+design:
+  components:
+    Ins failed audit values in Run Status table:
+      position:
+        x: 128
+        "y": 0
+      tempMetlId: 4203
+    Start 0:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 4204

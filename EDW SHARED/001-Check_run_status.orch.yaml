@@ -1,0 +1,309 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Check Prev Load completion:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "If 0"
+      skipped: false
+      parameters:
+        componentName: "Check Prev Load completion"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),-1) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 1 \n\n"
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Check Prev Load completion"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Ins run status for start:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Get Load Id"
+      skipped: false
+      parameters:
+        componentName: "Ins run status for start"
+        sqlScript: |-
+          INSERT INTO ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS
+          (
+            SubjectArea,RunStatus, StartDateTime, IsRunning, Success
+          )
+          VALUES
+          ('${jv_subject_area}', 'STARTED', CAST(CURRENT_TIMESTAMP AS TIMESTAMPNTZ), 1,0);
+    If 0:
+      type: "if"
+      transitions:
+        "true":
+        - "End Failure 0"
+        "false":
+        - "Get Last Run Dt"
+      skipped: false
+      parameters:
+        componentName: "If 0"
+        mode: "Simple"
+        condition:
+        - - "jv_load_id"
+          - "Not"
+          - "Equal to"
+          - "-1"
+        combineConditions: "And"
+    End Failure 0:
+      type: "end-failure"
+      skipped: false
+      parameters:
+        componentName: "End Failure 0"
+    Get process Date:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Startability check"
+      skipped: false
+      parameters:
+        componentName: "Get process Date"
+        mode: "Advanced"
+        query: "SELECT CAST(CURRENT_DATE() AS DATE) AS PROCESS_DATE"
+        scalarVariableMapping:
+        - - "jv_process_date"
+          - "PROCESS_DATE"
+    Startability check:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Run condition"
+      skipped: false
+      parameters:
+        componentName: "Startability check"
+        mode: "Advanced"
+        query: "SELECT IFF((SELECT COUNT(0) from ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS)\
+          \ > 0, \n(SELECT \nCASE \nWHEN RUNSTATUS =  'COMPLETED' THEN 0\nWHEN RUNSTATUS\
+          \ =  'FAILED' THEN 1\nEND \nFROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 0 \nAND LOAD_ID = \n(SELECT MAX(LOAD_ID) FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ WHERE SUBJECTAREA = '${jv_subject_area}' \nAND CAST(ISRUNNING AS INTEGER)\
+          \ = 0)),0 ) as STATUS"
+        scalarVariableMapping:
+        - - "jv_restart_check"
+          - "STATUS"
+    Get Load Id:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "Get Load Id"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),1) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND ISRUNNING = 1 "
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Run condition:
+      type: "if"
+      transitions:
+        "true":
+        - "Ins run status for start"
+        "false":
+        - "Get Load Id 1"
+      skipped: false
+      parameters:
+        componentName: "Run condition"
+        mode: "Simple"
+        condition:
+        - - "jv_restart_check"
+          - "Is"
+          - "Equal to"
+          - "0"
+        combineConditions: "And"
+    Update run status for restart:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "Update run status for restart"
+        sqlScript: "update  ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nSet ISRUNNING = 1 ,SUCCESS = 0,RUNSTATUS = 'STARTED',\nENDDATETIME =\
+          \ NULL\nWHERE  SUBJECTAREA = '${jv_subject_area}' AND LOAD_ID = ${jv_load_id}"
+    Get Last Run Dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Get process Date"
+      skipped: false
+      parameters:
+        componentName: "Get Last Run Dt"
+        mode: "Advanced"
+        query: |-
+          SELECT NVL(LastRunDt, '2020-01-01 00:00:00.000') AS LastRunDt FROM
+          (
+            SELECT  MAX(StartDateTime) AS LastRunDt
+          FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS WHERE SubjectArea = '${jv_subject_area}' AND CAST(Success AS INTEGER)= 1
+            )
+        scalarVariableMapping:
+        - - "jv_last_run_dt"
+          - "LASTRUNDT"
+    Or 0:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Get Current Date"
+      skipped: false
+      parameters:
+        componentName: "Or 0"
+    Get Load Id 1:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Update run status for restart"
+      skipped: false
+      parameters:
+        componentName: "Get Load Id 1"
+        mode: "Advanced"
+        query: "SELECT MAX(LOAD_ID) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+          \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 0 AND  RUNSTATUS = 'FAILED'"
+        scalarVariableMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+    Get Current Date:
+      type: "query-to-scalar"
+      skipped: false
+      parameters:
+        componentName: "Get Current Date"
+        mode: "Advanced"
+        query: |-
+          SELECT NVL(CurrDtTime, CAST(CURRENT_TIMESTAMP() AS TIMESTAMPNTZ)) AS CurrDtTime FROM
+          (
+            SELECT  MAX(STARTDATETIME) AS CurrDtTime
+          FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS WHERE SubjectArea = '${jv_subject_area}' AND Load_Id= ${jv_load_id}
+            )
+        scalarVariableMapping:
+        - - "jv_curr_run_dt"
+          - "CURRDTTIME"
+  variables:
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2021-01-01"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SALES Load"
+    jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+design:
+  components:
+    Check Prev Load completion:
+      position:
+        x: -208
+        "y": -48
+      tempMetlId: 4165
+    Start 0:
+      position:
+        x: -416
+        "y": -48
+      tempMetlId: 4166
+    Ins run status for start:
+      position:
+        x: 336
+        "y": -96
+      tempMetlId: 4167
+    If 0:
+      position:
+        x: -208
+        "y": 48
+      tempMetlId: 4168
+    End Failure 0:
+      position:
+        x: -80
+        "y": 48
+      tempMetlId: 4169
+    Get process Date:
+      position:
+        x: 16
+        "y": -48
+      tempMetlId: 4170
+    Startability check:
+      position:
+        x: 112
+        "y": -48
+      tempMetlId: 4171
+    Get Load Id:
+      position:
+        x: 448
+        "y": -96
+      tempMetlId: 4172
+    Run condition:
+      position:
+        x: 208
+        "y": -48
+      tempMetlId: 4173
+    Update run status for restart:
+      position:
+        x: 448
+        "y": 0
+      tempMetlId: 4174
+    Get Last Run Dt:
+      position:
+        x: -80
+        "y": -48
+      tempMetlId: 4175
+    Or 0:
+      position:
+        x: 560
+        "y": -48
+      tempMetlId: 4176
+    Get Load Id 1:
+      position:
+        x: 336
+        "y": 0
+      tempMetlId: 4177
+    Get Current Date:
+      position:
+        x: 640
+        "y": -48
+      tempMetlId: 4178

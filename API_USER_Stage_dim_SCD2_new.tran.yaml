@@ -1,0 +1,507 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_USER_DETAILS:
+      type: "table-input"
+      parameters:
+        componentName: "STG_USER_DETAILS"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_USER_DETAILS"
+        columnNames:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        - "LOAD_TIME"
+        timeOffset:
+    DIM_USER_DETAILS_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_USER_DETAILS_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_USER_DETAILS_SCD2"
+        columnNames:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        - "LOAD_TIME"
+        - "END_TIME"
+        timeOffset:
+    Rank:
+      type: "rank"
+      sources:
+      - "STG_USER_DETAILS"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        orderingWithinPartitions:
+        - - "LOAD_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+    SQL:
+      type: "sql"
+      sources:
+      - "DIM_USER_DETAILS_SCD2"
+      parameters:
+        componentName: "SQL"
+        query: "SELECT * FROM EDW_LAB.PUBLIC.DIM_USER_DETAILS_SCD2 WHERE END_TIME\
+          \ IS NULL"
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "SQL"
+      - "Filter"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "SQL"
+        matchKeys:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        - "LOAD_TIME"
+        compareColumns:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        - "LOAD_TIME"
+        outputColumnMapping:
+        - - "compare_WEBSITE"
+          - "compare_WEBSITE"
+        - - "compare_EMP_ID"
+          - "compare_EMP_ID"
+        - - "compare_EMP_NAME"
+          - "compare_EMP_NAME"
+        - - "compare_USER_NAME"
+          - "compare_USER_NAME"
+        - - "compare_COMPANY_NAME"
+          - "compare_COMPANY_NAME"
+        - - "compare_EMAIL"
+          - "compare_EMAIL"
+        - - "compare_PHONE_NUMBER"
+          - "compare_PHONE_NUMBER"
+        - - "compare_CITY"
+          - "compare_CITY"
+        - - "compare_BS"
+          - "compare_BS"
+        - - "compare_CATCHPHRASE"
+          - "compare_CATCHPHRASE"
+        - - "compare_STREET"
+          - "compare_STREET"
+        - - "compare_ZIPCODE"
+          - "compare_ZIPCODE"
+        - - "compare_SUITE"
+          - "compare_SUITE"
+        - - "compare_LATITUDE"
+          - "compare_LATITUDE"
+        - - "compare_LONGITUDE"
+          - "compare_LONGITUDE"
+        - - "compare_LOAD_TIME"
+          - "compare_LOAD_TIME"
+        indicatorColumn: "Indicator"
+    Filter 2:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Filter 2"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "Or"
+    Filter 2 2:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Filter 2 2"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "Or"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Filter 2"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "NULL"
+          - "V_END_TIME_NEW"
+        - - "CURRENT_TIMESTAMP()"
+          - "V_LOAD_TIME_NEW"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "Filter 2 2"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "NULL"
+          - "V_END_TIME_OLD"
+        - - "CURRENT_TIMESTAMP()"
+          - "V_LOAD_TIME"
+    DIM_PRODUCT_SCD2:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_USER_DETAILS_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "WEBSITE"
+          - "WEBSITE"
+        - - "EMP_ID"
+          - "EMP_ID"
+        - - "EMP_NAME"
+          - "EMP_NAME"
+        - - "USER_NAME"
+          - "USER_NAME"
+        - - "COMPANY_NAME"
+          - "COMPANY_NAME"
+        - - "EMAIL"
+          - "EMAIL"
+        - - "PHONE_NUMBER"
+          - "PHONE_NUMBER"
+        - - "CITY"
+          - "CITY"
+        - - "BS"
+          - "BS"
+        - - "CATCHPHRASE"
+          - "CATCHPHRASE"
+        - - "STREET"
+          - "STREET"
+        - - "ZIPCODE"
+          - "ZIPCODE"
+        - - "SUITE"
+          - "SUITE"
+        - - "LATITUDE"
+          - "LATITUDE"
+        - - "LONGITUDE"
+          - "LONGITUDE"
+        - - "LOAD_TIME"
+          - "LOAD_TIME"
+        - - "V_END_TIME_NEW"
+          - "END_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Unite:
+      type: "unite"
+      sources:
+      - "SQL"
+      - "Filter 2 2"
+      parameters:
+        componentName: "Unite"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    Rank 2:
+      type: "rank"
+      sources:
+      - "Unite"
+      parameters:
+        componentName: "Rank 2"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "EMP_ID"
+        orderingWithinPartitions:
+        - - "LOAD_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "RN"
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "Rank 2"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "V_OLD_END_TIME"
+    DIM_USER_DETAILS_SCD2 2:
+      type: "table-output"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "DIM_USER_DETAILS_SCD2 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_USER_DETAILS_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "compare_WEBSITE"
+          - "WEBSITE"
+        - - "compare_EMP_ID"
+          - "EMP_ID"
+        - - "compare_EMP_NAME"
+          - "EMP_NAME"
+        - - "compare_USER_NAME"
+          - "USER_NAME"
+        - - "COMPANY_NAME"
+          - "COMPANY_NAME"
+        - - "compare_EMAIL"
+          - "EMAIL"
+        - - "compare_PHONE_NUMBER"
+          - "PHONE_NUMBER"
+        - - "compare_CITY"
+          - "CITY"
+        - - "compare_BS"
+          - "BS"
+        - - "compare_CATCHPHRASE"
+          - "CATCHPHRASE"
+        - - "compare_STREET"
+          - "STREET"
+        - - "compare_ZIPCODE"
+          - "ZIPCODE"
+        - - "compare_SUITE"
+          - "SUITE"
+        - - "compare_LATITUDE"
+          - "LATITUDE"
+        - - "compare_LONGITUDE"
+          - "LONGITUDE"
+        - - "V_LOAD_TIME"
+          - "LOAD_TIME"
+        - - "V_END_TIME_OLD"
+          - "END_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    DIM_USER_DETAILS_SCD2 3:
+      type: "table-update"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "DIM_USER_DETAILS_SCD2 3"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_USER_DETAILS_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"EMP_ID\"=\"target\".\"EMP_ID\"AND\"target\".\"END_TIME\"\
+            \ IS NULL AND \"target\".\"LOAD_TIME\"=\"input\".\"LOAD_TIME\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"EMP_ID\"=\"target\".\"EMP_ID\"AND\"target\".\"END_TIME\"\
+            \ IS NULL AND \"target\".\"LOAD_TIME\"=\"input\".\"LOAD_TIME\""
+          - "Update"
+        updateMapping:
+        - - "WEBSITE"
+          - "WEBSITE"
+        - - "EMP_ID"
+          - "EMP_ID"
+        - - "EMP_NAME"
+          - "EMP_NAME"
+        - - "USER_NAME"
+          - "USER_NAME"
+        - - "COMPANY_NAME"
+          - "COMPANY_NAME"
+        - - "EMAIL"
+          - "EMAIL"
+        - - "PHONE_NUMBER"
+          - "PHONE_NUMBER"
+        - - "CITY"
+          - "CITY"
+        - - "BS"
+          - "BS"
+        - - "CATCHPHRASE"
+          - "CATCHPHRASE"
+        - - "STREET"
+          - "STREET"
+        - - "ZIPCODE"
+          - "ZIPCODE"
+        - - "SUITE"
+          - "SUITE"
+        - - "LATITUDE"
+          - "LATITUDE"
+        - - "LONGITUDE"
+          - "LONGITUDE"
+        - - "compare_LOAD_TIME"
+          - "LOAD_TIME"
+        - - "V_OLD_END_TIME"
+          - "END_TIME"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    STG_USER_DETAILS:
+      position:
+        x: -1030
+        "y": -160
+      tempMetlId: 1
+    DIM_USER_DETAILS_SCD2:
+      position:
+        x: -1040
+        "y": -20
+      tempMetlId: 2
+    Rank:
+      position:
+        x: -880
+        "y": -160
+      tempMetlId: 3
+    Filter:
+      position:
+        x: -710
+        "y": -150
+      tempMetlId: 4
+    SQL:
+      position:
+        x: -880
+        "y": -30
+      tempMetlId: 5
+    Detect Changes:
+      position:
+        x: -530
+        "y": -50
+      tempMetlId: 6
+    Filter 2:
+      position:
+        x: -370
+        "y": -80
+      tempMetlId: 7
+    Filter 2 2:
+      position:
+        x: -390
+        "y": 10
+      tempMetlId: 8
+    Calculator:
+      position:
+        x: -210
+        "y": -80
+      tempMetlId: 9
+    Calculator 2:
+      position:
+        x: -220
+        "y": 40
+      tempMetlId: 10
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -50
+        "y": -80
+      tempMetlId: 11
+    Unite:
+      position:
+        x: -510
+        "y": 170
+      tempMetlId: 13
+    Rank 2:
+      position:
+        x: -360
+        "y": 190
+      tempMetlId: 14
+    Calculator 3:
+      position:
+        x: -200
+        "y": 190
+      tempMetlId: 15
+    DIM_USER_DETAILS_SCD2 2:
+      position:
+        x: -60
+        "y": 40
+      tempMetlId: 16
+    DIM_USER_DETAILS_SCD2 3:
+      position:
+        x: -40
+        "y": 190
+      tempMetlId: 17

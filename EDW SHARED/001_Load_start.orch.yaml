@@ -1,0 +1,221 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Update control table"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Update control table:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Start new load"
+      skipped: false
+      parameters:
+        componentName: "Update control table"
+        sqlScript: |-
+          UPDATE ${ev_edp_curated_schema}.JOB_CONTROL_TABLE
+          SET RUN_STATUS = 'Y'
+          WHERE RUN_STATUS = 'N'
+          AND ACTIVE_STATUS = 'Y'
+          AND JOB_GROUP = '${jv_job_group}'
+          AND SUBJECT_AREA = '${jv_subject_area}'
+    Start new load:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Python Script 0"
+        - "Copy of Grid Iterator 0"
+      skipped: false
+      parameters:
+        componentName: "Start new load"
+        mode: "Advanced"
+        query: "SELECT JOB_NAME from ${ev_edp_curated_schema}.JOB_CONTROL_TABLE\n\
+          WHERE RUN_STATUS = 'Y' AND ACTIVE_STATUS = 'Y' AND SUBJECT_AREA = '${jv_subject_area}'\
+          \ \nAND JOB_GROUP = '${jv_job_group}' ORDER BY JOB_SEQ"
+        gridVariable: "gv_control_table"
+        gridVariableMapping:
+        - - "JOB_NAME"
+          - "gv_control_job_name"
+    Copy of Grid Iterator 0:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Python Script 1"
+      iterationTarget: "SALES Jobs"
+      skipped: false
+      parameters:
+        componentName: "Copy of Grid Iterator 0"
+        gridVariable: "gv_control_table"
+        gridIteratorVariableMapping:
+        - - "gv_control_job_name"
+          - "jv_control_job_name"
+        concurrency: "Sequential"
+    SALES Jobs:
+      type: "run-orchestration"
+      skipped: false
+      parameters:
+        componentName: "SALES Jobs"
+        orchestrationJob: "${jv_control_job_name}"
+        setScalarVariables:
+        - - "jv_job_parent"
+          - "${jv_job_parent}"
+        - - "jv_subject_area"
+          - "${jv_subject_area}"
+        - - "jv_curr_run_dt"
+          - "${jv_curr_run_dt}"
+        - - "jv_last_run_dt"
+          - "${jv_last_run_dt}"
+        - - "jv_load_id"
+          - "${jv_load_id}"
+        - - "jv_process_date"
+          - "${jv_process_date}"
+        setGridVariables:
+    Python Script 0:
+      type: "python-script"
+      skipped: false
+      parameters:
+        componentName: "Python Script 0"
+        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
+          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint(jv_control_job_name)\n\
+          print(jv_curr_run_dt)\nprint(jv_error_message)\nprint(jv_job_group)\nprint(jv_job_parent)\n\
+          print(jv_last_run_dt)\nprint(jv_load_id)\nprint(jv_process_date)\nprint(jv_subject_area)"
+        interpreter: "Python 3"
+        timeout: "360"
+    Python Script 1:
+      type: "python-script"
+      skipped: false
+      parameters:
+        componentName: "Python Script 1"
+        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
+          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint(jv_control_job_name)\n\
+          print(jv_curr_run_dt)\nprint(jv_error_message)\nprint(jv_job_group)\nprint(jv_job_parent)\n\
+          print(jv_last_run_dt)\nprint(jv_load_id)\nprint(jv_process_date)\nprint(jv_subject_area)"
+        interpreter: "Python 3"
+        timeout: "360"
+  variables:
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_job_group:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-02-01"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SALES Load"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_control_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "o_Dim_Load_Stg_To_Curated"
+    gv_control_table:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_control_job_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start 0:
+      position:
+        x: -464
+        "y": 0
+      tempMetlId: 17359
+    Update control table:
+      position:
+        x: -304
+        "y": 0
+      tempMetlId: 17362
+    Start new load:
+      position:
+        x: -176
+        "y": 0
+      tempMetlId: 17363
+    Copy of Grid Iterator 0:
+      position:
+        x: -32
+        "y": 0
+      tempMetlId: 17364
+    SALES Jobs:
+      position:
+        x: -32
+        "y": 32
+      tempMetlId: 17365
+    Python Script 0:
+      position:
+        x: -176
+        "y": 80
+      tempMetlId: 28976
+    Python Script 1:
+      position:
+        x: 96
+        "y": 0
+      tempMetlId: 28981

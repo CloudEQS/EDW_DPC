@@ -1,0 +1,225 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "STG_PRODUCT"
+      - "SQL"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "SQL"
+        matchKeys:
+        - "PRODUCT_ID"
+        compareColumns:
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        outputColumnMapping:
+        - - "compare_PRODUCT_ID"
+          - "V_PRODUCT_ID"
+        - - "compare_PRODUCT_NAME"
+          - "V_PRODUCT_NAME"
+        - - "compare_PRODUCT_CATEGORY"
+          - "V_PRODUCT_CATEGORY"
+        - - "compare_PRODUCT_SUBCATEGORY"
+          - "V_PRODUCT_SUBCATEGORY"
+        - - "compare_BRAND_NAME"
+          - "V_BRAND_NAME"
+        - - "compare_PRICE"
+          - "V_PRICE"
+        indicatorColumn: "Indicator"
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "SELECT * FROM EDW_LAB.PUBLIC.DIM_PRODUCT WHERE END_TIME IS NULL"
+    CHANGED:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "CHANGED"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "And"
+    NEW DATA:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "NEW DATA"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "And"
+    DIM_PRODUCT_NEW:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_NEW"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "V_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "V_PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "V_PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "V_PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "V_BRAND_NAME"
+          - "BRAND_NAME"
+        - - "V_PRICE"
+          - "PRICE"
+        - - "NEW_LOAD_TIME_V"
+          - "LOAD_TIME"
+        - - "NEW_END_TIME_V"
+          - "END_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Unite:
+      type: "unite"
+      sources:
+      - "NEW DATA"
+      - "CHANGED"
+      parameters:
+        componentName: "Unite"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "CHANGED"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "OLD_LOAD_TIME"
+        - - "CURRENT_TIMESTAMP()"
+          - "OLD_END_TIME"
+    DIM_PRODUCT_OLD:
+      type: "table-update"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "DIM_PRODUCT_OLD"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Update"
+        updateMapping:
+        - - "OLD_LOAD_TIME"
+          - "LOAD_TIME"
+        - - "OLD_LOAD_TIME"
+          - "END_TIME"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Unite"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "NEW_LOAD_TIME_V"
+        - - "NULL"
+          - "NEW_END_TIME_V"
+design:
+  components:
+    STG_PRODUCT:
+      position:
+        x: -420
+        "y": -110
+      tempMetlId: 1
+    Detect Changes:
+      position:
+        x: -190
+        "y": -30
+      tempMetlId: 2
+    SQL:
+      position:
+        x: -410
+        "y": 30
+      tempMetlId: 4
+    CHANGED:
+      position:
+        x: -40
+        "y": 20
+      tempMetlId: 5
+    NEW DATA:
+      position:
+        x: -50
+        "y": -100
+      tempMetlId: 6
+    DIM_PRODUCT_NEW:
+      position:
+        x: 430
+        "y": -60
+      tempMetlId: 8
+    Unite:
+      position:
+        x: 100
+        "y": -60
+      tempMetlId: 9
+    Calculator 2:
+      position:
+        x: 160
+        "y": 70
+      tempMetlId: 10
+    DIM_PRODUCT_OLD:
+      position:
+        x: 320
+        "y": 70
+      tempMetlId: 11
+    Calculator:
+      position:
+        x: 260
+        "y": -60
+      tempMetlId: 12

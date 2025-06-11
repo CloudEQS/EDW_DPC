@@ -1,0 +1,113 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        timeOffset:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "STG_PRODUCT_SCD2"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "old_rec_end_time"
+        - - "NULL"
+          - "new_rec_end_time"
+    DIM_PRODUCT_SCD2:
+      type: "table-update"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\"AND\"target\".\"END_TIME\"\
+            \ IS NULL AND \"input\".\"LOAD_TIMESTAMP\"=\"target\".\"LOAD_TIMESTAMP\"\
+            OR\r\n\"input\".\"PRODUCT_NAME\"=\"target\".\"PRODUCT_NAME\"OR\r\n\"input\"\
+            .\"PRODUCT_CATEGORY\"=\"target\".\"PRODUCT_CATEGORY\"OR\r\n\"input\".\"\
+            PRODUCT_SUBCATEGORY\"=\"target\".\"PRODUCT_SUBCATEGORY\"OR\r\n\"input\"\
+            .\"BRAND_NAME\"=\"target\".\"BRAND_NAME\"OR\r\n\"input\".\"PRICE\"=\"\
+            target\".\"PRICE\"OR\r\n\"input\".\"CURRENCY_CODE\"=\"target\".\"CURRENCY_CODE\"\
+            OR\r\n\"input\".\"SOURCE_SYSTEM\"=\"target\".\"SOURCE_SYSTEM\"OR\r\n\"\
+            input\".\"LOAD_TIMESTAMP\"=\"target\".\"LOAD_TIMESTAMP\r\n\r\n"
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\"AND\"target\".\"END_TIME\"\
+            \ IS NULL AND \"input\".\"LOAD_TIMESTAMP\"=\"target\".\"LOAD_TIMESTAMP\"\
+            OR\r\n\"input\".\"PRODUCT_NAME\"=\"target\".\"PRODUCT_NAME\"OR\r\n\"input\"\
+            .\"PRODUCT_CATEGORY\"=\"target\".\"PRODUCT_CATEGORY\"OR\r\n\"input\".\"\
+            PRODUCT_SUBCATEGORY\"=\"target\".\"PRODUCT_SUBCATEGORY\"OR\r\n\"input\"\
+            .\"BRAND_NAME\"=\"target\".\"BRAND_NAME\"OR\r\n\"input\".\"PRICE\"=\"\
+            target\".\"PRICE\"OR\r\n\"input\".\"CURRENCY_CODE\"=\"target\".\"CURRENCY_CODE\"\
+            OR\r\n\"input\".\"SOURCE_SYSTEM\"=\"target\".\"SOURCE_SYSTEM\"OR\r\n\"\
+            input\".\"LOAD_TIMESTAMP\"=\"target\".\"LOAD_TIMESTAMP\r\n\r\n\r\n"
+          - "Update"
+        updateMapping:
+        - - "new_rec_end_time"
+          - "END_TIME"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIMESTAMP"
+          - "LOAD_TIMESTAMP"
+        - - "old_rec_end_time"
+          - "END_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    STG_PRODUCT_SCD2:
+      position:
+        x: -280
+        "y": -30
+      tempMetlId: 1
+    Calculator:
+      position:
+        x: -120
+        "y": -30
+      tempMetlId: 2
+    DIM_PRODUCT_SCD2:
+      position:
+        x: 40
+        "y": -30
+      tempMetlId: 3

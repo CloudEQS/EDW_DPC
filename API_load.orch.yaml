@@ -1,0 +1,55 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "My cust user conn"
+      parameters:
+        componentName: "Start"
+    My cust user conn:
+      type: "modular-api-extract-input-v2"
+      parameters:
+        componentName: "My cust user conn"
+        componentId: "custom_v2-3877433f-f157-4e70-bfe5-a9f0d4f3d61a"
+        inputId: "api-extract-input-v2"
+        api-extract-input-v2:
+          profile: "custom-3877433f-f157-4e70-bfe5-a9f0d4f3d61a"
+          endpoint: "User Endpoint"
+          connectionRef:
+            overrides:
+              authType: "NONE"
+          uriParams:
+          queryParams:
+          headerParams:
+          postBody:
+          pageLimit:
+          logLevel: "ERROR"
+          loadSelectedData: "No"
+        outputId: "snowflake-output-connector-v0"
+        snowflake-output-connector-v0:
+          warehouse: "[Environment Default]"
+          database: "EDW_LAB"
+          schema: "PUBLIC"
+          tableName: "USERS_DATA_API"
+          createTableMode: "APPEND"
+          cleanStagedFiles: "Yes"
+          stagePlatform: "SNOWFLAKE"
+          snowflake#internalStageType: "USER"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: -1650
+        "y": -280
+      tempMetlId: 1
+    My cust user conn:
+      position:
+        x: -1390
+        "y": -290
+      tempMetlId: 2

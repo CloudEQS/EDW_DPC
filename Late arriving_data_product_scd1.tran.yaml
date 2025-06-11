@@ -1,0 +1,281 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_FACT_SALES:
+      type: "table-input"
+      parameters:
+        componentName: "STG_FACT_SALES"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_FACT_SALES"
+        columnNames:
+        - "SALES_ID"
+        - "PRODUCT_ID"
+        - "SALES_AMOUNT"
+        - "SALES_TIME"
+        timeOffset:
+    DIM_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIME"
+        - "END_TIME"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "CURRENT ROWS FROM STG TABLE"
+      - "Active Products"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "CURRENT ROWS FROM STG TABLE"
+        matchKeys:
+        - "PRODUCT_ID"
+        compareColumns:
+        - "PRODUCT_ID"
+        outputColumnMapping:
+        - - "master_PRODUCT_ID"
+          - "V_PRDODUCT_ID"
+        - - "master_SALES_TIME"
+          - "V_SALES_TIME"
+        - - "master_SALES_ID"
+          - "V_SALES_ID"
+        - - "master_SALES_AMOUNT"
+          - "V_SALES_AMOUNT"
+        indicatorColumn: "Indicator"
+    CURRENT ROWS FROM STG TABLE:
+      type: "sql"
+      sources:
+      - "STG_FACT_SALES"
+      parameters:
+        componentName: "CURRENT ROWS FROM STG TABLE"
+        query: "SELECT F.PRODUCT_ID,F.SALES_TIME,F.SALES_ID,F.SALES_AMOUNT\r\nFROM\
+          \ EDW_LAB.PUBLIC.STG_FACT_SALES F JOIN  EDW_LAB.PUBLIC.DIM_PRODUCT_SCD2\
+          \ D\r\nWHERE F.SALES_TIME BETWEEN D.LOAD_TIME AND D.END_TIME"
+    Active Products:
+      type: "sql"
+      sources:
+      - "DIM_PRODUCT_SCD2"
+      parameters:
+        componentName: "Active Products"
+        query: "SELECT * FROM EDW_LAB.PUBLIC.DIM_PRODUCT_SCD2 WHERE END_TIME IS NULL"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CASE WHEN \"SALES_SALES_TIME\">TO_TIMESTAMP('${V_LAST_EVENT_TIME}')\r\
+            \nTHEN 'TRUE'\r\nELSE 'FALSE'\r\nEND"
+          - "IS_LATE"
+    Late_arriaval:
+      type: "filter"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "Late_arriaval"
+        filterConditions:
+        - - "IS_LATE"
+          - "Is"
+          - "Equal to"
+          - "TRUE"
+        combineCondition: "And"
+    On Time:
+      type: "filter"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "On Time"
+        filterConditions:
+        - - "IS_LATE"
+          - "Is"
+          - "Equal to"
+          - "FALSE"
+        combineCondition: "And"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "On Time"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "V_SALES_TIME"
+    FACT_SALES:
+      type: "table-output"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "FACT_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "FACT_SALES"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SALES_SALES_ID"
+          - "SALES_ID"
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "V_SALES_TIME"
+          - "SALES_TIME_V"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "Late_arriaval"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LATE_SALES_TIME"
+    AUDIT_LATE_SALES:
+      type: "table-update"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "AUDIT_LATE_SALES"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "AUDIT_LATE_SALES"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"SALES_PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"SALES_PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Update"
+        updateMapping:
+        - - "SALES_SALES_ID"
+          - "SALES_ID"
+        - - "SALES_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "SALES_SALES_TIME"
+          - "SALES_TIME"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "SALES_SALES_ID"
+          - "SALES_ID"
+        - - "SALES_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "SALES_SALES_AMOUNT"
+          - "SALES_AMOUNT"
+        - - "SALES_SALES_TIME"
+          - "SALES_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    S_MAX_EVENT_TIME:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    V_LAST_EVENT_TIME:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1900-06-08 21:11:16.491"
+    GRID_EVENT_TIME:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          S_LAST_EVENT_TIME:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    STG_FACT_SALES:
+      position:
+        x: -1320
+        "y": -20
+      tempMetlId: 20
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -1330
+        "y": 170
+      tempMetlId: 21
+    Detect Changes:
+      position:
+        x: -950
+        "y": 60
+      tempMetlId: 22
+    CURRENT ROWS FROM STG TABLE:
+      position:
+        x: -1110
+        "y": -20
+      tempMetlId: 23
+    Active Products:
+      position:
+        x: -1150
+        "y": 180
+      tempMetlId: 26
+    Calculator:
+      position:
+        x: -800
+        "y": 60
+      tempMetlId: 27
+    Late_arriaval:
+      position:
+        x: -620
+        "y": 30
+      tempMetlId: 28
+    On Time:
+      position:
+        x: -640
+        "y": 140
+      tempMetlId: 29
+    Calculator 2:
+      position:
+        x: -480
+        "y": 140
+      tempMetlId: 30
+    FACT_SALES:
+      position:
+        x: -320
+        "y": 140
+      tempMetlId: 31
+    Calculator 3:
+      position:
+        x: -460
+        "y": 10
+      tempMetlId: 32
+    AUDIT_LATE_SALES:
+      position:
+        x: -300
+        "y": 10
+      tempMetlId: 33

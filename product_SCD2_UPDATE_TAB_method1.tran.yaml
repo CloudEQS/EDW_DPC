@@ -1,0 +1,113 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD2_UPDATE"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIME"
+        timeOffset:
+    DIM_PRODUCT_SCD2:
+      type: "table-update"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2_UPDATE"
+        targetAlias: "target"
+        sourceAlias: "source"
+        joinExpression:
+        - - "\"source\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Case"
+        whenMatched:
+        - - "\"source\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\""
+          - "Update"
+        updateMapping:
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIME"
+          - "LOAD_TIME"
+        - - "UPDATED _FLAG_NEW"
+          - "END_TIME"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIME"
+          - "LOAD_TIME"
+        - - "UPDATE_OLD"
+          - "END_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "STG_PRODUCT_SCD2"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "UPDATED _FLAG_NEW"
+        - - "NULL"
+          - "UPDATE_OLD"
+design:
+  components:
+    STG_PRODUCT_SCD2:
+      position:
+        x: -460
+        "y": -110
+      tempMetlId: 1
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -30
+        "y": -110
+      tempMetlId: 2
+    Calculator:
+      position:
+        x: -240
+        "y": -110
+      tempMetlId: 3

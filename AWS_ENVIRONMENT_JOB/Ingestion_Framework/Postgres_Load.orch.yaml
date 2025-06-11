@@ -1,0 +1,913 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Read source objects"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    If 0:
+      type: "if"
+      transitions:
+        "true":
+        - "Alter Warehouse Inc"
+        "false":
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "If 0"
+        mode: "Simple"
+        condition:
+        - - "jv_detail_code"
+          - "Is"
+          - "Equal to"
+          - "Wharehouse_size"
+        combineConditions: "And"
+    Read table metadata 1:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Database Query advance mode"
+      skipped: false
+      parameters:
+        componentName: "Read table metadata 1"
+        mode: "Advanced"
+        query: "/* Note: this query will be run as a subquery for the purposes of\
+          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
+          \ specified by the current platform. */\n   \n   select field_name, data_type\
+          \ from ${ev_sf_database_lab}.FRAMEWORK.SOurce_Object_metadata \n   where\
+          \ source_object_id = ${jv_source_object_id} and source_system_id = ${jv_source_system_id}"
+        gridVariable: "gv_table_creator"
+        gridVariableMapping:
+        - - "DATA_TYPE"
+          - "data_type"
+        - - "FIELD_NAME"
+          - "field_name"
+    Grid to job variables:
+      type: "python-script"
+      transitions:
+        success:
+        - "If 0"
+      skipped: false
+      parameters:
+        componentName: "Grid to job variables"
+        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
+          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint(jv_object_name)\n\
+          print(jv_object_type)\nprint(jv_refresh_frequency)\nprint(jv_refresh_type)\n\
+          print(jv_source_custom_query)\nprint(jv_source_object_id)\nprint(jv_source_system_code)\n\
+          print(jv_source_system_id)\nprint(jv_target_table)\nprint(jv_wharehouse_name)\n\
+          print(merge_str)\n\n\nSource_Object_Details = context.getGridVariable('gv_source_object_details')\n\
+          print(Source_Object_Details)\n\n\nif Source_Object_Details != None:\n  for\
+          \ array in Source_Object_Details:\n    if array[0] == 'Wharehouse_size':\n\
+          \      context.updateVariable('jv_wharehouse_name', array[1])\n      context.updateVariable('jv_detail_code',\
+          \ array[0])\n    print(jv_wharehouse_name,jv_detail_code)"
+        interpreter: "Python 3"
+        timeout: "360"
+    Read source objects:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Grid to job variables"
+      skipped: false
+      parameters:
+        componentName: "Read source objects"
+        mode: "Advanced"
+        query: "   /* Note: this query will be run as a subquery for the purposes\
+          \ of sampling the data.\n   As such it will be restricted by any subquery\
+          \ limitations specified by the current platform. */\n   \n   select DETAIL_CODE,DETAIL_VALUE\
+          \ from ${ev_sf_database_lab}.FRAMEWORK.Source_Object_Details\n   where Source_System_id\
+          \ =  ${jv_source_system_id}"
+        gridVariable: "gv_source_object_details"
+        gridVariableMapping:
+        - - "DETAIL_CODE"
+          - "detail_code"
+        - - "DETAIL_VALUE"
+          - "detail_value"
+    Get error message 0:
+      type: "python-script"
+      transitions:
+        success:
+        - "error_log 0"
+      skipped: false
+      parameters:
+        componentName: "Get error message 0"
+        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
+          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
+          context.updateVariable('jv_error_message' , detailed_error)\nprint(jv_error_message)"
+        interpreter: "Python 3"
+        timeout: "360"
+    End Failure 0:
+      type: "end-failure"
+      skipped: false
+      parameters:
+        componentName: "End Failure 0"
+    Path for Append:
+      type: "if"
+      transitions:
+        "true":
+        - "Or 2"
+      skipped: false
+      parameters:
+        componentName: "Path for Append"
+        mode: "Simple"
+        condition:
+        - - "jv_refresh_type"
+          - "Is"
+          - "Equal to"
+          - "Append"
+        combineConditions: "And"
+    Dynamic_query 1:
+      type: "python-script"
+      transitions:
+        success:
+        - "Dynamic_query_sql 0"
+      skipped: false
+      parameters:
+        componentName: "Dynamic_query 1"
+        script: "merge_query_string = \"MERGE INTO \"\ninsert_query_string = \"INSERT\
+          \ INTO\"\ntable_name = jv_target_table\ncolumn_string = \"\"\nupdate_string\
+          \ = \"\"\ninsert_string = \"\"\nbusiness_key_col = jv_business_key\ndynamic_query_string\
+          \ = \"\"\nrefresh_type = jv_refresh_type\narray = context.getGridVariable('gv_table_creator')\n\
+          \nif refresh_type == \"Merge\":\n  for data in array:\n      insert_string\
+          \ += f'{table_name}_TMP.\"{data[1]}\",'\n\n  insert_string = insert_string.rstrip(',')\n\
+          \n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n  column_string\
+          \ = column_string.rstrip(',')  \n\n  for data in array:\n      update_string\
+          \ += f'{table_name}.\"{data[1]}\" = {table_name}_TMP.\"{data[1]}\",'\n\n\
+          \  update_string = update_string.rstrip(',')   \n\n  merge_query_string\
+          \ = f'{merge_query_string} {table_name} USING  {table_name}_TMP ON {table_name}.\"\
+          {business_key_col}\" = {table_name}_TMP.\"{business_key_col}\" WHEN MATCHED\
+          \ THEN UPDATE SET {update_string} WHEN NOT MATCHED THEN INSERT ({column_string})\
+          \ VALUES ({insert_string})' \n\n  print (merge_query_string)\n\n  context.updateVariable(\"\
+          dynamic_query_str\", merge_query_string)\n\n  \nif refresh_type == \"Append\"\
+          :\n\n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n\
+          \  column_string = column_string.rstrip(',')    \n\n  insert_query_string\
+          \ = f'{insert_query_string}  {table_name} ({column_string}) Select  {column_string}\
+          \ from  {table_name}_TMP'\n\n  print (insert_query_string)\n\n  context.updateVariable(\"\
+          dynamic_query_str\", insert_query_string)\n"
+        interpreter: "Python 3"
+        timeout: "360"
+    Alter Warehouse Dec:
+      type: "alter-warehouse"
+      transitions:
+        success:
+        - "End Success 0"
+      skipped: false
+      parameters:
+        componentName: "Alter Warehouse Dec"
+        warehouse: "${jv_wharehouse_name}"
+        commandType: "Set"
+        properties:
+        - - "WAREHOUSE_SIZE"
+          - "XSMALL"
+    Or 1:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Get error message 0"
+      skipped: false
+      parameters:
+        componentName: "Or 1"
+    Dynamic_query_sql 0:
+      type: "sql-script"
+      transitions:
+        success:
+        - "If 1"
+      skipped: false
+      parameters:
+        componentName: "Dynamic_query_sql 0"
+        sqlScript: "${dynamic_query_str}"
+    Or 0:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Read table metadata 1"
+      skipped: false
+      parameters:
+        componentName: "Or 0"
+    Database Query advance mode:
+      type: "database-query"
+      transitions:
+        success:
+        - "Path for Append"
+        - "Path for Merge 0"
+        failure:
+        - "Or 1"
+      skipped: false
+      parameters:
+        componentName: "Database Query advance mode"
+        basicAdvancedMode: "Advanced"
+        databaseType: "PostgreSQL"
+        connectionUrl: "jdbc:postgresql://${ev_postgres_url}/${postgres_db}"
+        username: "${ev_postgres_user}"
+        password: "postgress_pass"
+        connectionOptions:
+        sqlQuery: |
+          SELECT * FROM ${jv_object_name}
+        type: "Standard"
+        primaryKeys:
+        warehouse1: "WH_ETL"
+        database: "${ev_sf_database}"
+        schema: "${ev_edp_staging_schema}"
+        targetTable: "${jv_refresh_type == 'Merge'  ? jv_target_table +'_TMP' : jv_refresh_type\
+          \ == 'Append' ? jv_target_table +'_TMP' : jv_target_table}"
+        stage1: "[Custom]"
+        stagePlatform: "Snowflake Managed"
+        loadOptions:
+        - "On"
+        - "Off"
+        - "On"
+        - ""
+        - "On"
+        - "Gzip"
+      postProcessing:
+        updateScalarVariables:
+        - - "jv_status"
+          - "${sysvar.thisComponent.status}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "jv_message"
+          - "${sysvar.thisComponent.message}"
+    End Success 0:
+      type: "end-success"
+      skipped: false
+      parameters:
+        componentName: "End Success 0"
+    If 1:
+      type: "if"
+      transitions:
+        "true":
+        - "Alter Warehouse Dec"
+        "false":
+        - "End Success 1"
+      skipped: false
+      parameters:
+        componentName: "If 1"
+        mode: "Simple"
+        condition:
+        - - "jv_detail_code"
+          - "Is"
+          - "Equal to"
+          - "Wharehouse_size"
+        combineConditions: "And"
+    Path for Merge 0:
+      type: "if"
+      transitions:
+        "true":
+        - "Get business key 0"
+      skipped: false
+      parameters:
+        componentName: "Path for Merge 0"
+        mode: "Simple"
+        condition:
+        - - "jv_refresh_type"
+          - "Is"
+          - "Equal to"
+          - "Merge"
+        combineConditions: "And"
+    Alter Warehouse Inc:
+      type: "alter-warehouse"
+      transitions:
+        success:
+        - "Or 0"
+      skipped: false
+      parameters:
+        componentName: "Alter Warehouse Inc"
+        warehouse: "${jv_wharehouse_name}"
+        commandType: "Set"
+        properties:
+        - - "WAREHOUSE_SIZE"
+          - "MEDIUM"
+    End Success 1:
+      type: "end-success"
+      skipped: false
+      parameters:
+        componentName: "End Success 1"
+    Get business key 0:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or 2"
+      skipped: false
+      parameters:
+        componentName: "Get business key 0"
+        mode: "Advanced"
+        query: "/* Note: this query will be run as a subquery for the purposes of\
+          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
+          \ specified by the current platform. */\n   \n   select Field_name from\
+          \ ${ev_sf_database_lab}.FRAMEWORK.Source_Object_Metadata som\n   right join\
+          \ ${ev_sf_database_lab}.FRAMEWORK.Source_Objects so \n   on som.SOURCE_OBJECT_ID\
+          \ = so.SOURCE_OBJECT_ID and som.Source_System_id = so.Source_System_id\n\
+          \   where so.Target_table = '${jv_target_table}' and som.Business_key ='Y'"
+        scalarVariableMapping:
+        - - "jv_business_key"
+          - "FIELD_NAME"
+    Or 2:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Dynamic_query 1"
+      skipped: false
+      parameters:
+        componentName: "Or 2"
+    error_log 0:
+      type: "unknown-orchestration"
+      transitions:
+        success:
+        - "End Failure 0"
+      skipped: false
+      parameters:
+        "1": "error_log 0"
+        "2":
+        - "1":
+          - - "gv_error_log"
+        - "1":
+          - - "gv_load_id"
+            - "gv_job_name"
+            - "gv_job_parent"
+            - "gv_table_name"
+            - "gv_table_type"
+            - "gv_error_rows"
+            - "gv_subject_area"
+            - "gv_process_date"
+            - "gv_start_time"
+            - "gv_run_history_id"
+            - "gv_status"
+            - "gv_message"
+  variables:
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    merge_str:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    query_str:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_comment:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "aa"
+    jv_load_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "DEFAULT"
+    jv_table_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "DEFAULT"
+    jv_active_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_detail_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "test"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-02-01"
+    jv_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "public.actor"
+    jv_object_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_business_key:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_number:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2021-01-01"
+    jv_refresh_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Append"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "S3 Load"
+    jv_success_flag:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_target_table:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "TEST"
+    jv_updated_rows:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    dynamic_query_str:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_run_history_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_wharehouse_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "WH_ETL"
+    jv_source_object_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "9"
+    jv_source_system_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_refresh_frequency:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_system_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_custom_query:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_load_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_table_creator:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          data_type:
+            columnType: "TEXT"
+          field_name:
+            columnType: "TEXT"
+      defaultValue:
+      - - "varchar"
+        - "qq"
+      - - "varchar"
+        - "ww"
+    gv_source_objects:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          Source_System_id:
+            columnType: "TEXT"
+          Source_Object_id:
+            columnType: "TEXT"
+          Object_name:
+            columnType: "TEXT"
+          Refresh_frequency:
+            columnType: "TEXT"
+          Refresh_type:
+            columnType: "TEXT"
+          Source_custom_query:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_source_object_details:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          detail_code:
+            columnType: "TEXT"
+          detail_value:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start 0:
+      position:
+        x: -984
+        "y": 71
+      tempMetlId: 912801
+    If 0:
+      position:
+        x: -584
+        "y": 71
+      tempMetlId: 912802
+    Read table metadata 1:
+      position:
+        x: -288
+        "y": 64
+      tempMetlId: 912803
+    Grid to job variables:
+      position:
+        x: -696
+        "y": 71
+      tempMetlId: 912806
+    Read source objects:
+      position:
+        x: -856
+        "y": 71
+      tempMetlId: 912807
+    Get error message 0:
+      position:
+        x: 64
+        "y": 272
+      tempMetlId: 912816
+    End Failure 0:
+      position:
+        x: 736
+        "y": 272
+      tempMetlId: 912817
+    Path for Append:
+      position:
+        x: -16
+        "y": 144
+      tempMetlId: 912818
+    Dynamic_query 1:
+      position:
+        x: 304
+        "y": 64
+      tempMetlId: 912820
+    Alter Warehouse Dec:
+      position:
+        x: 576
+        "y": -160
+      tempMetlId: 912821
+    Or 1:
+      position:
+        x: -160
+        "y": 272
+      tempMetlId: 912822
+    Dynamic_query_sql 0:
+      position:
+        x: 448
+        "y": 64
+      tempMetlId: 912823
+    Or 0:
+      position:
+        x: -400
+        "y": 64
+      tempMetlId: 912824
+    Database Query advance mode:
+      position:
+        x: -160
+        "y": 64
+      tempMetlId: 912825
+    End Success 0:
+      position:
+        x: 752
+        "y": -160
+      tempMetlId: 912826
+    If 1:
+      position:
+        x: 576
+        "y": 64
+      tempMetlId: 912827
+    Path for Merge 0:
+      position:
+        x: -16
+        "y": 64
+      tempMetlId: 912828
+    Alter Warehouse Inc:
+      position:
+        x: -400
+        "y": -128
+      tempMetlId: 912829
+    End Success 1:
+      position:
+        x: 736
+        "y": 64
+      tempMetlId: 912830
+    Get business key 0:
+      position:
+        x: 128
+        "y": 64
+      tempMetlId: 912831
+    Or 2:
+      position:
+        x: 208
+        "y": 144
+      tempMetlId: 912845
+    error_log 0:
+      position:
+        x: 384
+        "y": 272
+      tempMetlId: 913390
+  notes:
+    "912810":
+      position:
+        x: -534
+        "y": -193
+      size:
+        height: 109
+        width: 263
+      theme: "yellow"
+      content: "Increase warehouse size based on condition"
+    "912804":
+      position:
+        x: -384
+        "y": 213
+      size:
+        height: 120
+        width: 1197
+      theme: "red"
+      content: "Failure path "
+    "912805":
+      position:
+        x: 439
+        "y": -211
+      size:
+        height: 109
+        width: 267
+      theme: "yellow"
+      content: "Decrease warehouse size based on condition"

@@ -1,0 +1,62 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "SQL Script"
+      parameters:
+        componentName: "Start"
+    SQL Script:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "SQL Script 2"
+      parameters:
+        componentName: "SQL Script"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "CREATE OR REPLACE TABLE stg_product(\r\n    product_id       \
+          \      STRING,\r\n    product_name           STRING,\r\n    product_category\
+          \       STRING,\r\n    product_subcategory    STRING,\r\n    brand_name\
+          \             STRING,\r\n    price                  NUMBER(10,2),\r\n  \
+          \  currency_code          STRING,\r\n    source_system          STRING,\r\
+          \n    load_timestamp         TIMESTAMP\r\n);"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    SQL Script 2:
+      type: "sql-executor"
+      parameters:
+        componentName: "SQL Script 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO stg_product (\r\n    product_id, product_name, product_category,\
+          \ product_subcategory,\r\n  brand_name, price, currency_code, source_system,\
+          \ load_timestamp\r\n) VALUES\r\n('P001','iPhone 15','Electronics','Smartphones','Apple',999.99,'USD','CRM',CURRENT_TIMESTAMP),\r\
+          \n('P002','Galaxy S23','Electronics','Smartphones','Samsung',899.99,'USD','Website',CURRENT_TIMESTAMP),\r\
+          \n('P003','Pixel 8','Electronics','Smartphones','Google',799.99,'USD','CRM',CURRENT_TIMESTAMP);"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: -410
+        "y": 40
+      tempMetlId: 1
+    SQL Script:
+      position:
+        x: -260
+        "y": 40
+      tempMetlId: 3
+    SQL Script 2:
+      position:
+        x: -100
+        "y": 40
+      tempMetlId: 4

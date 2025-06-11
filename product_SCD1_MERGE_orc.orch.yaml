@@ -1,0 +1,175 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "JOB LOG START"
+      parameters:
+        componentName: "Start"
+    Merge:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "JOB LOG END"
+        failure:
+        - "ERROR LOG"
+      parameters:
+        componentName: "Merge"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO EDW_LAB.PUBLIC.dim_product_scd1 AS target\r\nUSING\
+          \ EDW_LAB.PUBLIC.stg_product_scd1 AS source\r\nON target.product_id = source.product_id\r\
+          \n \r\n-- If match found → update latest values\r\nWHEN MATCHED THEN\r\n\
+          \  UPDATE SET\r\n    target.product_name        = source.product_name,,\r\
+          \n    target.product_category    = source.product_category,\r\n    target.product_subcategory\
+          \ = source.product_subcategory,\r\n    target.brand_name          = source.brand_name,\r\
+          \n    target.price               = source.price,\r\n    target.currency_code\
+          \       = source.currency_code,\r\n    target.source_system       = source.source_system,\r\
+          \n    target.load_timestamp  = CURRENT_TIMESTAMP\r\n \r\n-- If no match\
+          \ → insert new record\r\nWHEN NOT MATCHED THEN\r\n  INSERT (\r\n    product_id,\r\
+          \n    product_name,\r\n    product_category,\r\n    product_subcategory,\r\
+          \n    brand_name,\r\n    price,\r\n    currency_code,\r\n     source_system,\r\
+          \n    load_timestamp\r\n  )\r\n  VALUES (\r\n    source.product_id,\r\n\
+          \    source.product_name,\r\n    source.product_category,\r\n    source.product_subcategory,\r\
+          \n    source.brand_name,\r\n    source.price,\r\n    source.currency_code,\r\
+          \n     source_system,\r\n    CURRENT_TIMESTAMP\r\n  );"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure 2:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure 2"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB LOG START:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Merge"
+      parameters:
+        componentName: "JOB LOG START"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.ingestion_log(Batch_Id,Component_Message,Status,Run_time)values\r\
+          \n('${sysvar.thisComponent.taskId}','${sysvar.thisComponent.message}','JOB\
+          \ Started','${sysvar.thisComponent.startedAt}');"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB LOG END:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success"
+      parameters:
+        componentName: "JOB LOG END"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.ingestion_log(Batch_Id,Component_Message,Status,Run_time)values\r\
+          \n('${sysvar.thisComponent.taskId}','${sysvar.thisComponent.message}','JOB\
+          \ END Successfully','${sysvar.thisComponent.startedAt}');"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    ERROR LOG:
+      type: "sql-executor"
+      transitions:
+        failure:
+        - "End Failure 2"
+      parameters:
+        componentName: "ERROR LOG"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.ingestion_log(Batch_Id,Component_Message,Status,Run_time)values\r\
+          \n('${sysvar.thisComponent.taskId}','${sysvar.thisComponent.message}','JOB\
+          \ GOT FAILED','${sysvar.thisComponent.startedAt}');"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    Job_SOURCE_OBJECT_ID_V:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    Job_Source_system_id_v:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+design:
+  components:
+    Start:
+      position:
+        x: -720
+        "y": -60
+      tempMetlId: 1
+    Merge:
+      position:
+        x: -480
+        "y": -60
+      tempMetlId: 2
+    End Success:
+      position:
+        x: -90
+        "y": -130
+      tempMetlId: 3
+    End Failure 2:
+      position:
+        x: -80
+        "y": 60
+      tempMetlId: 5
+    JOB LOG START:
+      position:
+        x: -600
+        "y": -60
+      tempMetlId: 6
+    JOB LOG END:
+      position:
+        x: -340
+        "y": -130
+      tempMetlId: 7
+    ERROR LOG:
+      position:
+        x: -340
+        "y": 60
+      tempMetlId: 9
+  notes:
+    "1":
+      position:
+        x: -390
+        "y": -190
+      size:
+        height: 178
+        width: 420
+      theme: "white"
+      content: "Success Path"
+    "2":
+      position:
+        x: -430
+        "y": 0
+      size:
+        height: 178
+        width: 430
+      theme: "white"
+      content: "Failure Path"

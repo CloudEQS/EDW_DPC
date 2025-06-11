@@ -1,0 +1,164 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "001-load_log_insert 0"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Set status in control table:
+      type: "sql-script"
+      skipped: true
+      parameters:
+        componentName: "Set status in control table"
+        sqlScript: "UPDATE ${ev_sf_database}.${ev_edp_curated_schema}.JOB_CONTROL_TABLE\n\
+          SET RUN_STATUS = 'N'\nWHERE JOB_NAME = '${jv_job_name}';\n \n"
+    Only for failed job:
+      type: "if"
+      transitions:
+        "true":
+        - "Set status in control table"
+      skipped: false
+      parameters:
+        componentName: "Only for failed job"
+        mode: "Simple"
+        condition:
+        - - "jv_status"
+          - "Is"
+          - "Equal to"
+          - "SUCCESS"
+        combineConditions: "And"
+    "001-load_log_insert 0":
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Only for failed job"
+      skipped: false
+      parameters:
+        componentName: "001-load_log_insert 0"
+        transformationJob: "001-load_log_insert"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_load_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_inserted_rows"
+              - "gv_updated_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+              - "gv_comment"
+  variables:
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    load_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+design:
+  components:
+    Start 0:
+      position:
+        x: -16
+        "y": 0
+      tempMetlId: 912856
+    Set status in control table:
+      position:
+        x: 368
+        "y": 0
+      tempMetlId: 912857
+    Only for failed job:
+      position:
+        x: 240
+        "y": 0
+      tempMetlId: 912862
+    "001-load_log_insert 0":
+      position:
+        x: 112
+        "y": 0
+      tempMetlId: 912863

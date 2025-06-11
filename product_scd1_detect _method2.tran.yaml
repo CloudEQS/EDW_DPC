@@ -1,0 +1,148 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD1:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD1"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD1"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        timeOffset:
+    DIM_PRODUCT_SCD1:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD1"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD1"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "DIM_PRODUCT_SCD1"
+      - "STG_PRODUCT_SCD1"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "DIM_PRODUCT_SCD1"
+        matchKeys:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        compareColumns:
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        - "PRODUCT_ID"
+        outputColumnMapping:
+        indicatorColumn: "Indicator"
+    DIM_PRODUCT_SCD1 2:
+      type: "table-output"
+      sources:
+      - "Filter 2"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD1 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD1"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIMESTAMP"
+          - "LOAD_TIMESTAMP"
+        orderBy:
+        outputMode: "Truncate"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Filter 2:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "Filter 2"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "Or"
+design:
+  components:
+    STG_PRODUCT_SCD1:
+      position:
+        x: -910
+        "y": -60
+      tempMetlId: 1
+    DIM_PRODUCT_SCD1:
+      position:
+        x: -910
+        "y": 70
+      tempMetlId: 2
+    Detect Changes:
+      position:
+        x: -710
+        "y": 0
+      tempMetlId: 3
+    DIM_PRODUCT_SCD1 2:
+      position:
+        x: -360
+        "y": 0
+      tempMetlId: 4
+    Filter 2:
+      position:
+        x: -540
+        "y": 0
+      tempMetlId: 6

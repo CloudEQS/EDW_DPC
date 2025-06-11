@@ -1,0 +1,464 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Append To Grid error log:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "002-error_log_insert 0"
+      skipped: false
+      parameters:
+        componentName: "Append To Grid error log"
+        operation: "Append"
+        targetGridVariable: "gv_error_log"
+        fixedGridMode: "Fixed"
+        valuesGrid:
+        - - "${jv_load_id}"
+          - "${jv_job_name}"
+          - "${jv_job_parent}"
+          - "${jv_table_name}"
+          - "${jv_table_type}"
+          - "0"
+          - "0"
+          - "${jv_subject_area}"
+          - "${jv_process_date}"
+          - "${jv_success_flag}"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_status}"
+          - "${jv_message}"
+          - "${jv_error_rows}"
+          - "0"
+          - "Null"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid 0"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    End Success 0:
+      type: "end-success"
+      skipped: false
+      parameters:
+        componentName: "End Success 0"
+    "002-error_log_insert 0":
+      type: "run-transformation"
+      transitions:
+        success:
+        - "End Success 0"
+      skipped: false
+      parameters:
+        componentName: "002-error_log_insert 0"
+        transformationJob: "EDW SHARED/002-error_log_insert"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_start_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_error_message"
+    Query Result To Grid 0:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Rows to column"
+      skipped: false
+      parameters:
+        componentName: "Query Result To Grid 0"
+        mode: "Advanced"
+        query: "/* Note: this query will be run as a subquery for the purposes of\
+          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
+          \ specified by the current platform. */\n   \nselect count(${jv_col_name_1})\
+          \ as COL_1 \nfrom (${ev_sf_database_lab}.${jv_schema_name}.${jv_table_name})\
+          \ \nwhere (${jv_where_condition_1})\nUNION ALL\nselect count(${jv_col_name_2})\
+          \ as COL_1 \nfrom (${ev_sf_database_lab}.${jv_schema_name}.${jv_table_name})\
+          \ \nwhere (${jv_where_condition_2})\nUNION ALL\nselect count(${jv_col_name_3})\
+          \ as COL_1 \nfrom (${ev_sf_database_lab}.${jv_schema_name}.${jv_table_name})\
+          \ \nwhere (${jv_where_condition_3})\nUNION ALL\nselect count(${jv_col_name_4})\
+          \ as COL_1 \nfrom (${ev_sf_database_lab}.${jv_schema_name}.${jv_table_name})\
+          \ \nwhere (${jv_where_condition_4})\nUNION ALL\nselect count(${jv_col_name_5})\
+          \ as COL_1 \nfrom (${ev_sf_database_lab}.${jv_schema_name}.${jv_table_name})\
+          \ \nwhere (${jv_where_condition_5})\n"
+        gridVariable: "Columns"
+        gridVariableMapping:
+        - - "COL_1"
+          - "Counts"
+    Rows to column:
+      type: "python-script"
+      transitions:
+        success:
+        - "if 1"
+      skipped: false
+      parameters:
+        componentName: "Rows to column"
+        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
+          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
+          print (context.getGridVariable('Columns'))\nrows_to_col = context.getGridVariable('Columns')\n\
+          \ncontext.updateVariable('jv_value_1', rows_to_col[0][0])\ncontext.updateVariable('jv_value_2',\
+          \ rows_to_col[1][0])\ncontext.updateVariable('jv_value_3', rows_to_col[2][0])\n\
+          context.updateVariable('jv_value_4', rows_to_col[3][0])\ncontext.updateVariable('jv_value_5',\
+          \ rows_to_col[4][0])\n\nprint(jv_value_1,jv_value_2,jv_value_3,jv_value_4,jv_value_5)\n\
+          \nerror_rows = str({jv_col_name_1+\"_1\":jv_value_1,jv_col_name_2+\"_2\"\
+          \ :jv_value_2,jv_col_name_3+\"_3\":jv_value_3,jv_col_name_4+\"_4\":jv_value_4,jv_col_name_5+\"\
+          _5\" :jv_value_5})\ncontext.updateVariable('jv_error_rows', str(error_rows))\n\
+          print(error_rows)"
+        interpreter: "Python 3"
+        timeout: "360"
+    if 1:
+      type: "if"
+      transitions:
+        "true":
+        - "Append To Grid error log"
+      skipped: false
+      parameters:
+        componentName: "if 1"
+        mode: "Simple"
+        condition:
+          fromGrid:
+            variable: "gv_if_condition"
+            columns:
+            - "gv_input_variable"
+            - "gv_qualifier"
+            - "gv_comparator"
+            - "gv_value"
+        combineConditions: "Or"
+  variables:
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Null"
+    jv_value_1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "NULL"
+    jv_value_2:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "NULL"
+    jv_value_3:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "NULL"
+    jv_value_4:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "NULL"
+    jv_value_5:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "NULL"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "null"
+    jv_col_name_1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "*"
+    jv_col_name_2:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "*"
+    jv_col_name_3:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "*"
+    jv_col_name_4:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "*"
+    jv_col_name_5:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "*"
+    jv_error_rows:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "o_GNA_MAIN_ETL"
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "FINANCE_DUMMY"
+    jv_table_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Stage"
+    jv_schema_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "EDP_STAGING"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2021-01-01"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "GANDA Load"
+    jv_success_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_where_condition_1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "VARIABLE_CODE = 'H40'"
+    jv_where_condition_2:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "VARIABLE_CODE = 'H40'"
+    jv_where_condition_3:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "VARIABLE_CODE = 'H40'"
+    jv_where_condition_4:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "VARIABLE_CODE = 'H40'"
+    jv_where_condition_5:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "VARIABLE_CODE = 'H40'"
+    Columns:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          Counts:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_if_condition:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_input_variable:
+            columnType: "TEXT"
+          gv_qualifier:
+            columnType: "TEXT"
+          gv_comparator:
+            columnType: "TEXT"
+          gv_value:
+            columnType: "TEXT"
+      defaultValue:
+      - - "jv_value_1"
+        - "is"
+        - "equal to"
+        - "945"
+design:
+  components:
+    Append To Grid error log:
+      position:
+        x: 96
+        "y": 16
+      tempMetlId: 42962
+    Start 0:
+      position:
+        x: -416
+        "y": 16
+      tempMetlId: 42964
+    End Success 0:
+      position:
+        x: 528
+        "y": 16
+      tempMetlId: 42965
+    "002-error_log_insert 0":
+      position:
+        x: 352
+        "y": 16
+      tempMetlId: 44683
+    Query Result To Grid 0:
+      position:
+        x: -304
+        "y": 16
+      tempMetlId: 44778
+    Rows to column:
+      position:
+        x: -176
+        "y": 16
+      tempMetlId: 44888
+    if 1:
+      position:
+        x: -48
+        "y": 16
+      tempMetlId: 44967

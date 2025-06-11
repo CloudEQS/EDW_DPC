@@ -1,0 +1,42 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Shared Pipeline"
+      parameters:
+        componentName: "Start"
+    Run Shared Pipeline:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Run Shared Pipeline"
+        pipelineName:
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    MAX_SALES_TIME:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    Start:
+      position:
+        x: -1670
+        "y": -60
+      tempMetlId: 1
+    Run Shared Pipeline:
+      position:
+        x: -1510
+        "y": -60
+      tempMetlId: 2

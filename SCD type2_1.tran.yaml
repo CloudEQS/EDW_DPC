@@ -1,0 +1,119 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        timeOffset:
+    Rank:
+      type: "rank"
+      sources:
+      - "STG_PRODUCT_SCD2"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "PRODUCT_NAME"
+        orderingWithinPartitions:
+        - - "LOAD_TIMESTAMP"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+    DIM_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIMESTAMP"
+        - "END_TIME"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "DIM_PRODUCT_SCD2"
+      - "Filter"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable:
+        matchKeys:
+        compareColumns:
+        outputColumnMapping:
+        indicatorColumn: "Indicator"
+    SQL:
+      type: "sql"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "SQL"
+        query: "DATE_TRUNC('SECOND', TO_TIMESTAMP_NTZ(CURRENT_TIMESTAMP))"
+design:
+  components:
+    STG_PRODUCT_SCD2:
+      position:
+        x: -570
+        "y": -100
+      tempMetlId: 1
+    Rank:
+      position:
+        x: -450
+        "y": -110
+      tempMetlId: 3
+    Filter:
+      position:
+        x: -330
+        "y": -110
+      tempMetlId: 5
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -580
+        "y": 60
+      tempMetlId: 7
+    Detect Changes:
+      position:
+        x: -210
+        "y": 20
+      tempMetlId: 8
+    SQL:
+      position:
+        x: 60
+        "y": 10
+      tempMetlId: 9

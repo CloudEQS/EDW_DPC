@@ -1,0 +1,95 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    "002-error_log_insert 0":
+      type: "run-transformation"
+      skipped: false
+      parameters:
+        componentName: "002-error_log_insert 0"
+        transformationJob: "002-error_log_insert"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_subject_area"
+              - "gv_run_date"
+              - "gv_run_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "002-error_log_insert 0"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+  variables:
+    error_log:
+      metadata:
+        type: "GRID"
+        description: "This Grid variable will be used to append audit values for error_log"
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+design:
+  components:
+    "002-error_log_insert 0":
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 912854
+    Start 0:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 912855

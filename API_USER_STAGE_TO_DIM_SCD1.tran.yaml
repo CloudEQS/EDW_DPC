@@ -1,0 +1,182 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_USER_DETAILS:
+      type: "table-input"
+      parameters:
+        componentName: "STG_USER_DETAILS"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_USER_DETAILS"
+        columnNames:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        - "LOAD_TIME"
+        timeOffset:
+    DIM_USER_DETAILS_SCD1:
+      type: "table-update"
+      sources:
+      - "Filter"
+      parameters:
+        componentName: "DIM_USER_DETAILS_SCD1"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_USER_DETAILS_SCD1"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"EMP_ID\"=\"target\".\"EMP_ID\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"EMP_ID\"=\"target\".\"EMP_ID\""
+          - "Update"
+        updateMapping:
+        - - "WEBSITE"
+          - "WEBSITE"
+        - - "EMP_ID"
+          - "EMP_ID"
+        - - "EMP_NAME"
+          - "EMP_NAME"
+        - - "USER_NAME"
+          - "USER_NAME"
+        - - "COMPANY_NAME"
+          - "COMPANY_NAME"
+        - - "EMAIL"
+          - "EMAIL"
+        - - "PHONE_NUMBER"
+          - "PHONE_NUMBER"
+        - - "CITY"
+          - "CITY"
+        - - "BS"
+          - "BS"
+        - - "CATCHPHRASE"
+          - "CATCHPHRASE"
+        - - "STREET"
+          - "STREET"
+        - - "ZIPCODE"
+          - "ZIPCODE"
+        - - "SUITE"
+          - "SUITE"
+        - - "LATITUDE"
+          - "LATITUDE"
+        - - "LONGITUDE"
+          - "LONGITUDE"
+        - - "LOAD_TIME"
+          - "LOAD_TIME"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "WEBSITE"
+          - "WEBSITE"
+        - - "EMP_ID"
+          - "EMP_ID"
+        - - "EMP_NAME"
+          - "EMP_NAME"
+        - - "USER_NAME"
+          - "USER_NAME"
+        - - "COMPANY_NAME"
+          - "COMPANY_NAME"
+        - - "EMAIL"
+          - "EMAIL"
+        - - "PHONE_NUMBER"
+          - "PHONE_NUMBER"
+        - - "CITY"
+          - "CITY"
+        - - "BS"
+          - "BS"
+        - - "CATCHPHRASE"
+          - "CATCHPHRASE"
+        - - "STREET"
+          - "STREET"
+        - - "ZIPCODE"
+          - "ZIPCODE"
+        - - "SUITE"
+          - "SUITE"
+        - - "LATITUDE"
+          - "LATITUDE"
+        - - "LONGITUDE"
+          - "LONGITUDE"
+        - - "LOAD_TIME"
+          - "LOAD_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Rank:
+      type: "rank"
+      sources:
+      - "STG_USER_DETAILS"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "WEBSITE"
+        - "EMP_ID"
+        - "EMP_NAME"
+        - "USER_NAME"
+        - "COMPANY_NAME"
+        - "EMAIL"
+        - "PHONE_NUMBER"
+        - "CITY"
+        - "BS"
+        - "CATCHPHRASE"
+        - "STREET"
+        - "ZIPCODE"
+        - "SUITE"
+        - "LATITUDE"
+        - "LONGITUDE"
+        orderingWithinPartitions:
+        - - "LOAD_TIME"
+          - "Descending"
+        - - "EMP_ID"
+          - "Ascending"
+        functions:
+        - - "Row Number"
+          - "RN"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "RN"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+design:
+  components:
+    STG_USER_DETAILS:
+      position:
+        x: -710
+        "y": -70
+      tempMetlId: 1
+    DIM_USER_DETAILS_SCD1:
+      position:
+        x: -270
+        "y": -70
+      tempMetlId: 2
+    Rank:
+      position:
+        x: -540
+        "y": -70
+      tempMetlId: 3
+    Filter:
+      position:
+        x: -420
+        "y": -70
+      tempMetlId: 4

@@ -1,0 +1,91 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    If 0:
+      type: "if"
+      transitions:
+        "true":
+        - "Update run status success"
+        "false":
+        - "Update run status fail"
+      skipped: false
+      parameters:
+        componentName: "If 0"
+        mode: "Simple"
+        condition:
+        - - "jv_success_flag"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineConditions: "And"
+    Update run status fail:
+      type: "sql-script"
+      skipped: false
+      parameters:
+        componentName: "Update run status fail"
+        sqlScript: "update  ${ev_edp_curated_schema}.RUN_STATUS \nSet ISRUNNING =\
+          \ 0 ,SUCCESS = ${jv_success_flag},RUNSTATUS = 'FAILED',ENDDATETIME =CAST(CURRENT_TIMESTAMP\
+          \ AS TIMESTAMPNTZ)\nWHERE SUBJECTAREA = '${jv_subject_area}' AND LOAD_ID\
+          \ = ${jv_load_id}\n\n\n"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "If 0"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Update run status success:
+      type: "sql-script"
+      skipped: false
+      parameters:
+        componentName: "Update run status success"
+        sqlScript: "update  ${ev_edp_curated_schema}.RUN_STATUS \nSet ISRUNNING =\
+          \ 0 ,SUCCESS = ${jv_success_flag},RUNSTATUS = 'COMPLETED',ENDDATETIME =\
+          \ CAST(CURRENT_TIMESTAMP AS TIMESTAMPNTZ)\nWHERE SUBJECTAREA = '${jv_subject_area}'\
+          \ AND LOAD_ID = ${jv_load_id}"
+  variables:
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_success_flag:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    If 0:
+      position:
+        x: -277
+        "y": -17
+      tempMetlId: 4237
+    Update run status fail:
+      position:
+        x: -96
+        "y": 48
+      tempMetlId: 4238
+    Start 0:
+      position:
+        x: -416
+        "y": -16
+      tempMetlId: 4239
+    Update run status success:
+      position:
+        x: -96
+        "y": -64
+      tempMetlId: 4240
