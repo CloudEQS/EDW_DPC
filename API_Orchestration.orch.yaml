@@ -7,12 +7,24 @@ pipeline:
       transitions:
         unconditional:
         - "Run Shared Pipeline"
+        - "Run Shared Pipeline 2"
       parameters:
         componentName: "Start"
     Run Shared Pipeline:
       type: "run-shared-pipeline"
       parameters:
         componentName: "Run Shared Pipeline"
+        pipelineName:
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 2:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Run Shared Pipeline 2"
         pipelineName:
         version: "[Latest]"
         setScalarVariables:
@@ -40,3 +52,8 @@ design:
         x: -1510
         "y": -60
       tempMetlId: 2
+    Run Shared Pipeline 2:
+      position:
+        x: -1510
+        "y": -180
+      tempMetlId: 3

@@ -16,3 +16,8 @@ pipelines:
     id: API-FLATTEN
     enabled: true
     parameters: {}
+  - pipeline: Load_Log_share.tran.yaml
+    displayName: Load_Log_share
+    id: Load_Log
+    enabled: true
+    parameters: {}
