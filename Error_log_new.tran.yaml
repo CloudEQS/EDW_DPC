@@ -1,0 +1,167 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Fixed Flow:
+      type: "fixed-flow"
+      parameters:
+        componentName: "Fixed Flow"
+        columns:
+        - - "gv_load_id"
+          - "NUMBER"
+          - ""
+          - ""
+        - - "gv_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_job_parent"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_type"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_error_rows"
+          - "VARIANT"
+          - ""
+          - ""
+        - - "gv_subject_area"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_run_date"
+          - "DATE"
+          - ""
+          - ""
+        - - "gv_run_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "gv_run_history_id"
+          - "NUMBER"
+          - ""
+          - ""
+        - - "gv_status"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_message"
+          - "VARCHAR"
+          - ""
+          - ""
+        values:
+          fromGrid:
+            variable: "gv_error_log"
+            columns:
+            - "gv_load_id"
+            - "gv_job_name"
+            - "gv_job_parent"
+            - "gv_table_name"
+            - "gv_table_type"
+            - "gv_error_rows"
+            - "gv_subject_area"
+            - "gv_run_date"
+            - "gv_run_time"
+            - "gv_run_history_id"
+            - "gv_status"
+            - "gv_message"
+    ERROR_LOG:
+      type: "table-output"
+      sources:
+      - "Fixed Flow"
+      parameters:
+        componentName: "ERROR_LOG"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "ERROR_LOG"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "gv_load_id"
+          - "LOAD_ID"
+        - - "gv_job_name"
+          - "PROCEDURE_NAME"
+        - - "gv_job_parent"
+          - "PROCEDURE_PARENT"
+        - - "gv_table_name"
+          - "TABLE_NAME"
+        - - "gv_table_type"
+          - "TABLE_TYPE"
+        - - "gv_subject_area"
+          - "SUBJECT_AREA"
+        - - "gv_message"
+          - "ERROR_MESSAGE"
+        - - "gv_run_date"
+          - "RUN_DATE"
+        - - "gv_run_time"
+          - "RUN_TIME"
+        - - "gv_error_rows"
+          - "ERROR_ROWS"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+design:
+  components:
+    Fixed Flow:
+      position:
+        x: -460
+        "y": 10
+      tempMetlId: 1
+    ERROR_LOG:
+      position:
+        x: -240
+        "y": 20
+      tempMetlId: 2

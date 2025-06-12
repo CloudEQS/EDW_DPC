@@ -1,0 +1,292 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Check Prev Load completion"
+      parameters:
+        componentName: "Start"
+    Check Prev Load completion:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "If"
+      parameters:
+        componentName: "Check Prev Load completion"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),-1) AS LOAD_ID FROM ${ev_db}.${ev_schema}.RUN_STATUS\
+          \ \r\nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 1 \r\n\r\n"
+        scalarVariableMapping:
+        - - "Jv_load_id"
+          - "Load_id"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      transitions:
+        "true":
+        - "End Failure"
+        "false":
+        - "Get Last Run Dt"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "Jv_load_id"
+          - "Not"
+          - "Equal to"
+          - "-1"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Last Run Dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Get process Date"
+      parameters:
+        componentName: "Get Last Run Dt"
+        mode: "Advanced"
+        query: "SELECT NVL(LastRunDt, '2020-01-01 00:00:00.000') AS LastRunDt FROM\r\
+          \n(\r\n  SELECT  MAX(StartDateTime) AS LastRunDt\r\nFROM ${ev_db}.${ev_schema}.RUN_STATUS\
+          \ WHERE SubjectArea = '${jv_subject_area}' AND CAST(Success AS INTEGER)=\
+          \ 1\r\n  )"
+        scalarVariableMapping:
+        - - "Jv_last_run_date"
+          - "LASTRUNDT"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get process Date:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Run condition"
+      parameters:
+        componentName: "Get process Date"
+        mode: "Advanced"
+        query: "SELECT CAST(CURRENT_DATE() AS DATE) AS PROCESS_DATE"
+        scalarVariableMapping:
+        - - "Jv_process_date"
+          - "PROCESS_DATE"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run condition:
+      type: "if"
+      transitions:
+        "true":
+        - "Ins run status for start"
+        "false":
+        - "Get Load Id 1"
+      parameters:
+        componentName: "Run condition"
+        mode: "Simple"
+        condition:
+        - - "Jv_restart_check"
+          - "Is"
+          - "Equal to"
+          - "0"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Ins run status for start:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Get Load Id 1 2"
+      parameters:
+        componentName: "Ins run status for start"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO ${ev_db}.${ev_schema}.RUN_STATUS\r\n(\r\n  SubjectArea,RunStatus,\
+          \ StartDateTime, IsRunning, Success\r\n)\r\nVALUES\r\n('${jv_subject_area}',\
+          \ 'STARTED', CAST(CURRENT_TIMESTAMP AS TIMESTAMPNTZ), 1,0);"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Load Id 1:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Update run status for restart"
+      parameters:
+        componentName: "Get Load Id 1"
+        mode: "Advanced"
+        query: "SELECT MAX(LOAD_ID) AS LOAD_ID FROM ${ev_db}.${ev_schema}.RUN_STATUS\
+          \ \r\nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
+          \ = 0 AND  RUNSTATUS = 'FAILED'"
+        scalarVariableMapping:
+        - - "Jv_load_id"
+          - "Load_id"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Load Id 1 2:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or"
+      parameters:
+        componentName: "Get Load Id 1 2"
+        mode: "Advanced"
+        query: "SELECT IFNULL(MAX(LOAD_ID),1) AS LOAD_ID FROM ${ev_db}.${ev_schema}.RUN_STATUS\
+          \ \r\nWHERE SUBJECTAREA = '${jv_subject_area}' AND ISRUNNING = 1 "
+        scalarVariableMapping:
+        - - "Jv_load_id"
+          - "Load_id"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Update run status for restart:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Or"
+      parameters:
+        componentName: "Update run status for restart"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update  ${ev_db}.${ev_schema}.RUN_STATUS \r\nSet ISRUNNING = 1\
+          \ ,SUCCESS = 0,RUNSTATUS = 'STARTED',\r\nENDDATETIME = NULL\r\nWHERE  SUBJECTAREA\
+          \ = '${jv_subject_area}' AND LOAD_ID = ${Jv_load_id}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Or:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Get Current Date"
+      parameters:
+        componentName: "Or"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Current Date:
+      type: "query-to-scalar"
+      parameters:
+        componentName: "Get Current Date"
+        mode: "Advanced"
+        query: "SELECT NVL(CurrDtTime, CAST(CURRENT_TIMESTAMP() AS TIMESTAMPNTZ))\
+          \ AS CurrDtTime FROM\r\n(\r\n  SELECT  MAX(STARTDATETIME) AS CurrDtTime\r\
+          \nFROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS WHERE SubjectArea\
+          \ = '${jv_subject_area}' AND Load_Id= ${Jv_load_id}\r\n  )"
+        scalarVariableMapping:
+        - - "Jv_load_id"
+          - "Load_id"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    Jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    Jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_last_run_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
+design:
+  components:
+    Start:
+      position:
+        x: -440
+        "y": -60
+      tempMetlId: 1
+    Check Prev Load completion:
+      position:
+        x: -300
+        "y": -60
+      tempMetlId: 2
+    If:
+      position:
+        x: -160
+        "y": -60
+      tempMetlId: 3
+    End Failure:
+      position:
+        x: -40
+        "y": 30
+      tempMetlId: 4
+    Get Last Run Dt:
+      position:
+        x: -50
+        "y": -130
+      tempMetlId: 5
+    Get process Date:
+      position:
+        x: 80
+        "y": -130
+      tempMetlId: 6
+    Run condition:
+      position:
+        x: 240
+        "y": -130
+      tempMetlId: 7
+    Ins run status for start:
+      position:
+        x: 380
+        "y": -240
+      tempMetlId: 8
+    Get Load Id 1:
+      position:
+        x: 350
+        "y": -40
+      tempMetlId: 9
+    Get Load Id 1 2:
+      position:
+        x: 490
+        "y": -240
+      tempMetlId: 10
+    Update run status for restart:
+      position:
+        x: 510
+        "y": -40
+      tempMetlId: 11
+    Or:
+      position:
+        x: 680
+        "y": -150
+      tempMetlId: 12
+    Get Current Date:
+      position:
+        x: 800
+        "y": -150
+      tempMetlId: 13

@@ -1,0 +1,84 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "ERROR LOG"
+      parameters:
+        componentName: "Start"
+    ERROR LOG:
+      type: "run-transformation"
+      parameters:
+        componentName: "ERROR LOG"
+        transformationJob: "Error_log_new.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_subject_area"
+              - "gv_run_date"
+              - "gv_run_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -540
+        "y": -80
+      tempMetlId: 1
+    ERROR LOG:
+      position:
+        x: -380
+        "y": -80
+      tempMetlId: 2

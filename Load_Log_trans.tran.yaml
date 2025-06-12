@@ -1,0 +1,213 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Fixed Flow:
+      type: "fixed-flow"
+      parameters:
+        componentName: "Fixed Flow"
+        columns:
+        - - "gv_load_id"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_job_parent"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_type"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_inserted_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_updated_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_subject_area"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_process_date"
+          - "DATE"
+          - ""
+          - ""
+        - - "gv_success_flag"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_start_time"
+          - "DATE"
+          - ""
+          - ""
+        - - "gv_end_time"
+          - "DATE"
+          - ""
+          - ""
+        - - "gv_row_count"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_run_history_id"
+          - "Number"
+          - ""
+          - ""
+        - - "gv_status"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_message"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_comment"
+          - "VARCHAR"
+          - ""
+          - ""
+        values:
+          fromGrid:
+            variable: "gv_load_log_var"
+            columns:
+            - "gv_load_id"
+            - "gv_job_name"
+            - "gv_job_parent"
+            - "gv_table_name"
+            - "gv_table_type"
+            - "gv_inserted_rows"
+            - "gv_updated_rows"
+            - "gv_subject_area"
+            - "gv_process_date"
+            - "gv_success_flag"
+            - "gv_start_time"
+            - "gv_end_time"
+            - "gv_row_count"
+            - "gv_run_history_id"
+            - "gv_status"
+            - "gv_message"
+            - "gv_comment"
+    LOAD_LOG:
+      type: "table-output"
+      sources:
+      - "Fixed Flow"
+      parameters:
+        componentName: "LOAD_LOG"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "LOAD_LOG"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "gv_load_id"
+          - "LOAD_ID"
+        - - "gv_job_name"
+          - "PROCEDURE_NAME"
+        - - "gv_job_parent"
+          - "PROCEDURE_PARENT"
+        - - "gv_table_name"
+          - "TABLE_NAME"
+        - - "gv_table_type"
+          - "TABLE_TYPE"
+        - - "gv_subject_area"
+          - "SUBJECT_AREA"
+        - - "gv_inserted_rows"
+          - "INSERTED_ROWS"
+        - - "gv_updated_rows"
+          - "UPDATED_ROWS"
+        - - "gv_process_date"
+          - "PROCESS_DATE"
+        - - "gv_success_flag"
+          - "SUCCESS_FLAG"
+        - - "gv_start_time"
+          - "START_TIME"
+        - - "gv_end_time"
+          - "END_TIME"
+        - - "gv_comment"
+          - "COMMENTS"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_load_log_var:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue:
+      - - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+        - ""
+design:
+  components:
+    Fixed Flow:
+      position:
+        x: -260
+        "y": -10
+      tempMetlId: 1
+    LOAD_LOG:
+      position:
+        x: -70
+        "y": -10
+      tempMetlId: 2

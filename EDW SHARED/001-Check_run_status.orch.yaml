@@ -11,7 +11,7 @@ pipeline:
       parameters:
         componentName: "Check Prev Load completion"
         mode: "Advanced"
-        query: "SELECT IFNULL(MAX(LOAD_ID),-1) AS LOAD_ID FROM ${ev_sf_database}.${ev_edp_curated_schema}.RUN_STATUS\
+        query: "SELECT IFNULL(MAX(LOAD_ID),-1) AS LOAD_ID FROM ${}.${ev_edp_curated_schema}.RUN_STATUS\
           \ \nWHERE SUBJECTAREA = '${jv_subject_area}' AND CAST(ISRUNNING AS INTEGER)\
           \ = 1 \n\n"
         scalarVariableMapping:
@@ -193,6 +193,13 @@ pipeline:
         - - "jv_curr_run_dt"
           - "CURRDTTIME"
   variables:
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01 00:00:00"
     jv_load_id:
       metadata:
         type: "NUMBER"
@@ -200,14 +207,21 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "-1"
-    jv_curr_run_dt:
+    jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_subject_area:
       metadata:
         type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "1970-01-01 00:00:00"
-    jv_last_run_dt:
+      defaultValue: "SALES Load"
+    jv_curr_run_dt:
       metadata:
         type: "TEXT"
         description: ""
@@ -221,26 +235,12 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "2021-01-01"
-    jv_subject_area:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "SALES Load"
-    jv_restart_check:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "0"
 design:
   components:
     Check Prev Load completion:
       position:
-        x: -208
-        "y": -48
+        x: -290
+        "y": -50
       tempMetlId: 4165
     Start 0:
       position:

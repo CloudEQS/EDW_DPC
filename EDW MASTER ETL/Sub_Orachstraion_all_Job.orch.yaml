@@ -1,0 +1,362 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid"
+      parameters:
+        componentName: "Start"
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Python Pushdown"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Basic"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        table: "JOB_METADATA_TABLE"
+        tableColumns:
+        - "JOB_ID"
+        - "JOB_NAME"
+        - "DEPENDENIES_ON_JOB_ID"
+        - "RUN_TYPE"
+        - "EXECUTION_ORDER"
+        - "JOB_GROUP_ID"
+        - "ACTIVE_FLAG"
+        orderBy:
+        sort: "Ascending"
+        limit: "100"
+        gridVariable: "GV_JOB_METADATA_TABLE"
+        gridVariableMapping:
+        - - "JOB_ID"
+          - "GV_JOB_ID"
+        - - "JOB_NAME"
+          - "GV_JOB_NAME"
+        - - "DEPENDENIES_ON_JOB_ID"
+          - "GV_DEPENDENIES_ON_JOB_ID"
+        - - "RUN_TYPE"
+          - "GV_RUN_TYPE"
+        - - "EXECUTION_ORDER"
+          - "GV_EXECUTION_ORDER"
+        - - "JOB_GROUP_ID"
+          - "GV_JOB_GROUP_ID"
+        - - "ACTIVE_FLAG"
+          - "GV_ACTIVE_FLAG"
+        filterConditions:
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Grid Iterator 0"
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+          def dpc_python_script(inputs, outputs):
+              # Step 1: Read job metadata grid and completed jobs list
+              job_metadata = inputs['GV_JOB_METADATA_TABLE']
+              completed_jobs_str = inputs.get('completed_jobs_list', '')
+
+              # Step 2: Parse completed job IDs safely
+              completed_jobs = set()
+              for x in completed_jobs_str.split(','):
+                  x_clean = x.strip()
+                  if x_clean.isdigit():
+                      completed_jobs.add(int(x_clean))
+
+              # Step 3: Initialize job groups
+              parallel_jobs = []
+              sequential_jobs = []
+
+              # Step 4: Evaluate which jobs can run
+              for job in job_metadata:
+                  job_id = int(job['GV_JOB_ID'])
+                  run_type = job['GV_RUN_TYPE'].lower()
+                  dependency = int(job['GV_DEPENDENIES_ON_JOB_ID']) if job['GV_DEPENDENIES_ON_JOB_ID'] else 0
+                  active = job['GV_ACTIVE_FLAG'].lower() == 'true'
+
+                  if not active or job_id in completed_jobs:
+                      continue
+
+                  if dependency == 0 or dependency in completed_jobs:
+                      if run_type == 'parallel':
+                          parallel_jobs.append(job)
+                      else:
+                          sequential_jobs.append(job)
+
+              # Step 5: Set outputs
+              outputs['parallel_jobs_grid'] = parallel_jobs
+              outputs['sequential_jobs_grid'] = sequential_jobs
+              outputs['jobs_remaining'] = 'True' if (parallel_jobs or sequential_jobs) else 'False'
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 0:
+      type: "grid-iterator"
+      iterationTarget: "Main_Source_Selector 0"
+      skipped: false
+      parameters:
+        componentName: "Grid Iterator 0"
+        gridVariable: "parallel_jobs_grid"
+        gridIteratorVariableMapping:
+          fromGrid:
+            variable: "parallel_jobs_grid"
+            columns:
+            - "p_JOB_NAME"
+            - "p_JOB_NAME"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateScalarVariables:
+        - - "jv_status"
+          - "${sysvar.thisComponent.status}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "jv_message"
+          - "${sysvar.thisComponent.message}"
+    Main_Source_Selector 0:
+      type: "run-orchestration"
+      skipped: false
+      parameters:
+        componentName: "Main_Source_Selector 0"
+        orchestrationJob: "product_SCD1_MERGE_orc.orch.yaml"
+        setScalarVariables:
+          fromGrid:
+            variable: "parallel_jobs_grid"
+            columns:
+            - "GV_JOB_NAME"
+            - "GV_JOB_NAME"
+        setGridVariables:
+  variables:
+    RUN_TYPE:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    SV_Job_group_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_active_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_dependenies_on_job_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    SV_Active_Flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Completed_job_list:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "' '"
+    jv_job_group_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    SV_JOB_NAME:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_jobs_remaining:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "\"True\""
+    Jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_execution_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_run_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    SV_JOB_ID:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_job_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    SV_DEPENDENCY_ID:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Sv_Execution_order:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    parallel_jobs_grid:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          p_JOB_ID:
+            columnType: "NUMBER"
+          p_JOB_NAME:
+            columnType: "TEXT"
+          p_DEPENDENIES_ON_JOB_ID:
+            columnType: "NUMBER"
+          p_RUN_TYPE:
+            columnType: "TEXT"
+          p_EXECUTION_ORDER:
+            columnType: "NUMBER"
+          p_JOB_GROUP_ID:
+            columnType: "TEXT"
+          p_ACTIVE_FLAG:
+            columnType: "TEXT"
+      defaultValue: []
+    GV_JOB_METADATA_TABLE:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          GV_JOB_ID:
+            columnType: "NUMBER"
+          GV_JOB_NAME:
+            columnType: "TEXT"
+          GV_DEPENDENIES_ON_JOB_ID:
+            columnType: "NUMBER"
+          GV_RUN_TYPE:
+            columnType: "TEXT"
+          GV_EXECUTION_ORDER:
+            columnType: "NUMBER"
+          GV_JOB_GROUP_ID:
+            columnType: "TEXT"
+          GV_ACTIVE_FLAG:
+            columnType: "TEXT"
+      defaultValue: []
+    sequential_jobs_grid:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          s_JOB_ID:
+            columnType: "NUMBER"
+          s_JOB_NAME:
+            columnType: "TEXT"
+          s_DEPENDENIES_ON_JOB_ID:
+            columnType: "NUMBER"
+          s_RUN_TYPE:
+            columnType: "TEXT"
+          s_EXECUTION_ORDER:
+            columnType: "NUMBER"
+          s_JOB_GROUP_ID:
+            columnType: "TEXT"
+          s_ACTIVE_FLAG:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -660
+        "y": -80
+      tempMetlId: 1
+    Query Result To Grid:
+      position:
+        x: -510
+        "y": -90
+      tempMetlId: 2
+    Python Pushdown:
+      position:
+        x: -350
+        "y": -90
+      tempMetlId: 10
+    Grid Iterator 0:
+      position:
+        x: -170
+        "y": -110
+      tempMetlId: 13
+    Main_Source_Selector 0:
+      position:
+        x: -170
+        "y": -110
+      tempMetlId: 14

@@ -1,0 +1,155 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Transformation"
+      parameters:
+        componentName: "Start"
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "If"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "Load_Log_trans.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_load_log_var"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "load_log1"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_inserted_rows"
+              - "gv_updated_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+              - "gv_comment"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      transitions:
+        "true":
+        - "Set Status  in control table"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "jv_status"
+          - "Is"
+          - "Equal to"
+          - "Success"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Set Status  in control table:
+      type: "sql-executor"
+      parameters:
+        componentName: "Set Status  in control table"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE ${ev_db}.${ev_schema}.JOB_CONTROL_TABLE\r\nSET RUN_STATUS\
+          \ = 'N'\r\nWHERE JOB_NAME = '${jv_job_name}';\r\n \r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    load_log1:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "TEXT"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -160
+        "y": -10
+      tempMetlId: 1
+    Run Transformation:
+      position:
+        x: -10
+        "y": -10
+      tempMetlId: 2
+    If:
+      position:
+        x: 150
+        "y": -10
+      tempMetlId: 3
+    Set Status  in control table:
+      position:
+        x: 310
+        "y": -10
+      tempMetlId: 4

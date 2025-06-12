@@ -1,0 +1,797 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Update control table:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Or 2"
+      skipped: false
+      parameters:
+        componentName: "Update control table"
+        sqlScript: |-
+          UPDATE ${ev_edp_curated_schema}.JOB_CONTROL_TABLE
+          SET RUN_STATUS = 'Y'
+          WHERE RUN_STATUS = 'N'
+          AND ACTIVE_STATUS = 'Y'
+          AND SUBJECT_AREA = '${jv_subject_area}'
+    Or 1:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Update_run_status 0"
+      skipped: false
+      parameters:
+        componentName: "Or 1"
+    Or 2:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Start new load"
+      skipped: false
+      parameters:
+        componentName: "Or 2"
+    SALES Jobs:
+      type: "run-orchestration"
+      skipped: false
+      parameters:
+        componentName: "SALES Jobs"
+        orchestrationJob: "${jv_control_job_name}"
+        setScalarVariables:
+        - - "jv_job_parent"
+          - "${sysvar.thisPipeline.fullName}"
+        - - "jv_subject_area"
+          - "${jv_subject_area}"
+        - - "jv_curr_run_dt"
+          - "${jv_curr_run_dt}"
+        - - "jv_last_run_dt"
+          - "${jv_last_run_dt}"
+        - - "jv_load_id"
+          - "${jv_load_id}"
+        - - "jv_process_date"
+          - "${jv_process_date}"
+        setGridVariables:
+      postProcessing:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.childPipeline.vars.jv_error_message}"
+    setting success flag run_status fail:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or 1"
+      skipped: false
+      parameters:
+        componentName: "setting success flag run_status fail"
+        mode: "Advanced"
+        query: |-
+          /* Note: this query will be run as a subquery for the purposes of sampling the data.
+             As such it will be restricted by any subquery limitations specified by the current platform. */
+             select 0 as success_flag
+        scalarVariableMapping:
+        - - "jv_success_flag"
+          - "SUCCESS_FLAG"
+    Grid Iterator 0:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "setting success flag run_status"
+        failure:
+        - "Or 0"
+      iterationTarget: "SALES Jobs"
+      skipped: false
+      parameters:
+        componentName: "Grid Iterator 0"
+        gridVariable: "gv_control_table"
+        gridIteratorVariableMapping:
+        - - "gv_control_job_name"
+          - "jv_control_job_name"
+        breakOnFailure: "Yes"
+        concurrency: "Sequential"
+    Check last run dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Check current run dt"
+      skipped: false
+      parameters:
+        componentName: "Check last run dt"
+        mode: "Advanced"
+        query: |-
+          SELECT IFNULL(LAST_RUN_DATE, '${Jv_last_run_dt}') AS LAST_RUN_DATE FROM EDP_CURATED.ADHOC_RUN
+          WHERE SUBJECT_AREA = '${jv_subject_area}'
+        scalarVariableMapping:
+        - - "jv_last_run_dt"
+          - "LAST_RUN_DATE"
+    Main ETL Log Entry RE-Start:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Or 2"
+      skipped: false
+      parameters:
+        componentName: "Main ETL Log Entry RE-Start"
+        sqlScript: "insert into ${ev_edp_curated_schema}.load_log \n(LOAD_ID,PROCEDURE_NAME,PROCEDURE_PARENT,TABLE_NAME,TABLE_TYPE,SUBJECT_AREA,\n\
+          \ PROCESS_DATE,START_TIME,\n FROMDATEPARAMETER,TODATEPARAMETER,COMMENTS)\n\
+          \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
+          \ '${jv_process_date}',current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
+          \ ETL for ${jv_subject_area} RE-Started')"
+    Error_log_insert 0:
+      type: "unknown-orchestration"
+      transitions:
+        success:
+        - "setting success flag run_status fail"
+      skipped: false
+      parameters:
+        "1": "Error_log_insert 0"
+        "2": "[{\"1\":[[\"gv_error_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
+          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_error_rows\"\
+          ,\"gv_subject_area\",\"gv_process_date\",\"gv_start_time\",\"gv_run_history_id\"\
+          ,\"gv_status\",\"gv_error_message\"]]}]"
+    Update_run_status 0:
+      type: "unknown-orchestration"
+      transitions:
+        success:
+        - "Main ETL Log Entry Complete"
+      skipped: false
+      parameters:
+        "1": "Update_run_status 0"
+        "2": "${jv_subject_area}"
+        "3": "${jv_success_flag}"
+        "4": "${jv_load_id}"
+    Main ETL Log Entry Start:
+      type: "sql-script"
+      transitions:
+        success:
+        - "Update control table"
+      skipped: false
+      parameters:
+        componentName: "Main ETL Log Entry Start"
+        sqlScript: "insert into ${ev_edp_curated_schema}.load_log \n(LOAD_ID,PROCEDURE_NAME,PROCEDURE_PARENT,TABLE_NAME,TABLE_TYPE,SUBJECT_AREA,\n\
+          \ PROCESS_DATE,START_TIME,\n FROMDATEPARAMETER,TODATEPARAMETER,COMMENTS)\n\
+          \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
+          \ '${jv_process_date}',current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
+          \ ETL for ${jv_subject_area} Started')"
+    Main ETL Log Entry Complete:
+      type: "sql-script"
+      transitions:
+        success:
+        - "If 0"
+      skipped: false
+      parameters:
+        componentName: "Main ETL Log Entry Complete"
+        sqlScript: "insert into ${ev_edp_curated_schema}.load_log \n(LOAD_ID,PROCEDURE_NAME,PROCEDURE_PARENT,TABLE_NAME,TABLE_TYPE,SUBJECT_AREA,\n\
+          \ PROCESS_DATE,SUCCESS_FLAG,END_TIME,\n FROMDATEPARAMETER,TODATEPARAMETER,COMMENTS)\n\
+          \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
+          \ '${jv_process_date}',${jv_success_flag},current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
+          \ ETL for GANDA Load Completed');\n \n delete from ${ev_edp_curated_schema}.load_log\
+          \ where LOAD_ID = -1 and PROCEDURE_NAME = '-1';\n \n  UPDATE ${ev_edp_curated_schema}.ADHOC_RUN\
+          \ SET LAST_RUN_DATE = NULL, CURRENT_RUN_DATE = NULL\n  WHERE SUBJECT_AREA\
+          \ = '${jv_subject_area}';"
+    Check_run_status_1:
+      type: "unknown-orchestration"
+      transitions:
+        success:
+        - "Check last run dt"
+        failure:
+        - "Or 0"
+      skipped: false
+      parameters:
+        "1": "Check_run_status_1"
+        "2": "${jv_subject_area}"
+        "3": "1970-01-01 00:00:00"
+        "4": "1970-01-01 00:00:00"
+        "5": "-1"
+        "6": "2021-01-01"
+        "7": "0"
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Check_run_status_1"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    setting success flag run_status:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Or 1"
+      skipped: false
+      parameters:
+        componentName: "setting success flag run_status"
+        mode: "Advanced"
+        query: |-
+          /* Note: this query will be run as a subquery for the purposes of sampling the data.
+             As such it will be restricted by any subquery limitations specified by the current platform. */
+             select 1 as success_flag
+        scalarVariableMapping:
+        - - "jv_success_flag"
+          - "SUCCESS_FLAG"
+    If 0:
+      type: "if"
+      transitions:
+        "true":
+        - "End Success 0"
+        "false":
+        - "End Failure 0"
+      skipped: false
+      parameters:
+        componentName: "If 0"
+        mode: "Simple"
+        condition:
+        - - "jv_success_flag"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineConditions: "And"
+    If 1:
+      type: "if"
+      transitions:
+        "true":
+        - "Main ETL Log Entry Start"
+        "false":
+        - "Main ETL Log Entry RE-Start"
+      skipped: false
+      parameters:
+        componentName: "If 1"
+        mode: "Simple"
+        condition:
+        - - "jv_restart_check"
+          - "Is"
+          - "Equal to"
+          - "0"
+        combineConditions: "And"
+    End Success 0:
+      type: "end-success"
+      skipped: false
+      parameters:
+        componentName: "End Success 0"
+    Append To Grid error log for main job:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Error_log_insert 0"
+      skipped: false
+      parameters:
+        componentName: "Append To Grid error log for main job"
+        operation: "Append"
+        targetGridVariable: "gv_error_log"
+        fixedGridMode: "Fixed"
+        valuesGrid:
+        - - "${jv_load_id}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "-1"
+          - "-1"
+          - "-1"
+          - "0"
+          - "0"
+          - "${jv_subject_area}"
+          - "${jv_process_date}"
+          - "${jv_success_flag}"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_status}"
+          - "${jv_error_message}"
+          - "0"
+          - "0"
+          - "-1"
+    End Failure 0:
+      type: "end-failure"
+      skipped: false
+      parameters:
+        componentName: "End Failure 0"
+    Or 0:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Append To Grid error log for main job"
+      skipped: false
+      parameters:
+        componentName: "Or 0"
+    Check current run dt:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "If 1"
+      skipped: false
+      parameters:
+        componentName: "Check current run dt"
+        mode: "Advanced"
+        query: |-
+          SELECT IFNULL(CURRENT_RUN_DATE, '${jv_curr_run_dt}') AS CURR_RUN_DATE FROM EDP_CURATED.ADHOC_RUN
+          WHERE SUBJECT_AREA = '${jv_subject_area}'
+        scalarVariableMapping:
+        - - "jv_curr_run_dt"
+          - "CURR_RUN_DATE"
+    Start new load:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Grid Iterator 0"
+      skipped: false
+      parameters:
+        componentName: "Start new load"
+        mode: "Advanced"
+        query: |-
+          SELECT JOB_NAME from ${ev_edp_curated_schema}.JOB_CONTROL_TABLE
+          WHERE RUN_STATUS = 'Y' AND ACTIVE_STATUS = 'Y' AND SUBJECT_AREA = '${jv_subject_area}' ORDER BY JOB_SEQ
+        gridVariable: "gv_control_table"
+        gridVariableMapping:
+        - - "JOB_NAME"
+          - "gv_control_job_name"
+  variables:
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-02-01"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SALES LOAD"
+    jv_control_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "o_Dim_Load_Stg_To_Curated"
+    jv_success_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "o_SALES_MAIN_ETL"
+    gv_load_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+    gv_control_table:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_control_job_name:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_temp_load_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Update control table:
+      position:
+        x: 64
+        "y": -96
+      tempMetlId: 9959
+    Or 1:
+      position:
+        x: 576
+        "y": 96
+      tempMetlId: 9960
+    Or 2:
+      position:
+        x: 64
+        "y": 0
+      tempMetlId: 9961
+    SALES Jobs:
+      position:
+        x: 288
+        "y": 32
+      tempMetlId: 9962
+    setting success flag run_status fail:
+      position:
+        x: 176
+        "y": 240
+      tempMetlId: 9963
+    Grid Iterator 0:
+      position:
+        x: 288
+        "y": 0
+      tempMetlId: 9964
+    Check last run dt:
+      position:
+        x: -320
+        "y": 0
+      tempMetlId: 9965
+    Main ETL Log Entry RE-Start:
+      position:
+        x: -32
+        "y": 0
+      tempMetlId: 9966
+    Error_log_insert 0:
+      position:
+        x: -16
+        "y": 240
+      tempMetlId: 9967
+    Update_run_status 0:
+      position:
+        x: 736
+        "y": 96
+      tempMetlId: 9968
+    Main ETL Log Entry Start:
+      position:
+        x: -128
+        "y": -96
+      tempMetlId: 9969
+    Main ETL Log Entry Complete:
+      position:
+        x: 880
+        "y": 96
+      tempMetlId: 9970
+    Check_run_status_1:
+      position:
+        x: -432
+        "y": 0
+      tempMetlId: 9971
+    Start 0:
+      position:
+        x: -544
+        "y": 0
+      tempMetlId: 9972
+    setting success flag run_status:
+      position:
+        x: 416
+        "y": 0
+      tempMetlId: 9973
+    If 0:
+      position:
+        x: 976
+        "y": 96
+      tempMetlId: 9974
+    If 1:
+      position:
+        x: -128
+        "y": 0
+      tempMetlId: 9975
+    End Success 0:
+      position:
+        x: 976
+        "y": -16
+      tempMetlId: 9976
+    Append To Grid error log for main job:
+      position:
+        x: -240
+        "y": 240
+      tempMetlId: 9977
+    End Failure 0:
+      position:
+        x: 976
+        "y": 208
+      tempMetlId: 9978
+    Or 0:
+      position:
+        x: -432
+        "y": 240
+      tempMetlId: 9979
+    Check current run dt:
+      position:
+        x: -224
+        "y": 0
+      tempMetlId: 9980
+    Start new load:
+      position:
+        x: 176
+        "y": 0
+      tempMetlId: 9981
+  notes:
+    "9954":
+      position:
+        x: -484
+        "y": -240
+      size:
+        height: 78
+        width: 730
+      theme: "yellow"
+      content: "**Description:** This procedure is the main Procedure that drives\
+        \ the entire GANDA Load "
+    "9955":
+      position:
+        x: -735
+        "y": -134
+      size:
+        height: 237
+        width: 155
+      theme: "yellow"
+      content: "\n**VARIABLES USED``**\n\n``GRID VARIABLES\n\n1. gv_load_log\n2. gv_error_log\n\
+        3.gv_temp_load_log\n4.gv_control_table\n\nJOB VARIABLES\n\n1.jv_control_job_name\t\
+        \n2.jv_job_parent\t\n3.jv_subject_area\t\n4.jv_success_flag\t\n"
+    "9956":
+      position:
+        x: 1036
+        "y": -88
+      size:
+        height: 388
+        width: 362
+      theme: "yellow"
+      content: |-
+        **"Check run status"** - This is a reusable component which checks whether any previous job is completed/failed then only moves forward otherwise fails.
+
+        **"Update control tables"** - This component sets job_status column in control table to 'Y'.
+
+        **"Start new load"** - This component reads control table gets job name column and sets it into gv_control_table grid variable
+
+        **"Grid iterator/GNA jobs"** - This component iterates on the job names recieved from gv_control_table  grid variable
+        and executes them in sequential manner.
+
+        **"Setting success flag run_status"** - This component will set ev_run_status variable to 1 on job success and sets it to 0 on job failure.
+
+        **"Update_run_status"** - This is a reusable component which updates job status to success on job success and to failure when job fails and also updates the job end time in run status table.
+
+        **"Append To Grid error log for main job"** - This component appends required values to gv_error_log grid variable when job fails.
+
+        **"Error_log_insert"** - This is a reusable component to write failed entry to error log table.
+    "9957":
+      position:
+        x: -480
+        "y": 183
+      size:
+        height: 116
+        width: 716
+      theme: "red"
+      content: "**FAILURE PATH**"
+    "9958":
+      position:
+        x: -511
+        "y": -121
+      size:
+        height: 212
+        width: 1022
+      theme: "green"
+      content: "**SUCCESS PATH**"

@@ -1,0 +1,69 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    ORDERS:
+      type: "table-input"
+      parameters:
+        componentName: "ORDERS"
+        database: "SNOWFLAKE_SAMPLE_DATA"
+        schema: "TPCH_SF10"
+        targetTable: "ORDERS"
+        columnNames:
+        - "O_ORDERKEY"
+        - "O_CUSTKEY"
+        - "O_ORDERSTATUS"
+        - "O_TOTALPRICE"
+        - "O_ORDERDATE"
+        - "O_ORDERPRIORITY"
+        - "O_CLERK"
+        - "O_SHIPPRIORITY"
+        - "O_COMMENT"
+        timeOffset:
+    STAGE_ORDERS:
+      type: "table-output"
+      sources:
+      - "ORDERS"
+      parameters:
+        componentName: "STAGE_ORDERS"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STAGE_ORDERS"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "O_ORDERKEY"
+          - "O_ORDERKEY"
+        - - "O_CUSTKEY"
+          - "O_CUSTKEY"
+        - - "O_ORDERSTATUS"
+          - "O_ORDERSTATUS"
+        - - "O_TOTALPRICE"
+          - "O_TOTALPRICE"
+        - - "O_ORDERDATE"
+          - "O_ORDERDATE"
+        - - "O_ORDERPRIORITY"
+          - "O_ORDERPRIORITY"
+        - - "O_CLERK"
+          - "O_CLERK"
+        - - "O_SHIPPRIORITY"
+          - "O_SHIPPRIORITY"
+        - - "O_COMMENT"
+          - "O_COMMENT"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    ORDERS:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    STAGE_ORDERS:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2
