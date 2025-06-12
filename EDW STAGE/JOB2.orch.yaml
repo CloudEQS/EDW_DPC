@@ -1,0 +1,33 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run JOB2"
+      parameters:
+        componentName: "Start"
+    Run JOB2:
+      type: "run-transformation"
+      parameters:
+        componentName: "Run JOB2"
+        transformationJob: "EDW STAGE/JOB2.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Run JOB2:
+      position:
+        x: 100
+        "y": 10
+      tempMetlId: 2

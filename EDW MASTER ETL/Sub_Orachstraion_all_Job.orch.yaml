@@ -56,7 +56,7 @@ pipeline:
       type: "python-pushdown"
       transitions:
         success:
-        - "Grid Iterator 0"
+        - "Grid Iterator 2"
       parameters:
         componentName: "Python Pushdown"
         warehouse: "[Environment Default]"
@@ -117,12 +117,38 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Grid Iterator 0:
-      type: "grid-iterator"
-      iterationTarget: "Main_Source_Selector 0"
+    Main_Source_Selector 0:
+      type: "run-orchestration"
       skipped: false
       parameters:
-        componentName: "Grid Iterator 0"
+        componentName: "Main_Source_Selector 0"
+        orchestrationJob: "product_SCD1_MERGE_orc.orch.yaml"
+        setScalarVariables:
+        - - "S_job_id"
+          - "${Jv_job_id}"
+        - - "S_Job_name"
+          - "${Jv_job_name}"
+        - - "s_dependenies_id"
+          - "${jv_dependenies_on_job_id}"
+        - - "S_execution_code"
+          - "${jv_execution_code}"
+        - - "S_job_group_id"
+          - "${jv_job_group_id}"
+        - - "S_active_flag"
+          - "${jv_active_flag}"
+        - - "S_run_type"
+          - "${jv_run_type}"
+        - - "S_Complete_job_list"
+          - "${Completed_job_list}"
+        - - "S_Jobs_remainings"
+          - "${v_jobs_remaining}"
+        setGridVariables:
+    Grid Iterator 0 2:
+      type: "grid-iterator"
+      iterationTarget: "Main_Source_Selector 0 2"
+      skipped: false
+      parameters:
+        componentName: "Grid Iterator 0 2"
         gridVariable: "parallel_jobs_grid"
         gridIteratorVariableMapping:
           fromGrid:
@@ -141,11 +167,11 @@ pipeline:
           - "${sysvar.thisComponent.startedAt}"
         - - "jv_message"
           - "${sysvar.thisComponent.message}"
-    Main_Source_Selector 0:
+    Main_Source_Selector 0 2:
       type: "run-orchestration"
       skipped: false
       parameters:
-        componentName: "Main_Source_Selector 0"
+        componentName: "Main_Source_Selector 0 2"
         orchestrationJob: "product_SCD1_MERGE_orc.orch.yaml"
         setScalarVariables:
           fromGrid:
@@ -154,6 +180,32 @@ pipeline:
             - "GV_JOB_NAME"
             - "GV_JOB_NAME"
         setGridVariables:
+    Grid Iterator 2:
+      type: "grid-iterator"
+      iterationTarget: "Main_Source_Selector 0"
+      parameters:
+        componentName: "Grid Iterator 2"
+        gridVariable: "parallel_jobs_grid"
+        gridIteratorVariableMapping:
+        - - "p_JOB_ID"
+          - "Jv_job_id"
+        - - "p_JOB_NAME"
+          - "Jv_job_name"
+        - - "p_DEPENDENIES_ON_JOB_ID"
+          - "jv_dependenies_on_job_id"
+        - - "p_RUN_TYPE"
+          - "jv_run_type"
+        - - "p_EXECUTION_ORDER"
+          - "jv_execution_code"
+        - - "p_JOB_GROUP_ID"
+          - "jv_job_group_id"
+        - - "p_ACTIVE_FLAG"
+          - "jv_active_flag"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     RUN_TYPE:
       metadata:
@@ -224,7 +276,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "Orc_job1"
     jv_execution_code:
       metadata:
         type: "TEXT"
@@ -342,21 +394,31 @@ design:
       tempMetlId: 1
     Query Result To Grid:
       position:
-        x: -510
-        "y": -90
+        x: -530
+        "y": -80
       tempMetlId: 2
     Python Pushdown:
       position:
-        x: -350
-        "y": -90
+        x: -390
+        "y": -80
       tempMetlId: 10
-    Grid Iterator 0:
-      position:
-        x: -170
-        "y": -110
-      tempMetlId: 13
     Main_Source_Selector 0:
       position:
-        x: -170
-        "y": -110
+        x: -260
+        "y": -100
       tempMetlId: 14
+    Grid Iterator 0 2:
+      position:
+        x: -410
+        "y": 60
+      tempMetlId: 15
+    Main_Source_Selector 0 2:
+      position:
+        x: -410
+        "y": 60
+      tempMetlId: 16
+    Grid Iterator 2:
+      position:
+        x: -260
+        "y": -100
+      tempMetlId: 18
