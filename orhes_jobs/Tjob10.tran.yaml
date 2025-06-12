@@ -1,0 +1,35 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "select Top 100000000 * from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF10TCL.STORE_RETURNS"
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "SQL"
+      parameters:
+        componentName: "Rewrite Table"
+        warehouse: "[Environment Default]"
+        database: "SCD_PRACTICE_DB"
+        schema: "SCD2"
+        targetTable: "Store_return2"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Rewrite Table:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2

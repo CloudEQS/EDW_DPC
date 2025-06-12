@@ -1,0 +1,35 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "select  * from  SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.ORDERS"
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "SQL"
+      parameters:
+        componentName: "Rewrite Table"
+        warehouse: "[Environment Default]"
+        database: "SCD_PRACTICE_DB"
+        schema: "PUBLIC"
+        targetTable: "order2"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL:
+      position:
+        x: -400
+        "y": -20
+      tempMetlId: 1
+    Rewrite Table:
+      position:
+        x: -240
+        "y": -20
+      tempMetlId: 2

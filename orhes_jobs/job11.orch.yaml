@@ -6,14 +6,14 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Trans_JOB3"
+        - "Run Transformation"
       parameters:
         componentName: "Start"
-    Run Trans_JOB3:
+    Run Transformation:
       type: "run-transformation"
       parameters:
-        componentName: "Run Trans_JOB3"
-        transformationJob: "EDW STAGE/Trans_JOB3.tran.yaml"
+        componentName: "Run Transformation"
+        transformationJob: "orhes_jobs/Tjob11.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -23,11 +23,11 @@ design:
   components:
     Start:
       position:
-        x: -120
-        "y": -10
+        x: -260
+        "y": 40
       tempMetlId: 1
-    Run Trans_JOB3:
+    Run Transformation:
       position:
-        x: 20
-        "y": 0
+        x: -100
+        "y": 40
       tempMetlId: 2

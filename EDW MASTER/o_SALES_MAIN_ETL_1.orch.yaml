@@ -125,22 +125,10 @@ pipeline:
       skipped: false
       parameters:
         "1": "Error_log_insert 0"
-        "2":
-        - "1":
-          - - "gv_error_log"
-        - "1":
-          - - "gv_load_id"
-            - "gv_job_name"
-            - "gv_job_parent"
-            - "gv_table_name"
-            - "gv_table_type"
-            - "gv_error_rows"
-            - "gv_subject_area"
-            - "gv_process_date"
-            - "gv_start_time"
-            - "gv_run_history_id"
-            - "gv_status"
-            - "gv_error_message"
+        "2": "[{\"1\":[[\"gv_error_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
+          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_error_rows\"\
+          ,\"gv_subject_area\",\"gv_process_date\",\"gv_start_time\",\"gv_run_history_id\"\
+          ,\"gv_status\",\"gv_error_message\"]]}]"
     Update_run_status 0:
       type: "unknown-orchestration"
       transitions:
@@ -336,41 +324,6 @@ pipeline:
         - - "JOB_NAME"
           - "gv_control_job_name"
   variables:
-    jv_status:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "None"
-    jv_load_id:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "-1"
-    jv_message:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_end_time:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "1970-01-01"
-    jv_job_parent:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "o_SALES_MAIN_ETL"
     jv_start_time:
       metadata:
         type: "TEXT"
@@ -378,13 +331,6 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "1970-01-01"
-    jv_curr_run_dt:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "2022-06-01"
     jv_last_run_dt:
       metadata:
         type: "TEXT"
@@ -392,13 +338,6 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "2022-02-01"
-    jv_process_date:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "2022-06-01"
     jv_subject_area:
       metadata:
         type: "TEXT"
@@ -406,27 +345,6 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "SALES LOAD"
-    jv_success_flag:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "0"
-    jv_error_message:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_restart_check:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "0"
     jv_control_job_name:
       metadata:
         type: "TEXT"
@@ -434,6 +352,76 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "o_Dim_Load_Stg_To_Curated"
+    jv_success_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_load_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_restart_check:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "o_SALES_MAIN_ETL"
     gv_load_log:
       metadata:
         type: "GRID"
@@ -753,24 +741,6 @@ design:
       theme: "yellow"
       content: "**Description:** This procedure is the main Procedure that drives\
         \ the entire GANDA Load "
-    "9957":
-      position:
-        x: -480
-        "y": 183
-      size:
-        height: 116
-        width: 716
-      theme: "red"
-      content: "**FAILURE PATH**"
-    "9958":
-      position:
-        x: -511
-        "y": -121
-      size:
-        height: 212
-        width: 1022
-      theme: "green"
-      content: "**SUCCESS PATH**"
     "9955":
       position:
         x: -735
@@ -807,3 +777,21 @@ design:
         **"Append To Grid error log for main job"** - This component appends required values to gv_error_log grid variable when job fails.
 
         **"Error_log_insert"** - This is a reusable component to write failed entry to error log table.
+    "9957":
+      position:
+        x: -480
+        "y": 183
+      size:
+        height: 116
+        width: 716
+      theme: "red"
+      content: "**FAILURE PATH**"
+    "9958":
+      position:
+        x: -500
+        "y": -130
+      size:
+        height: 212
+        width: 1022
+      theme: "green"
+      content: "**SUCCESS PATH**"

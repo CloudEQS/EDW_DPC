@@ -124,61 +124,20 @@ pipeline:
         componentName: "Main_Source_Selector 0"
         orchestrationJob: "product_SCD1_MERGE_orc.orch.yaml"
         setScalarVariables:
-        - - "S_job_id"
+        - - "Jv_job_id"
           - "${Jv_job_id}"
-        - - "S_Job_name"
+        - - "Jv_job_name"
           - "${Jv_job_name}"
-        - - "s_dependenies_id"
+        - - "jv_dependenies_on_job_id"
           - "${jv_dependenies_on_job_id}"
-        - - "S_execution_code"
+        - - "jv_execution_code"
           - "${jv_execution_code}"
-        - - "S_job_group_id"
+        - - "jv_job_group_id"
           - "${jv_job_group_id}"
         - - "S_active_flag"
           - "${jv_active_flag}"
-        - - "S_run_type"
+        - - "jv_active_flag"
           - "${jv_run_type}"
-        - - "S_Complete_job_list"
-          - "${Completed_job_list}"
-        - - "S_Jobs_remainings"
-          - "${v_jobs_remaining}"
-        setGridVariables:
-    Grid Iterator 0 2:
-      type: "grid-iterator"
-      iterationTarget: "Main_Source_Selector 0 2"
-      skipped: false
-      parameters:
-        componentName: "Grid Iterator 0 2"
-        gridVariable: "parallel_jobs_grid"
-        gridIteratorVariableMapping:
-          fromGrid:
-            variable: "parallel_jobs_grid"
-            columns:
-            - "p_JOB_NAME"
-            - "p_JOB_NAME"
-        concurrency: "Concurrent"
-      postProcessing:
-        updateScalarVariables:
-        - - "jv_status"
-          - "${sysvar.thisComponent.status}"
-        - - "jv_end_time"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
-        - - "jv_start_time"
-          - "${sysvar.thisComponent.startedAt}"
-        - - "jv_message"
-          - "${sysvar.thisComponent.message}"
-    Main_Source_Selector 0 2:
-      type: "run-orchestration"
-      skipped: false
-      parameters:
-        componentName: "Main_Source_Selector 0 2"
-        orchestrationJob: "product_SCD1_MERGE_orc.orch.yaml"
-        setScalarVariables:
-          fromGrid:
-            variable: "parallel_jobs_grid"
-            columns:
-            - "GV_JOB_NAME"
-            - "GV_JOB_NAME"
         setGridVariables:
     Grid Iterator 2:
       type: "grid-iterator"
@@ -389,12 +348,12 @@ design:
   components:
     Start:
       position:
-        x: -660
+        x: -690
         "y": -80
       tempMetlId: 1
     Query Result To Grid:
       position:
-        x: -530
+        x: -560
         "y": -80
       tempMetlId: 2
     Python Pushdown:
@@ -407,16 +366,6 @@ design:
         x: -260
         "y": -100
       tempMetlId: 14
-    Grid Iterator 0 2:
-      position:
-        x: -410
-        "y": 60
-      tempMetlId: 15
-    Main_Source_Selector 0 2:
-      position:
-        x: -410
-        "y": 60
-      tempMetlId: 16
     Grid Iterator 2:
       position:
         x: -260

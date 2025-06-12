@@ -1,0 +1,35 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SQL:
+      type: "sql"
+      parameters:
+        componentName: "SQL"
+        query: "select * from SCD_PRACTICE_DB.SCD1.CUSTOMER_1M"
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "SQL"
+      parameters:
+        componentName: "Rewrite Table"
+        warehouse: "[Environment Default]"
+        database: "SCD_PRACTICE_DB"
+        schema: "PUBLIC"
+        targetTable: "csutomer_1million_record"
+        orderBy:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    SQL:
+      position:
+        x: -810
+        "y": 0
+      tempMetlId: 1
+    Rewrite Table:
+      position:
+        x: -650
+        "y": 0
+      tempMetlId: 2

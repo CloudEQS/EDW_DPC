@@ -191,3 +191,71 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
+  - pipeline: Shared Jobs/_copy_Error_log_new.tran.yaml
+    displayName: _copy_Error_log_new
+    id: _copy_Error_log_new
+    enabled: true
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: TEXT
+          gv_subject_area:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Shared Jobs/_copy_2_Error_log_new.tran.yaml
+    displayName: _copy_2_Error_log_new
+    id: _copy_2_Error_log_new
+    enabled: true
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: TEXT
+          gv_subject_area:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT

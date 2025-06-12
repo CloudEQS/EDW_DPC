@@ -1,14 +1,33 @@
-type: orchestration
+type: "orchestration"
 version: "1.0"
 pipeline:
   components:
     Start:
-      type: start
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Trans_JOB4"
       parameters:
-        componentName: Start
+        componentName: "Start"
+    Run Trans_JOB4:
+      type: "run-transformation"
+      parameters:
+        componentName: "Run Trans_JOB4"
+        transformationJob: "EDW STAGE/Trans_JOB4.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
 design:
   components:
     Start:
       position:
-        x: 0
-        y: 0
+        x: -70
+        "y": 0
+      tempMetlId: 1
+    Run Trans_JOB4:
+      position:
+        x: 90
+        "y": 0
+      tempMetlId: 2
