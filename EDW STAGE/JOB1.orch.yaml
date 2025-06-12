@@ -15,6 +15,20 @@ pipeline:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/JOB1_trans.tran.yaml"
         setScalarVariables:
+        - - "Jv_job_id"
+          - "${ev_job_id}"
+        - - "Jv_Job_name"
+          - "${ev_job_name}"
+        - - "jv_dependenies_on_job_id"
+          - "${ev_dependency_on_job_id}"
+        - - "jv_run_type"
+          - "${jv_run_type}"
+        - - "jv_execution_order"
+          - "${ev_execution_order}"
+        - - "jv_job_group_id"
+          - "${ev_job_group_id}"
+        - - "jv_active_flag"
+          - "${ev_active_flag}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
