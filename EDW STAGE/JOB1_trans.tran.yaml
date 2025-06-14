@@ -19,36 +19,17 @@ pipeline:
         - "C_MKTSEGMENT"
         - "C_COMMENT"
         timeOffset:
-    STAGE_CUSTOMER:
-      type: "table-output"
+    customer1:
+      type: "rewrite-table"
       sources:
       - "CUSTOMER"
       parameters:
-        componentName: "STAGE_CUSTOMER"
+        componentName: "customer1"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_CUSTOMER"
-        fixDataTypeMismatches: "No"
-        columnMapping:
-        - - "C_CUSTKEY"
-          - "C_CUSTKEY"
-        - - "C_NAME"
-          - "C_NAME"
-        - - "C_ADDRESS"
-          - "C_ADDRESS"
-        - - "C_NATIONKEY"
-          - "C_NATIONKEY"
-        - - "C_PHONE"
-          - "C_PHONE"
-        - - "C_ACCTBAL"
-          - "C_ACCTBAL"
-        - - "C_MKTSEGMENT"
-          - "C_MKTSEGMENT"
-        - - "C_COMMENT"
-          - "C_COMMENT"
+        targetTable: "STAGE_CUSTOMER_TABLE"
         orderBy:
-        outputMode: "Append"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -109,7 +90,7 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    STAGE_CUSTOMER:
+    customer1:
       position:
         x: 160
         "y": 0

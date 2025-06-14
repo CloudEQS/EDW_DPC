@@ -1,0 +1,111 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid"
+      parameters:
+        componentName: "Start"
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Python Pushdown"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Basic"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        table: "JOB_METADATA_TABLE"
+        tableColumns:
+        - "JOB_ID"
+        - "JOB_NAME"
+        - "DEPENDENIES_ON_JOB_ID"
+        - "RUN_TYPE"
+        - "EXECUTION_ORDER"
+        - "JOB_GROUP_ID"
+        - "ACTIVE_FLAG"
+        orderBy:
+        sort: "Ascending"
+        limit: "100"
+        gridVariable: "GV_Job_Meatadata_Tab"
+        gridVariableMapping:
+        - - "JOB_ID"
+          - "Jv_Job_Id"
+        - - "JOB_NAME"
+          - "Jv_Job_name"
+        - - "DEPENDENIES_ON_JOB_ID"
+          - "Jv_Dependency_id"
+        filterConditions:
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown:
+      type: "python-pushdown"
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    GV_Job_Meatadata:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    GV_Job_Meatadata_Tab:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          Jv_Job_name:
+            columnType: "TEXT"
+          Jv_Job_Id:
+            columnType: "NUMBER"
+          Jv_Dependency_id:
+            columnType: "NUMBER"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -330
+        "y": -50
+      tempMetlId: 1
+    Query Result To Grid:
+      position:
+        x: -170
+        "y": -50
+      tempMetlId: 2
+    Python Pushdown:
+      position:
+        x: -10
+        "y": -50
+      tempMetlId: 3

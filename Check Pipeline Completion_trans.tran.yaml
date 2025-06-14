@@ -1,0 +1,49 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    check Pipeline Completion:
+      type: "sql"
+      parameters:
+        componentName: "check Pipeline Completion"
+        query: "SELECT\r\n    COUNT_IF(status = 'COMPLETED') AS COMPLETED_COUNT,\r\
+          \n    COUNT_IF(status = 'FAILED' OR status = 'SKIPPED') AS FAILED_SKIPPED_COUNT,\r\
+          \n    COUNT_IF(status = 'PENDING' OR status = 'RUNNING') AS PENDING_RUNNING_COUNT,\r\
+          \n    -- New: Check if any job is currently RUNNING\r\n    COUNT_IF(status\
+          \ = 'RUNNING') AS RUNNING_COUNT\r\nFROM edw_lab.public.job_status"
+  variables:
+    v_failed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_running_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_pending_running_jobs:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "RUNNING"
+    v_completed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+design:
+  components:
+    check Pipeline Completion:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1

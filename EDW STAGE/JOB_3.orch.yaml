@@ -6,20 +6,27 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation"
+        - "Run Trans_JOB3"
       parameters:
         componentName: "Start"
-    Run Transformation:
+    Run Trans_JOB3:
       type: "run-transformation"
       parameters:
-        componentName: "Run Transformation"
-        transformationJob: "EDW STAGE/JOB1_trans.tran.yaml"
+        componentName: "Run Trans_JOB3"
+        transformationJob: "EDW STAGE/Trans_JOB3.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
   variables:
+    Jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     jv_active_flag:
       metadata:
         type: "TEXT"
@@ -41,13 +48,6 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    Jv_group_id:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
     jv_dependenies_on_job_id:
       metadata:
         type: "NUMBER"
@@ -55,7 +55,7 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    jv_job_name:
+    jv_job_group_id:
       metadata:
         type: "TEXT"
         description: ""
@@ -69,15 +69,53 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    parallel_jobs_grid:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          p_JOB_ID:
+            columnType: "NUMBER"
+          p_JOB_NAME:
+            columnType: "TEXT"
+          p_DEPENDENIES_ON_JOB_ID:
+            columnType: "NUMBER"
+          p_RUN_TYPE:
+            columnType: "TEXT"
+          p_EXECUTION_ORDER:
+            columnType: "NUMBER"
+          p_JOB_GROUP_ID:
+            columnType: "TEXT"
+          p_ACTIVE_FLAG:
+            columnType: "TEXT"
+      defaultValue: []
+    sequential_jobs_grid:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          s_JOB_ID:
+            columnType: "NUMBER"
+          s_JOB_NAME:
+            columnType: "TEXT"
+          s_DEPENDENIES_ON_JOB_ID:
+            columnType: "NUMBER"
+          s_s_ACTIVE_FLAG:
+            columnType: "TEXT"
+      defaultValue: []
 design:
   components:
     Start:
       position:
-        x: -90
-        "y": 20
+        x: -120
+        "y": -10
       tempMetlId: 1
-    Run Transformation:
+    Run Trans_JOB3:
       position:
-        x: 70
-        "y": 20
+        x: 20
+        "y": 0
       tempMetlId: 2

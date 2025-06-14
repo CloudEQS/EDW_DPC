@@ -259,3 +259,24 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
+  - pipeline: Check Pipeline Completion_trans.tran.yaml
+    displayName: Check Pipeline Completion_trans
+    id: Check-Pipeline-Completion_trans
+    enabled: true
+    parameters:
+      v_failed_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""
+      v_running_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""
+      v_pending_running_jobs:
+        type: TEXT
+        exportAllowed: true
+        description: ""
+      v_completed_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""

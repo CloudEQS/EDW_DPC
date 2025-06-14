@@ -20,38 +20,17 @@ pipeline:
         - "O_SHIPPRIORITY"
         - "O_COMMENT"
         timeOffset:
-    STAGE_ORDERS:
-      type: "table-output"
+    Orders2:
+      type: "rewrite-table"
       sources:
       - "ORDERS"
       parameters:
-        componentName: "STAGE_ORDERS"
+        componentName: "Orders2"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_ORDERS"
-        fixDataTypeMismatches: "No"
-        columnMapping:
-        - - "O_ORDERKEY"
-          - "O_ORDERKEY"
-        - - "O_CUSTKEY"
-          - "O_CUSTKEY"
-        - - "O_ORDERSTATUS"
-          - "O_ORDERSTATUS"
-        - - "O_TOTALPRICE"
-          - "O_TOTALPRICE"
-        - - "O_ORDERDATE"
-          - "O_ORDERDATE"
-        - - "O_ORDERPRIORITY"
-          - "O_ORDERPRIORITY"
-        - - "O_CLERK"
-          - "O_CLERK"
-        - - "O_SHIPPRIORITY"
-          - "O_SHIPPRIORITY"
-        - - "O_COMMENT"
-          - "O_COMMENT"
+        targetTable: "STAGE_ORDERS_TABLE"
         orderBy:
-        outputMode: "Append"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -98,7 +77,7 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    STAGE_ORDERS:
+    Orders2:
       position:
         x: 160
         "y": 0

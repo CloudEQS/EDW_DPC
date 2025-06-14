@@ -6,19 +6,29 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run JOB2"
+        - "Run Orchestration"
       parameters:
         componentName: "Start"
-    Run JOB2:
-      type: "run-transformation"
+    Run Orchestration:
+      type: "run-orchestration"
       parameters:
-        componentName: "Run JOB2"
-        transformationJob: "EDW STAGE/JOB2.tran.yaml"
+        componentName: "Run Orchestration"
+        orchestrationJob: "Trail Folder/child_O.orch.yaml"
         setScalarVariables:
+        - - "Child_var"
+          - "${Parent_var}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+  variables:
+    Parent_var:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "100"
 design:
   components:
     Start:
@@ -26,8 +36,8 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    Run JOB2:
+    Run Orchestration:
       position:
-        x: 100
-        "y": 10
+        x: 160
+        "y": 0
       tempMetlId: 2

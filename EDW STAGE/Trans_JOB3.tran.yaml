@@ -27,52 +27,17 @@ pipeline:
         - "L_SHIPMODE"
         - "L_COMMENT"
         timeOffset:
-    STAGE LINEITEM:
-      type: "table-output"
+    LINE ITEM3:
+      type: "rewrite-table"
       sources:
       - "LINE ITEM"
       parameters:
-        componentName: "STAGE LINEITEM"
+        componentName: "LINE ITEM3"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_LINEITEM"
-        fixDataTypeMismatches: "No"
-        columnMapping:
-        - - "L_ORDERKEY"
-          - "L_ORDERKEY"
-        - - "L_PARTKEY"
-          - "L_PARTKEY"
-        - - "L_SUPPKEY"
-          - "L_SUPPKEY"
-        - - "L_LINENUMBER"
-          - "L_LINENUMBER"
-        - - "L_QUANTITY"
-          - "L_QUANTITY"
-        - - "L_EXTENDEDPRICE"
-          - "L_EXTENDEDPRICE"
-        - - "L_DISCOUNT"
-          - "L_DISCOUNT"
-        - - "L_TAX"
-          - "L_TAX"
-        - - "L_RETURNFLAG"
-          - "L_RETURNFLAG"
-        - - "L_LINESTATUS"
-          - "L_LINESTATUS"
-        - - "L_SHIPDATE"
-          - "L_SHIPDATE"
-        - - "L_COMMITDATE"
-          - "L_COMMITDATE"
-        - - "L_RECEIPTDATE"
-          - "L_RECEIPTDATE"
-        - - "L_SHIPINSTRUCT"
-          - "L_SHIPINSTRUCT"
-        - - "L_SHIPMODE"
-          - "L_SHIPMODE"
-        - - "L_COMMENT"
-          - "L_COMMENT"
+        targetTable: "STAGE_LINEITEM_TABLE"
         orderBy:
-        outputMode: "Append"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -83,7 +48,7 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    STAGE LINEITEM:
+    LINE ITEM3:
       position:
         x: 160
         "y": 0

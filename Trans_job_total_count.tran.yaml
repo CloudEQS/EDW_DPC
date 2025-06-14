@@ -1,0 +1,24 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Get Total Job Count:
+      type: "sql"
+      parameters:
+        componentName: "Get Total Job Count"
+        query: "SELECT COUNT(DISTINCT job_seq) AS TOTAL_JOBS FROM edw_lab.public.job_metadata"
+  variables:
+    v_total_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+design:
+  components:
+    Get Total Job Count:
+      position:
+        x: -200
+        "y": -20
+      tempMetlId: 1

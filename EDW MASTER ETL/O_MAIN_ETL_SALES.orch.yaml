@@ -117,18 +117,6 @@ pipeline:
           \ \n Values\n\n(${jv_load_id},'${sysvar.thisPipeline.fullName}','None','None','None','${jv_subject_area}',\n\
           \ '${jv_process_date}',current_timestamp(),\n '${jv_last_run_dt}','${jv_curr_run_dt}','MASTER\
           \ ETL for ${jv_subject_area} RE-Started')"
-    Error_log_insert 0:
-      type: "unknown-orchestration"
-      transitions:
-        success:
-        - "setting success flag run_status fail"
-      skipped: false
-      parameters:
-        "1": "Error_log_insert 0"
-        "2": "[{\"1\":[[\"gv_error_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_error_rows\"\
-          ,\"gv_subject_area\",\"gv_process_date\",\"gv_start_time\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_error_message\"]]}]"
     Update_run_status 0:
       type: "unknown-orchestration"
       transitions:
@@ -236,7 +224,7 @@ pipeline:
       type: "append-to-grid"
       transitions:
         success:
-        - "Error_log_insert 0"
+        - "Error Log Insert"
       skipped: false
       parameters:
         componentName: "Append To Grid error log for main job"
@@ -309,9 +297,26 @@ pipeline:
           - "gv_control_job_name"
     Run Shared Pipeline:
       type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "Check last run dt"
       parameters:
         componentName: "Run Shared Pipeline"
-        pipelineName:
+        pipelineName: "EDW_LAB#Check-run-status_1"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Error Log Insert:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "setting success flag run_status fail"
+      parameters:
+        componentName: "Error Log Insert"
+        pipelineName: "EDW_LAB#Error_log_new"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
@@ -650,11 +655,6 @@ design:
         x: -32
         "y": 0
       tempMetlId: 9966
-    Error_log_insert 0:
-      position:
-        x: -16
-        "y": 240
-      tempMetlId: 9967
     Update_run_status 0:
       position:
         x: 736
@@ -672,7 +672,7 @@ design:
       tempMetlId: 9970
     Start 0:
       position:
-        x: -544
+        x: -550
         "y": 0
       tempMetlId: 9972
     setting success flag run_status:
@@ -723,5 +723,10 @@ design:
     Run Shared Pipeline:
       position:
         x: -430
-        "y": -10
+        "y": 0
       tempMetlId: 9982
+    Error Log Insert:
+      position:
+        x: -80
+        "y": 240
+      tempMetlId: 9983

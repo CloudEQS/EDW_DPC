@@ -16,36 +16,17 @@ pipeline:
         - "PS_SUPPLYCOST"
         - "PS_COMMENT"
         timeOffset:
-    STAGE PARTSUPP:
-      type: "table-output"
+    Rewrite Table:
+      type: "rewrite-table"
       sources:
       - "PARTSUPP"
       parameters:
-        componentName: "STAGE PARTSUPP"
+        componentName: "Rewrite Table"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_PARTSUPP"
-        fixDataTypeMismatches: "No"
-        columnMapping:
-        - - "C_CUSTKEY"
-          - "C_CUSTKEY"
-        - - "C_NAME"
-          - "C_NAME"
-        - - "C_ADDRESS"
-          - "C_ADDRESS"
-        - - "C_NATIONKEY"
-          - "C_NATIONKEY"
-        - - "C_PHONE"
-          - "C_PHONE"
-        - - "C_ACCTBAL"
-          - "C_ACCTBAL"
-        - - "C_MKTSEGMENT"
-          - "C_MKTSEGMENT"
-        - - "C_COMMENT"
-          - "C_COMMENT"
+        targetTable: "STAGE_PARTSUPP_TABLE"
         orderBy:
-        outputMode: "Append"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -56,7 +37,7 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    STAGE PARTSUPP:
+    Rewrite Table:
       position:
         x: 160
         "y": 0

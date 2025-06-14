@@ -1,0 +1,178 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      parameters:
+        componentName: "Start"
+    Run Orchestration:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "EDW STAGE/${Jv_job_name}"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    error log:
+      type: "sql-executor"
+      parameters:
+        componentName: "error log"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.job_status(job_seq,job_name,status,last_updated)\r\
+          \nvalues(${Jv_job_id},${Jv_job_name},'FAILED',current_timestamp)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Grid Iterator"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Advanced"
+        gridVariable: "GV_Job_details"
+        gridVariableMapping:
+        - - "JOB_SEQ"
+          - "job_seq"
+        - - "JOB_NAME"
+          - "job_name"
+        query: "WITH dependencies AS (\r\n    SELECT \r\n        jm.job_seq, \r\n\
+          \        jm.job_name, \r\n        jm.dependency, \r\n        js.status AS\
+          \ dependency_status\r\n    FROM edw_lab.public.job_metadata jm\r\n    LEFT\
+          \ JOIN edw_lab.public.job_status js\r\n        ON jm.dependency = js.job_seq\r\
+          \n),\r\naggregated AS (\r\n    SELECT\r\n        job_seq,\r\n        job_name,\r\
+          \n        COUNT(dependency) AS total_deps,\r\n        COUNT(CASE WHEN dependency_status\
+          \ = 'COMPLETED' THEN 1 END) AS completed_deps\r\n    FROM dependencies\r\
+          \n    GROUP BY job_seq, job_name\r\n)\r\nSELECT a.job_seq, a.job_name\r\n\
+          FROM aggregated a\r\nLEFT JOIN edw_lab.public.job_status js\r\n    ON a.job_seq\
+          \ = js.job_seq\r\nWHERE js.job_seq IS NULL\r\n  AND (a.total_deps = 0 OR\
+          \ a.total_deps = a.completed_deps)\r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Success Log"
+        - "If"
+        failure:
+        - "error log"
+      iterationTarget: "Run Orchestration"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "GV_Job_details"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "Jv_job_id"
+        - - "job_name"
+          - "Jv_job_name"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Success Log:
+      type: "sql-executor"
+      parameters:
+        componentName: "Success Log"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.job_status(job_seq,job_name,status,last_updated)\r\
+          \nvalues(${Jv_job_id},${Jv_job_name},'Completed',current_timestamp)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      transitions:
+        "true":
+        - "Query Result To Grid"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    Jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    Jv_Job_Name_run:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_job_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    GV_Job_details:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_seq:
+            columnType: "NUMBER"
+          job_name:
+            columnType: "TEXT"
+      defaultValue:
+      - - "1"
+        - "JOB_1"
+design:
+  components:
+    Start:
+      position:
+        x: -740
+        "y": -30
+      tempMetlId: 1
+    Run Orchestration:
+      position:
+        x: -430
+        "y": -60
+      tempMetlId: 7
+    error log:
+      position:
+        x: -180
+        "y": 90
+      tempMetlId: 8
+    Query Result To Grid:
+      position:
+        x: -590
+        "y": -30
+      tempMetlId: 12
+    Grid Iterator:
+      position:
+        x: -430
+        "y": -60
+      tempMetlId: 13
+    Success Log:
+      position:
+        x: -180
+        "y": -100
+      tempMetlId: 14
+    If:
+      position:
+        x: -530
+        "y": 120
+      tempMetlId: 15

@@ -1,0 +1,536 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Initialize Job Status"
+      parameters:
+        componentName: "Start"
+    Initialize Job Status:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Get Total Job Count"
+      parameters:
+        componentName: "Initialize Job Status"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO job_status (job_seq, status)\r\nSELECT DISTINCT job_seq,\
+          \ 'PENDING' FROM edw_lab.public.job_metadata"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Total Job Count:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Identify Ready Jobs"
+      parameters:
+        componentName: "Get Total Job Count"
+        transformationJob: "Trans_job_total_count"
+        setScalarVariables:
+        - - "v_total_jobs"
+          - "TOTAL_JOBS"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Identify Ready Jobs:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Jobs Ready?"
+      parameters:
+        componentName: "Identify Ready Jobs"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |-
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+
+
+          import _snowflake # Or your relevant data warehouse connection
+          import json
+
+          def get_ready_jobs(session):
+              # Fetch all job metadata
+              job_metadata_df = session.table("JOB_METADATA")
+
+              # Fetch current job statuses
+              job_status_df = session.table("JOB_STATUS")
+
+              # Get completed and failed job sequences
+              completed_job_seqs = [row['JOB_SEQ'] for row in job_status_df.filter(job_status_df["STATUS"] == "COMPLETED").collect()]
+              failed_job_seqs = [row['JOB_SEQ'] for row in job_status_df.filter(job_status_df["STATUS"] == "FAILED").collect()]
+
+              # Get jobs that are currently running or pending execution (to avoid re-triggering within the same cycle)
+              # We fetch this every loop to ensure we don't pick up jobs that just got launched.
+              running_job_seqs = [row['JOB_SEQ'] for row in job_status_df.filter(job_status_df["STATUS"] == 'RUNNING').collect()]
+              pending_job_seqs = [row['JOB_SEQ'] for row in job_status_df.filter(job_status_df["STATUS"] == 'PENDING').collect()]
+
+
+              all_job_seqs_in_metadata = [row['JOB_SEQ'] for row in job_metadata_df.select("JOB_SEQ").distinct().collect()]
+
+              ready_to_run_jobs = []
+
+              for job_seq in all_job_seqs_in_metadata:
+                  # Skip if job is already completed, failed, or currently running/pending
+                  if job_seq in completed_job_seqs or job_seq in failed_job_seqs or job_seq in running_job_seqs:
+                      continue
+
+                  # Check if this job_seq is still 'PENDING' from the status table
+                  # This handles cases where a job was marked PENDING but wasn't picked up yet or had issues
+                  current_status_rows = job_status_df.filter(job_status_df["JOB_SEQ"] == job_seq).collect()
+                  if not current_status_rows or current_status_rows[0]['STATUS'] != 'PENDING':
+                      continue # Only process jobs that are explicitly PENDING in job_status
+
+                  # Get job_name and all dependencies for the current job_seq
+                  current_job_name_rows = job_metadata_df.filter(job_metadata_df["JOB_SEQ"] == job_seq).select("JOB_NAME").distinct().collect()
+                  if not current_job_name_rows:
+                      continue # Should not happen if job_seq is from metadata
+
+                  job_name = current_job_name_rows[0]['JOB_NAME']
+
+                  # Collect all dependencies for this job_seq (it might appear multiple times if it has multiple dependencies)
+                  dependencies_for_job = [
+                      row['DEPENDENCY'] for row in job_metadata_df.filter(job_metadata_df["JOB_SEQ"] == job_seq).collect()
+                      if row['DEPENDENCY'] is not None
+                  ]
+
+                  all_dependencies_met = True
+                  if dependencies_for_job:
+                      for dep_seq in dependencies_for_job:
+                          if dep_seq not in completed_job_seqs:
+                              all_dependencies_met = False
+                              break
+
+                  # If no dependencies or all dependencies met
+                  if all_dependencies_met:
+                      ready_to_run_jobs.append({"JOB_SEQ": job_seq, "JOB_NAME": job_name})
+
+              # Prepare data for Matillion Grid Variable
+              grid_data = [[job['JOB_SEQ'], job['JOB_NAME']] for job in ready_to_run_jobs]
+
+              # Update Matillion Grid Variable and scalar variable
+              if 'context' in locals(): # Check if running in Matillion DPC context
+                  context.updateGridVariable('gv_ready_jobs', grid_data, ['job_seq', 'job_name'])
+                  context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))
+              else:
+                  print(f"DEBUG: Found {len(ready_to_run_jobs)} ready jobs: {ready_to_run_jobs}")
+
+              return ready_to_run_jobs
+
+          if 'context' in locals():
+              session = _snowflake.get_active_session()
+              get_ready_jobs(session)
+          else:
+              # Local testing placeholder (replace with a mock session if needed)
+              print("Running in local test mode (Matillion context not available).")
+              # For actual local testing, you'd need to mock _snowflake.get_active_session()
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "v_ready_job_count"
+          - "v_ready_job_count"
+    Jobs Ready?:
+      type: "if"
+      parameters:
+        componentName: "Jobs Ready?"
+        mode: "Simple"
+        condition:
+        - - "${v_ready_job_count}"
+          - "Is"
+          - "Greater than"
+          - "0"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    All Jobs Processed?:
+      type: "if"
+      transitions:
+        "true":
+        - "If"
+        - "If 2"
+      parameters:
+        componentName: "All Jobs Processed?"
+        mode: "Advanced"
+        condition1: "If ${v_pending_running_jobs} == 0:  \r\n    v_all_jobs_processed\
+          \ = 'True'\r\nElse \r\n    v_all_jobs_processed = 'False'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Mark Job Running:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Grid Iterator 2"
+      parameters:
+        componentName: "Mark Job Running"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE edw_lab.public.job_status\r\nSET STATUS = 'RUNNING',\r\n\
+          \    START_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED = CURRENT_TIMESTAMP()\r\
+          \nWHERE job_seq = ${v_current_job_seq}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Orchestration:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "EDW STAGE/$v_current_job_name}"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Mark Job Completed "
+        failure:
+        - "Mark Job Failed"
+      iterationTarget: "Run Orchestration"
+      parameters:
+        componentName: "Grid Iterator 2"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq "
+        - - "job_name"
+          - "v_current_job_name"
+        breakOnFailure: "No"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    check Pipeline Completion 2:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "All Jobs Processed?"
+      parameters:
+        componentName: "check Pipeline Completion 2"
+        transformationJob: "Check Pipeline Completion_trans.tran.yaml"
+        setScalarVariables:
+        - - "v_completed_jobs"
+          - "COMPLETED_COUNT "
+        - - "v_failed_jobs "
+          - "FAILED_SKIPPED_COUNT "
+        - - "v_pending_running_jobs "
+          - "PENDING_RUNNING_COUNT "
+        - - "v_running_jobs "
+          - "RUNNING_COUNT "
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Mark Job Failed:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Propagate Downstream Failure"
+      parameters:
+        componentName: "Mark Job Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE job_status\r\nSET STATUS = 'FAILED',\r\n    END_TIME =\
+          \ CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED = CURRENT_TIMESTAMP(),\r\n  \
+          \  ERROR_MESSAGE = 'Job failed during execution in Matillion. Check logs\
+          \ for job: ' || '${v_current_job_name}'\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Propagate Downstream Failure:
+      type: "sql-executor"
+      parameters:
+        componentName: "Propagate Downstream Failure"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE job_status\r\nSET STATUS = 'FAILED',\r\n    END_TIME =\
+          \ CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED = CURRENT_TIMESTAMP(),\r\n  \
+          \  ERROR_MESSAGE = 'Job failed during execution in Matillion. Check logs\
+          \ for job: ' || '${v_current_job_name}'\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    'Mark Job Completed ':
+      type: "sql-executor"
+      transitions:
+        success:
+        - "check Pipeline Completion 2"
+      parameters:
+        componentName: "Mark Job Completed "
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE job_status \r\nSET STATUS = 'COMPLETED', \r\n    END_TIME\
+          \ = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED = CURRENT_TIMESTAMP() \r\n\
+          WHERE JOB_SEQ = ${v_current_job_seq}\r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Loop Iterator:
+      type: "loop-iterator"
+      parameters:
+        componentName: "Loop Iterator"
+        concurrency: "Concurrent"
+        variableToIterate:
+        startingValue: "0"
+        incrementValue: "1"
+        endValue: "10"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Loop Iterator 2:
+      type: "loop-iterator"
+      parameters:
+        componentName: "Loop Iterator 2"
+        concurrency: "Sequential"
+        variableToIterate:
+        startingValue: "0"
+        incrementValue: "1"
+        endValue: "10"
+        breakOnFailure: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "${v_all_jobs_processed}"
+          - "Is"
+          - "Equal to"
+          - "true"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If 2:
+      type: "if"
+      parameters:
+        componentName: "If 2"
+        mode: "Simple"
+        condition:
+        - - "${v_all_jobs_processed}"
+          - "Is"
+          - "Equal to"
+          - "False"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_all_jobs_processed:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "False"
+    v_failed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_pipeline_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "RUNNING"
+    v_running_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_completed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_total_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_ready_job_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    gv_ready_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_seq:
+            columnType: "NUMBER"
+          job_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -1330
+        "y": -60
+      tempMetlId: 1
+    Initialize Job Status:
+      position:
+        x: -1230
+        "y": -70
+      tempMetlId: 2
+    Get Total Job Count:
+      position:
+        x: -1120
+        "y": -90
+      tempMetlId: 4
+    Identify Ready Jobs:
+      position:
+        x: -1020
+        "y": -180
+      tempMetlId: 6
+    Jobs Ready?:
+      position:
+        x: -890
+        "y": -240
+      tempMetlId: 7
+    All Jobs Processed?:
+      position:
+        x: -400
+        "y": -80
+      tempMetlId: 11
+    Mark Job Running:
+      position:
+        x: -480
+        "y": -210
+      tempMetlId: 12
+    Run Orchestration:
+      position:
+        x: -680
+        "y": -300
+      tempMetlId: 13
+    End Success:
+      position:
+        x: -110
+        "y": 100
+      tempMetlId: 14
+    End Failure:
+      position:
+        x: 50
+        "y": -300
+      tempMetlId: 15
+    Grid Iterator 2:
+      position:
+        x: -680
+        "y": -300
+      tempMetlId: 16
+    check Pipeline Completion 2:
+      position:
+        x: -650
+        "y": -590
+      tempMetlId: 17
+    Mark Job Failed:
+      position:
+        x: -750
+        "y": -120
+      tempMetlId: 18
+    Propagate Downstream Failure:
+      position:
+        x: -620
+        "y": -120
+      tempMetlId: 20
+    'Mark Job Completed ':
+      position:
+        x: -590
+        "y": -360
+      tempMetlId: 21
+    Loop Iterator:
+      position:
+        x: -1070
+        "y": 60
+      tempMetlId: 22
+    Loop Iterator 2:
+      position:
+        x: -830
+        "y": -390
+      tempMetlId: 23
+    If:
+      position:
+        x: -230
+        "y": -60
+      tempMetlId: 24
+    If 2:
+      position:
+        x: -240
+        "y": -180
+      tempMetlId: 25
