@@ -20,93 +20,20 @@ pipeline:
         updateOutputMessage:
         updateScalarVariables:
   variables:
-    Jv_job_name:
+    v_current_job_name:
       metadata:
         type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    jv_active_flag:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_execution_code:
+    v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    jv_run_type:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_dependenies_on_job_id:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_job_group_id:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    Jv_job_id:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    parallel_jobs_grid:
-      metadata:
-        type: "GRID"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-        columns:
-          p_JOB_ID:
-            columnType: "NUMBER"
-          p_JOB_NAME:
-            columnType: "TEXT"
-          p_DEPENDENIES_ON_JOB_ID:
-            columnType: "NUMBER"
-          p_RUN_TYPE:
-            columnType: "TEXT"
-          p_EXECUTION_ORDER:
-            columnType: "NUMBER"
-          p_JOB_GROUP_ID:
-            columnType: "TEXT"
-          p_ACTIVE_FLAG:
-            columnType: "TEXT"
-      defaultValue: []
-    sequential_jobs_grid:
-      metadata:
-        type: "GRID"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-        columns:
-          s_JOB_ID:
-            columnType: "NUMBER"
-          s_JOB_NAME:
-            columnType: "TEXT"
-          s_DEPENDENIES_ON_JOB_ID:
-            columnType: "NUMBER"
-          s_s_ACTIVE_FLAG:
-            columnType: "TEXT"
-      defaultValue: []
 design:
   components:
     Start:

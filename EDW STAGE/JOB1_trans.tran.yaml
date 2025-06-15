@@ -34,51 +34,16 @@ pipeline:
         updateOutputMessage:
         updateScalarVariables:
   variables:
-    jv_active_flag:
+    v_current_job_name:
       metadata:
         type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    jv_run_type:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_dependenies_on_job_id:
+    v_current_job_seq:
       metadata:
         type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_execution_order:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_job_group_id:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    Jv_job_id:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    Jv_Job_name:
-      metadata:
-        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"

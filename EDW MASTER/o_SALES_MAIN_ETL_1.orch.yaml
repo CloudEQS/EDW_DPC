@@ -632,8 +632,8 @@ design:
       tempMetlId: 9961
     SALES Jobs:
       position:
-        x: 288
-        "y": 32
+        x: 290
+        "y": 0
       tempMetlId: 9962
     setting success flag run_status fail:
       position:
@@ -642,7 +642,7 @@ design:
       tempMetlId: 9963
     Grid Iterator 0:
       position:
-        x: 288
+        x: 290
         "y": 0
       tempMetlId: 9964
     Check last run dt:

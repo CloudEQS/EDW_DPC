@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "Mohanish/Project_Pipeline/T_16.tran.yaml"
+        transformationJob: "EDW STAGE/T_12.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:

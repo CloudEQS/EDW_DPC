@@ -2,10 +2,10 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    Get Total Job Count:
+    Get Total Job Count_sql:
       type: "sql"
       parameters:
-        componentName: "Get Total Job Count"
+        componentName: "Get Total Job Count_sql"
         query: "SELECT COUNT(DISTINCT job_seq) AS TOTAL_JOBS FROM edw_lab.public.job_metadata"
   variables:
     v_total_jobs:
@@ -14,10 +14,10 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "0"
+      defaultValue: ""
 design:
   components:
-    Get Total Job Count:
+    Get Total Job Count_sql:
       position:
         x: -200
         "y": -20

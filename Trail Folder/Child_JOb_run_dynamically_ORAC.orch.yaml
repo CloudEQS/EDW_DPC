@@ -6,24 +6,9 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Initialize Job Status"
+        - "Main Pipeline Loop"
       parameters:
         componentName: "Start"
-    Initialize Job Status:
-      type: "sql-executor"
-      transitions:
-        success:
-        - "Query Result To Scalar"
-      parameters:
-        componentName: "Initialize Job Status"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "INSERT INTO edw_lab.public.job_status (job_seq, status)\r\nSELECT\
-          \ DISTINCT job_seq, 'PENDING' FROM edw_lab.public.job_metadata"
-      postProcessing:
-        updateOutputMessage: "Intialize Jobs are Pnding"
-        updateScalarVariables:
     Identify Ready Jobs:
       type: "python-pushdown"
       transitions:
@@ -106,7 +91,7 @@ pipeline:
         "true":
         - "Mark Job Running"
         "false":
-        - "Query Result To Scalar 2 2"
+        - "Query Result To Scalar 1"
       parameters:
         componentName: "Jobs Ready?"
         mode: "Simple"
@@ -121,9 +106,6 @@ pipeline:
         updateScalarVariables:
     All Jobs Processed?:
       type: "if"
-      transitions:
-        "true":
-        - "Or"
       parameters:
         componentName: "All Jobs Processed?"
         mode: "Advanced"
@@ -235,7 +217,7 @@ pipeline:
       type: "sql-executor"
       transitions:
         success:
-        - "Query Result To Scalar 2"
+        - " Check Pipeline Completion 2"
       parameters:
         componentName: "Mark Job Completed "
         scriptLocation: "Component"
@@ -278,35 +260,13 @@ pipeline:
       postProcessing:
         updateOutputMessage: "Checking All jobs are processed or not: ${v_all_jobs_processed}"
         updateScalarVariables:
-    Or:
-      type: "or"
-      parameters:
-        componentName: "Or"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Query Result To Scalar:
-      type: "query-to-scalar"
-      transitions:
-        success:
-        - "Main Pipeline Loop"
-      parameters:
-        componentName: "Query Result To Scalar"
-        mode: "Advanced"
-        query: "SELECT COUNT(DISTINCT job_seq) AS TOTAL_JOBS FROM edw_lab.public.job_metadata"
-        scalarVariableMapping:
-        - - "v_total_jobs"
-          - "TOTAL_JOBS"
-      postProcessing:
-        updateOutputMessage: "total jobs  :  ${v_total_jobs}"
-        updateScalarVariables:
-    Query Result To Scalar 2:
+    ' Check Pipeline Completion 2':
       type: "query-to-scalar"
       transitions:
         success:
         - "All Jobs Processed?"
       parameters:
-        componentName: "Query Result To Scalar 2"
+        componentName: " Check Pipeline Completion 2"
         mode: "Advanced"
         query: "SELECT\r\n    COUNT_IF(status = 'COMPLETED') AS COMPLETED_COUNT,\r\
           \n    COUNT_IF(status = 'FAILED' OR status = 'SKIPPED') AS FAILED_SKIPPED_COUNT,\r\
@@ -323,12 +283,13 @@ pipeline:
         - - "v_running_jobs"
           - "RUNNING_COUNT"
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "COMPLETED_JOBS: ${v_completed_jobs}\r\nFAILED_SKIPPED_JOBS:\
+          \ {v_failed_jobs} \r\nPENDING_RUNNING_JOBS: ${v_pending_running_jobs}"
         updateScalarVariables:
-    Query Result To Scalar 2 2:
+    Query Result To Scalar 1:
       type: "query-to-scalar"
       parameters:
-        componentName: "Query Result To Scalar 2 2"
+        componentName: "Query Result To Scalar 1"
         mode: "Advanced"
         query: "SELECT\r\n    COUNT_IF(status = 'COMPLETED') AS COMPLETED_COUNT,\r\
           \n    COUNT_IF(status = 'FAILED' OR status = 'SKIPPED') AS FAILED_SKIPPED_COUNT,\r\
@@ -345,7 +306,8 @@ pipeline:
         - - "v_running_jobs"
           - "RUNNING_COUNT"
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "COMPLETED_JOBS: ${v_completed_jobs}\r\nFAILED_SKIPPED_JOBS:\
+          \ {v_failed_jobs} \r\nPENDING_RUNNING_JOBS: ${v_pending_running_jobs}"
         updateScalarVariables:
   variables:
     v_all_jobs_processed:
@@ -434,14 +396,9 @@ design:
   components:
     Start:
       position:
-        x: -1590
+        x: -1380
         "y": -300
       tempMetlId: 1
-    Initialize Job Status:
-      position:
-        x: -1460
-        "y": -300
-      tempMetlId: 2
     Identify Ready Jobs:
       position:
         x: -1060
@@ -454,8 +411,8 @@ design:
       tempMetlId: 7
     All Jobs Processed?:
       position:
-        x: -940
-        "y": -50
+        x: -220
+        "y": -350
       tempMetlId: 11
     Mark Job Running:
       position:
@@ -507,22 +464,12 @@ design:
         x: -1200
         "y": -320
       tempMetlId: 29
-    Or:
-      position:
-        x: -1180
-        "y": -130
-      tempMetlId: 30
-    Query Result To Scalar:
-      position:
-        x: -1310
-        "y": -310
-      tempMetlId: 31
-    Query Result To Scalar 2:
+    ' Check Pipeline Completion 2':
       position:
         x: -370
         "y": -360
       tempMetlId: 32
-    Query Result To Scalar 2 2:
+    Query Result To Scalar 1:
       position:
         x: -850
         "y": -210

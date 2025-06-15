@@ -13,21 +13,23 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "orhes_jobs/Tjob6.tran.yaml"
+        transformationJob: "Trans_job_total_count.tran.yaml"
         setScalarVariables:
+        - - "v_total_jobs"
+          - "${v_total_jobs}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
-        updateScalarVariables:
+        updateScalarVariables: []
 design:
   components:
     Start:
       position:
-        x: -240
-        "y": -70
+        x: 0
+        "y": 0
       tempMetlId: 1
     Run Transformation:
       position:
-        x: -80
-        "y": -70
+        x: 160
+        "y": 0
       tempMetlId: 2

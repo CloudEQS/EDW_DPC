@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "orhes_jobs/Tjob6.tran.yaml"
+        transformationJob: "EDW STAGE/T_11.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -23,11 +23,11 @@ design:
   components:
     Start:
       position:
-        x: -240
-        "y": -70
+        x: -260
+        "y": 40
       tempMetlId: 1
     Run Transformation:
       position:
-        x: -80
-        "y": -70
+        x: -100
+        "y": 40
       tempMetlId: 2

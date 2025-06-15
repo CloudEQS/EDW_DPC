@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "Mohanish/Project_Pipeline/T_16.tran.yaml"
+        transformationJob: "EDW STAGE/Tjob8.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -23,11 +23,11 @@ design:
   components:
     Start:
       position:
-        x: 0
-        "y": 0
+        x: -170
+        "y": 10
       tempMetlId: 1
     Run Transformation:
       position:
-        x: 160
-        "y": 0
+        x: -10
+        "y": 10
       tempMetlId: 2

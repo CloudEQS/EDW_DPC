@@ -1,25 +1,43 @@
-type: "transformation"
+type: "orchestration"
 version: "1.0"
 pipeline:
   components:
-    check Pipeline Completion:
-      type: "sql"
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Check Pipeline Completion_query"
       parameters:
-        componentName: "check Pipeline Completion"
+        componentName: "Start"
+    Check Pipeline Completion_query:
+      type: "query-to-scalar"
+      parameters:
+        componentName: "Check Pipeline Completion_query"
+        mode: "Advanced"
         query: "SELECT\r\n    COUNT_IF(status = 'COMPLETED') AS COMPLETED_COUNT,\r\
           \n    COUNT_IF(status = 'FAILED' OR status = 'SKIPPED') AS FAILED_SKIPPED_COUNT,\r\
           \n    COUNT_IF(status = 'PENDING' OR status = 'RUNNING') AS PENDING_RUNNING_COUNT,\r\
           \n    -- New: Check if any job is currently RUNNING\r\n    COUNT_IF(status\
           \ = 'RUNNING') AS RUNNING_COUNT\r\nFROM edw_lab.public.job_status"
+        scalarVariableMapping:
+        - - "v_completed_jobs"
+          - "COMPLETED_COUNT"
+        - - "v_failed_jobs"
+          - "FAILED_SKIPPED_COUNT"
+        - - "v_pending_running_jobs"
+          - "PENDING_RUNNING_COUNT"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
-    v_failed_jobs:
+    dummy:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "0"
-    v_running_jobs:
+      defaultValue: ""
+    v_failed_jobs:
       metadata:
         type: "NUMBER"
         description: ""
@@ -28,11 +46,11 @@ pipeline:
       defaultValue: "0"
     v_pending_running_jobs:
       metadata:
-        type: "TEXT"
+        type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "RUNNING"
+      defaultValue: ""
     v_completed_jobs:
       metadata:
         type: "NUMBER"
@@ -42,8 +60,13 @@ pipeline:
       defaultValue: "0"
 design:
   components:
-    check Pipeline Completion:
+    Start:
       position:
-        x: 0
-        "y": 0
+        x: 70
+        "y": 20
       tempMetlId: 1
+    Check Pipeline Completion_query:
+      position:
+        x: 290
+        "y": 10
+      tempMetlId: 2

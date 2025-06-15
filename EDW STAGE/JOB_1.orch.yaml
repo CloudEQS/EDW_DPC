@@ -20,14 +20,14 @@ pipeline:
         updateOutputMessage:
         updateScalarVariables:
   variables:
-    v_current_job_seq:
+    v_current_job_name:
       metadata:
-        type: "NUMBER"
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    Jv_job_id:
+    v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
