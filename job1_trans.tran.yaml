@@ -2,34 +2,41 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    SQL:
-      type: "sql"
+    REGION:
+      type: "table-input"
       parameters:
-        componentName: "SQL"
-        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM"
+        componentName: "REGION"
+        database: "SNOWFLAKE_SAMPLE_DATA"
+        schema: "TPCH_SF1"
+        targetTable: "REGION"
+        columnNames:
+        - "R_REGIONKEY"
+        - "R_NAME"
+        - "R_COMMENT"
+        timeOffset:
     Rewrite Table:
       type: "rewrite-table"
       sources:
-      - "SQL"
+      - "REGION"
       parameters:
         componentName: "Rewrite Table"
         warehouse: "[Environment Default]"
-        database: "SCD_PRACTICE_DB"
+        database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "Line_item2"
+        targetTable: "STAGE_REGION_TABLE"
         orderBy:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
 design:
   components:
-    SQL:
+    REGION:
       position:
-        x: -290
-        "y": -70
+        x: -300
+        "y": 10
       tempMetlId: 1
     Rewrite Table:
       position:
-        x: -130
-        "y": -70
+        x: -140
+        "y": 10
       tempMetlId: 2

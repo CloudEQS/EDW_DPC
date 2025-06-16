@@ -1,0 +1,52 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Orchestration"
+      parameters:
+        componentName: "Start"
+    Run Orchestration:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "Roopa_Jobs/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        setScalarVariables:
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+design:
+  components:
+    Start:
+      position:
+        x: -160
+        "y": 0
+      tempMetlId: 1
+    Run Orchestration:
+      position:
+        x: 10
+        "y": 0
+      tempMetlId: 2

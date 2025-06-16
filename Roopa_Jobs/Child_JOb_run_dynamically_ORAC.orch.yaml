@@ -29,39 +29,42 @@ pipeline:
           \ Frames\n#   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes\n\
           ###)\ndef get_ready_jobs(session, context=None):\n    # Fetch all job metadata\
           \ and job status\n    job_metadata_df = session.table(\"JOB_METADATA\")\n\
-          \    job_status_df = session.table(\"JOB_STATUS\")\n \n    # Convert to\
-          \ sets for faster lookup (important fix)\n    completed_job_seqs = set(row['JOB_SEQ']\
-          \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"COMPLETED\"\
-          ).collect())\n    failed_job_seqs = set(row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
-          STATUS\"] == \"FAILED\").collect())\n    running_job_seqs = set(row['JOB_SEQ']\
+          \    job_status_df = session.table(\"JOB_STATUS\")\n \n    # Create sets\
+          \ for quick lookup\n    completed_job_seqs = {row['JOB_SEQ'] for row in\
+          \ job_status_df.filter(job_status_df[\"STATUS\"] == \"COMPLETED\").collect()}\n\
+          \    failed_job_seqs = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
+          STATUS\"] == \"FAILED\").collect()}\n    running_job_seqs = {row['JOB_SEQ']\
           \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"RUNNING\"\
-          ).collect())\n \n    # Get all unique job sequences from metadata\n    all_job_seqs\
+          ).collect()}\n \n    # Get all unique job sequences from metadata\n    all_job_seqs\
           \ = [row['JOB_SEQ'] for row in job_metadata_df.select(\"JOB_SEQ\").distinct().collect()]\n\
           \ \n    ready_to_run_jobs = []\n \n    for job_seq in all_job_seqs:\n  \
           \      # Skip if already completed, failed, or running\n        if job_seq\
           \ in completed_job_seqs or job_seq in failed_job_seqs or job_seq in running_job_seqs:\n\
-          \            continue\n \n        # Check current status, default to PENDING\
-          \ if not present\n        status_rows = job_status_df.filter(job_status_df[\"\
+          \            continue\n \n        # Check current status, assume PENDING\
+          \ if missing\n        status_rows = job_status_df.filter(job_status_df[\"\
           JOB_SEQ\"] == job_seq).collect()\n        current_status = status_rows[0]['STATUS']\
           \ if status_rows else 'PENDING'\n \n        if current_status != 'PENDING':\n\
           \            continue\n \n        # Get job name\n        job_name_row =\
           \ job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"] == job_seq).select(\"\
           JOB_NAME\").distinct().collect()\n        if not job_name_row:\n       \
           \     continue\n        job_name = job_name_row[0]['JOB_NAME']\n \n    \
-          \    # Get dependencies\n        dependency_rows = job_metadata_df.filter(job_metadata_df[\"\
-          JOB_SEQ\"] == job_seq).collect()\n        dependencies = [row['DEPENDENCY']\
-          \ for row in dependency_rows if row['DEPENDENCY'] is not None]\n \n    \
-          \    # Check if all dependencies are completed\n        all_dependencies_met\
-          \ = all(dep in completed_job_seqs for dep in dependencies)\n \n        if\
-          \ all_dependencies_met:\n            ready_to_run_jobs.append({\"JOB_SEQ\"\
-          : job_seq, \"JOB_NAME\": job_name})\n        else:\n            print(f\"\
-          DEBUG: Job {job_seq} blocked by: {[d for d in dependencies if d not in completed_job_seqs]}\"\
-          )\n \n    # Format for Matillion grid variable\n    grid_data = [[job[\"\
-          JOB_SEQ\"], job[\"JOB_NAME\"]] for job in ready_to_run_jobs]\n \n    # Update\
-          \ Matillion context if available\n    if context is not None:\n        context.updateGridVariable('gv_ready_jobs',\
+          \    # Get dependencies for this job (may be multiple rows)\n        dependency_rows\
+          \ = job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"] == job_seq).collect()\n\
+          \        dependencies = [row['DEPENDENCY'] for row in dependency_rows if\
+          \ row['DEPENDENCY'] is not None]\n \n        # Check if all dependencies\
+          \ are completed\n        all_dependencies_met = all(dep in completed_job_seqs\
+          \ for dep in dependencies)\n \n        if all_dependencies_met:\n      \
+          \      ready_to_run_jobs.append({\"JOB_SEQ\": job_seq, \"JOB_NAME\": job_name})\n\
+          \        else:\n            print(f\"DEBUG: Job {job_seq} blocked by: {[d\
+          \ for d in dependencies if d not in completed_job_seqs]}\")\n \n    # Format\
+          \ for Matillion grid variable\n    grid_data = [[job[\"JOB_SEQ\"], job[\"\
+          JOB_NAME\"]] for job in ready_to_run_jobs]\n \n    # Update Matillion context\
+          \ if available\n    if context is not None:\n        context.updateGridVariable('gv_ready_jobs',\
           \ grid_data)\n        context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))\n\
-          \    else:\n        print(\"Ready to run jobs:\", grid_data)\n \n\n \nprint(gv_ready_jobs)\n\
-          print(v_ready_job_count)"
+          \    else:\n        print(\"Ready Jobs:\", ready_to_run_jobs)\n    \n  \
+          \  print(ready_to_run_jobs)\n    print(v_ready_job_count)\n    return ready_to_run_jobs\n\
+          \ \n \n# Entry point\nget_ready_jobs(session, context if 'context' in globals()\
+          \ else None)\n "
         scriptTimeout: "360"
       postProcessing:
         updateOutputMessage: "\r\n\r\n\r\nReady jobs count:${v_ready_job_count}"
@@ -70,7 +73,7 @@ pipeline:
       type: "if"
       transitions:
         "true":
-        - "Mark Job Running"
+        - "Grid Iterator"
         "false":
         - " Check Pipeline Completion 2 2"
       parameters:
@@ -87,9 +90,6 @@ pipeline:
         updateScalarVariables:
     Mark Job Running:
       type: "sql-executor"
-      transitions:
-        success:
-        - "Grid Iterator 2"
       parameters:
         componentName: "Mark Job Running"
         scriptLocation: "Component"
@@ -97,7 +97,7 @@ pipeline:
         variablesToInclude:
         sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
           \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP() \r\nWHERE JOB_SEQ in (${v_current_job_seq})\r\n"
+          \ = CURRENT_TIMESTAMP()\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
       postProcessing:
         updateOutputMessage: ""
         updateScalarVariables:
@@ -110,10 +110,10 @@ pipeline:
         - - "v_current_job_seq"
           - "${v_current_job_seq}"
         - - "v_current_job_name"
-          - "${v_current_job_name"
+          - "${v_current_job_name}"
         setGridVariables:
       postProcessing:
-        updateOutputMessage: "Jobs are running dynamicaly Current Job is :${v_current_job_name}"
+        updateOutputMessage: ""
         updateScalarVariables:
     End Success:
       type: "end-success"
@@ -133,9 +133,9 @@ pipeline:
       type: "grid-iterator"
       transitions:
         success:
-        - "Mark Job Completed "
+        - "Grid Iterator 3"
         failure:
-        - "Mark Job Failed"
+        - "Grid Iterator 4"
       iterationTarget: "Run Orchestration"
       parameters:
         componentName: "Grid Iterator 2"
@@ -146,15 +146,12 @@ pipeline:
         - - "job_name"
           - "v_current_job_name"
         breakOnFailure: "No"
-        concurrency: "Concurrent"
+        concurrency: "Sequential"
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: ""
         updateScalarVariables:
     Mark Job Failed:
       type: "sql-executor"
-      transitions:
-        success:
-        - "Propagate Downstream Failure"
       parameters:
         componentName: "Mark Job Failed"
         scriptLocation: "Component"
@@ -188,9 +185,6 @@ pipeline:
         updateScalarVariables:
     'Mark Job Completed ':
       type: "sql-executor"
-      transitions:
-        success:
-        - " Check Pipeline Completion 2"
       parameters:
         componentName: "Mark Job Completed "
         scriptLocation: "Component"
@@ -198,7 +192,8 @@ pipeline:
         variablesToInclude:
         sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
           \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP() \r\nWHERE JOB_SEQ in (${v_current_job_seq})\r\n"
+          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${sysvar.sysvar.thisComponent.status}'\r\
+          \nWHERE JOB_SEQ = ${v_current_job_seq}\r\n"
       postProcessing:
         updateOutputMessage: "If Jobs competed successfully update in the job status\
           \ as completed: \r\n\r\n${v_current_job_name}"
@@ -271,12 +266,16 @@ pipeline:
         updateOutputMessage: "COMPLETED_JOBS: ${v_completed_jobs}\r\nFAILED_SKIPPED_JOBS:\
           \ ${v_failed_jobs} \r\nPENDING_RUNNING_JOBS: ${v_pending_running_jobs}"
         updateScalarVariables:
-    RE RUN SAME JOB:
+    Run Orchestration 2:
       type: "run-orchestration"
       parameters:
-        componentName: "RE RUN SAME JOB"
-        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC"
+        componentName: "Run Orchestration 2"
+        orchestrationJob: "Roopa_Jobs/Recusive_job.orch.yaml"
         setScalarVariables:
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Re run the pipeline: ${v_current_job_name}"
@@ -293,7 +292,7 @@ pipeline:
           \ 0 THEN 'FAILED' \r\n        WHEN COUNT_IF(status = 'PENDING' OR status\
           \ = 'RUNNING') > 0 THEN 'STALLED_OR_INCOMPLETE' -- Should not happen if\
           \ loop condition is correct \r\n        ELSE 'COMPLETED' \r\n    END AS\
-          \ PIPELINE_FINAL_STATUS \r\nFROMINTERNAL_TRAINING.EDP_CURATED.job_status\r\
+          \ PIPELINE_FINAL_STATUS \r\nFROM INTERNAL_TRAINING.EDP_CURATED.job_status\r\
           \n "
         scalarVariableMapping:
         - - "v_pipeline_status"
@@ -362,7 +361,7 @@ pipeline:
         "true":
         - "Final Pipeline Status and Cleanup"
         "false":
-        - "RE RUN SAME JOB"
+        - "Run Orchestration 2"
       parameters:
         componentName: "All Jobs Processed?"
         mode: "Simple"
@@ -372,6 +371,71 @@ pipeline:
           - "Equal to"
           - "True"
         combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Print Variables"
+      iterationTarget: "Mark Job Running"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 3:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - " Check Pipeline Completion 2"
+      iterationTarget: "Mark Job Completed "
+      parameters:
+        componentName: "Grid Iterator 3"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 4:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Propagate Downstream Failure"
+      iterationTarget: "Mark Job Failed"
+      parameters:
+        componentName: "Grid Iterator 4"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Grid Iterator 2"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_ready_jobs"
+        prefixText: "Ready Jobs"
+        includeVariableName: "No"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -471,7 +535,11 @@ pipeline:
             columnType: "NUMBER"
           job_name:
             columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "1"
+        - "JOB_1"
+      - - "2"
+        - "JOB_2"
 design:
   components:
     Start:
@@ -481,27 +549,27 @@ design:
       tempMetlId: 1
     Identify Ready Jobs:
       position:
-        x: -1080
-        "y": -420
+        x: -1150
+        "y": -390
       tempMetlId: 6
     Jobs Ready?:
       position:
-        x: -960
-        "y": -330
+        x: -1000
+        "y": -390
       tempMetlId: 7
     Mark Job Running:
       position:
-        x: -830
-        "y": -430
+        x: -870
+        "y": -480
       tempMetlId: 12
     Run Orchestration:
       position:
-        x: -690
+        x: -680
         "y": -490
       tempMetlId: 13
     End Success:
       position:
-        x: 250
+        x: 170
         "y": -460
       tempMetlId: 14
     End Failure:
@@ -511,7 +579,7 @@ design:
       tempMetlId: 15
     Grid Iterator 2:
       position:
-        x: -690
+        x: -680
         "y": -490
       tempMetlId: 16
     Mark Job Failed:
@@ -531,7 +599,7 @@ design:
       tempMetlId: 21
     Main Pipeline Loop:
       position:
-        x: -1240
+        x: -1290
         "y": -310
       tempMetlId: 29
     ' Check Pipeline Completion 2':
@@ -544,15 +612,15 @@ design:
         x: -860
         "y": -230
       tempMetlId: 33
-    RE RUN SAME JOB:
+    Run Orchestration 2:
       position:
-        x: -70
-        "y": -310
+        x: 0
+        "y": -330
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
       position:
-        x: 30
-        "y": -490
+        x: -10
+        "y": -560
       tempMetlId: 35
     Pipeline status:
       position:
@@ -567,8 +635,28 @@ design:
     All Jobs Processed?:
       position:
         x: -120
-        "y": -470
+        "y": -460
       tempMetlId: 39
+    Grid Iterator:
+      position:
+        x: -870
+        "y": -480
+      tempMetlId: 40
+    Grid Iterator 3:
+      position:
+        x: -510
+        "y": -490
+      tempMetlId: 41
+    Grid Iterator 4:
+      position:
+        x: -590
+        "y": -100
+      tempMetlId: 42
+    Print Variables:
+      position:
+        x: -770
+        "y": -600
+      tempMetlId: 43
   notes:
     "1":
       position:

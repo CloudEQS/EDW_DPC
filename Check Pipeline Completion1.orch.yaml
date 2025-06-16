@@ -1,0 +1,74 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Scalar"
+      parameters:
+        componentName: "Start"
+    Query Result To Scalar:
+      type: "query-to-scalar"
+      parameters:
+        componentName: "Query Result To Scalar"
+        mode: "Advanced"
+        query: "SELECT\r\n    COUNT_IF(status = 'COMPLETED') AS COMPLETED_COUNT,\r\
+          \n    COUNT_IF(status = 'FAILED' OR status = 'SKIPPED') AS FAILED_SKIPPED_COUNT,\r\
+          \n    COUNT_IF(status = 'PENDING' OR status = 'RUNNING') AS PENDING_RUNNING_COUNT,\r\
+          \n    -- New: Check if any job is currently RUNNING\r\n    COUNT_IF(status\
+          \ = 'RUNNING') AS RUNNING_COUNT\r\nFROM INTERNAL_TRAINING.EDP_CURATED.job_status"
+        scalarVariableMapping:
+        - - "v_completed_jobs"
+          - "COMPLETED_COUNT"
+        - - "v_failed_jobs"
+          - "FAILED_SKIPPED_COUNT"
+        - - "v_pending_running_jobs"
+          - "PENDING_RUNNING_COUNT"
+        - - "v_running_jobs"
+          - "RUNNING_COUNT"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_failed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_running_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_pending_running_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_completed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Query Result To Scalar:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2

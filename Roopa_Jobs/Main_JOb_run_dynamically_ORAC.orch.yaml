@@ -62,7 +62,7 @@ pipeline:
         - "Failed on Main Orachstration JOB"
       parameters:
         componentName: "Run Orchestration"
-        orchestrationJob: "Roopa_Jobs/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC.orch.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:

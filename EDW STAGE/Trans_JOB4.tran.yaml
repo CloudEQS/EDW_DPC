@@ -7,7 +7,7 @@ pipeline:
       parameters:
         componentName: "PARTSUPP"
         database: "SNOWFLAKE_SAMPLE_DATA"
-        schema: "TPCH_SF10"
+        schema: "TPCH_SF1"
         targetTable: "PARTSUPP"
         columnNames:
         - "PS_PARTKEY"
@@ -16,19 +16,19 @@ pipeline:
         - "PS_SUPPLYCOST"
         - "PS_COMMENT"
         timeOffset:
-    Rewrite Table:
+    'PARTSUPP TARGET ':
       type: "rewrite-table"
       sources:
       - "PARTSUPP"
       parameters:
-        componentName: "Rewrite Table"
+        componentName: "PARTSUPP TARGET "
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
         targetTable: "STAGE_PARTSUPP_TABLE"
         orderBy:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "JOB 4: PARTSUPP EXECUTED"
         updateScalarVariables:
 design:
   components:
@@ -37,7 +37,7 @@ design:
         x: 0
         "y": 0
       tempMetlId: 1
-    Rewrite Table:
+    'PARTSUPP TARGET ':
       position:
         x: 160
         "y": 0

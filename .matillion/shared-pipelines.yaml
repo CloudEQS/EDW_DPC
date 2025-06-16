@@ -280,3 +280,24 @@ pipelines:
         type: NUMERIC
         exportAllowed: true
         description: ""
+  - pipeline: Check Pipeline Completion1.orch.yaml
+    displayName: Check Pipeline Completion1
+    id: Check-Pipeline-Completion1
+    enabled: true
+    parameters:
+      v_failed_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""
+      v_running_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""
+      v_pending_running_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""
+      v_completed_jobs:
+        type: NUMERIC
+        exportAllowed: true
+        description: ""

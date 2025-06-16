@@ -11,11 +11,30 @@ pipeline:
         componentName: "Start"
     Run JOB2:
       type: "run-transformation"
+      transitions:
+        success:
+        - "JOB 2 End Success"
+        failure:
+        - "JOB 2 End Failure"
       parameters:
         componentName: "Run JOB2"
         transformationJob: "EDW STAGE/Trans_JOB2.tran.yaml"
         setScalarVariables:
         setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB 2 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 2 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB 2 End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "JOB 2 End Failure"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -46,3 +65,13 @@ design:
         x: 110
         "y": -10
       tempMetlId: 2
+    JOB 2 End Success:
+      position:
+        x: 220
+        "y": -80
+      tempMetlId: 3
+    JOB 2 End Failure:
+      position:
+        x: 210
+        "y": 50
+      tempMetlId: 4

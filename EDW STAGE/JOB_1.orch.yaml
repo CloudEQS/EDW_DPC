@@ -11,38 +11,52 @@ pipeline:
         componentName: "Start"
     Run Transformation:
       type: "run-transformation"
+      transitions:
+        success:
+        - "JOB 1 End Success"
+        failure:
+        - "JOB 2 End Failure"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "EDW STAGE/JOB1_trans.tran.yaml"
+        transformationJob: "EDW STAGE/job1_trans.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-  variables:
-    v_current_job_name:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    v_current_job_seq:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
+    JOB 2 End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "JOB 2 End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB 1 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 1 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
 design:
   components:
     Start:
       position:
-        x: -90
-        "y": 20
+        x: 0
+        "y": 0
       tempMetlId: 1
     Run Transformation:
       position:
-        x: 70
-        "y": 20
+        x: 160
+        "y": 0
       tempMetlId: 2
+    JOB 2 End Failure:
+      position:
+        x: 280
+        "y": 40
+      tempMetlId: 3
+    JOB 1 End Success:
+      position:
+        x: 270
+        "y": -80
+      tempMetlId: 4

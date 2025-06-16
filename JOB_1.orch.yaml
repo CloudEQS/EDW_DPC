@@ -1,0 +1,48 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Transformation"
+      parameters:
+        componentName: "Start"
+    Run Transformation:
+      type: "run-transformation"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "EDW STAGE/job1_trans.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Executed :${v_current_job_name}"
+        updateScalarVariables:
+  variables:
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Run Transformation:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2

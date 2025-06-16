@@ -7,7 +7,7 @@ pipeline:
       parameters:
         componentName: "CUSTOMER"
         database: "SNOWFLAKE_SAMPLE_DATA"
-        schema: "TPCH_SF10"
+        schema: "TPCH_SF1"
         targetTable: "CUSTOMER"
         columnNames:
         - "C_CUSTKEY"
@@ -19,44 +19,29 @@ pipeline:
         - "C_MKTSEGMENT"
         - "C_COMMENT"
         timeOffset:
-    customer1:
+    Rewrite Table:
       type: "rewrite-table"
       sources:
       - "CUSTOMER"
       parameters:
-        componentName: "customer1"
+        componentName: "Rewrite Table"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
         targetTable: "STAGE_CUSTOMER_TABLE"
         orderBy:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "CUSTOMER DATA LOAD INTO TARGET TABLE"
         updateScalarVariables:
-  variables:
-    v_current_job_name:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    v_current_job_seq:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
 design:
   components:
     CUSTOMER:
       position:
-        x: 0
-        "y": 0
+        x: -170
+        "y": -10
       tempMetlId: 1
-    customer1:
+    Rewrite Table:
       position:
-        x: 160
-        "y": 0
+        x: -10
+        "y": -10
       tempMetlId: 2
