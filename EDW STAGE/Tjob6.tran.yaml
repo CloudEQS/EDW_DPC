@@ -2,34 +2,42 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    SQL:
-      type: "sql"
-      parameters:
-        componentName: "SQL"
-        query: "select  * from  SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.ORDERS"
-    ORDER 2 TARGET  6:
+    NATION :JOB 6:
       type: "rewrite-table"
       sources:
-      - "SQL"
+      - "NATION"
       parameters:
-        componentName: "ORDER 2 TARGET  6"
+        componentName: "NATION :JOB 6"
         warehouse: "[Environment Default]"
-        database: "SCD_PRACTICE_DB"
+        database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "order2"
+        targetTable: "NATION"
         orderBy:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    NATION:
+      type: "table-input"
+      parameters:
+        componentName: "NATION"
+        database: "SNOWFLAKE_SAMPLE_DATA"
+        schema: "TPCH_SF100"
+        targetTable: "NATION"
+        columnNames:
+        - "N_NATIONKEY"
+        - "N_NAME"
+        - "N_REGIONKEY"
+        - "N_COMMENT"
+        timeOffset:
 design:
   components:
-    SQL:
-      position:
-        x: -400
-        "y": -20
-      tempMetlId: 1
-    ORDER 2 TARGET  6:
+    NATION :JOB 6:
       position:
         x: -240
-        "y": -20
+        "y": -100
       tempMetlId: 2
+    NATION:
+      position:
+        x: -450
+        "y": -100
+      tempMetlId: 3

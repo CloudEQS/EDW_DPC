@@ -73,7 +73,7 @@ pipeline:
       type: "if"
       transitions:
         "true":
-        - "Grid Iterator"
+        - "Print Variables"
         "false":
         - "Check Completion"
       parameters:
@@ -88,114 +88,12 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Mark Job Running:
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Running"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP()\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: ""
-        updateScalarVariables:
-    CHILD Run Orchestration ITERATOR:
-      type: "run-orchestration"
-      parameters:
-        componentName: "CHILD Run Orchestration ITERATOR"
-        orchestrationJob: "EDW STAGE/${v_current_job_name}"
-        setScalarVariables:
-        - - "v_current_job_seq"
-          - "${v_current_job_seq}"
-        - - "v_current_job_name"
-          - "${v_current_job_name}"
-        setGridVariables:
-      postProcessing:
-        updateOutputMessage: ""
-        updateScalarVariables:
     End Success:
       type: "end-success"
       parameters:
         componentName: "End Success"
       postProcessing:
         updateOutputMessage:
-        updateScalarVariables:
-    End Failure:
-      type: "end-failure"
-      parameters:
-        componentName: "End Failure"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 2:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Grid Iterator 3"
-        failure:
-        - "Grid Iterator 4"
-      iterationTarget: "CHILD Run Orchestration ITERATOR"
-      parameters:
-        componentName: "Grid Iterator 2"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq "
-        - - "job_name"
-          - "v_current_job_name"
-        concurrency: "Concurrent"
-      postProcessing:
-        updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}"
-        updateScalarVariables:
-    Mark Job Failed:
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Failed"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status\r\nSET STATUS\
-          \ = 'FAILED',\r\n    END_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE = 'Job failed during execution\
-          \ in Matillion. Check logs for job: ' || '${v_current_job_name}'\r\nWHERE\
-          \ JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: "If Job gets failed marked as Failed in JOB Status: ${v_current_job_name}"
-        updateScalarVariables:
-    Propagate Downstream Failure:
-      type: "sql-executor"
-      transitions:
-        success:
-        - "End Failure"
-      parameters:
-        componentName: "Propagate Downstream Failure"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status\r\nSET STATUS\
-          \ = 'FAILED',\r\n    END_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE = 'Job failed during execution\
-          \ in Matillion. Check logs for job: ' || '${v_current_job_name}'\r\nWHERE\
-          \ JOB_SEQ in ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    'Mark Job Completed ':
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Completed "
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${sysvar.sysvar.thisComponent.status}'\r\
-          \nWHERE JOB_SEQ = ${v_current_job_seq}\r\n"
-      postProcessing:
-        updateOutputMessage: "If Jobs competed successfully update in the job status\
-          \ as completed: \r\n\r\n${v_current_job_name}"
         updateScalarVariables:
     Main Pipeline Loop:
       type: "if"
@@ -222,10 +120,6 @@ pipeline:
         componentName: "Run Orchestration RE RUN"
         orchestrationJob: "Roopa_Jobs/Recusive_job.orch.yaml"
         setScalarVariables:
-        - - "v_current_job_name"
-          - "${v_current_job_name}"
-        - - "v_current_job_seq"
-          - "${v_current_job_seq}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Re run the pipeline: ${v_current_job_name}"
@@ -266,7 +160,8 @@ pipeline:
         - - "v_pipeline_status"
           - "PIPELINE_FINAL_STATUS"
       postProcessing:
-        updateOutputMessage: "  Pipeline status: ${v_pipeline_status}"
+        updateOutputMessage: "  There is no jobs to process:\r\n  Pipeline status:\
+          \ ${v_pipeline_status}"
         updateScalarVariables:
     Python Pushdown:
       type: "python-pushdown"
@@ -324,62 +219,11 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Grid Iterator:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Print Variables"
-      iterationTarget: "Mark Job Running"
-      parameters:
-        componentName: "Grid Iterator"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "Yes"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 3:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "check Pipeline Completion_2"
-      iterationTarget: "Mark Job Completed "
-      parameters:
-        componentName: "Grid Iterator 3"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "Yes"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 4:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Propagate Downstream Failure"
-      iterationTarget: "Mark Job Failed"
-      parameters:
-        componentName: "Grid Iterator 4"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "No"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     Print Variables:
       type: "print-variables"
       transitions:
         success:
-        - "Grid Iterator 2"
+        - "Grid Iterator 2 2"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
@@ -436,9 +280,43 @@ pipeline:
         - - "v_running_jobs"
           - "RUNNING_COUNT"
       postProcessing:
-        updateOutputMessage: "COMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
+        updateOutputMessage: "\r\nCOMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
           \ ${vpending_running_jobs}\r\nRUNNING_COUNT:${v_running_jobs}\t\r\nFAILED_SKIPPED_COUNT:\
           \ ${v_failed_jobs}\t\r\n\r\n"
+        updateScalarVariables:
+    Grid Iterator 2 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "check Pipeline Completion_2"
+      iterationTarget: "Trail CHILD Run Orchestration ITERATOR 2"
+      parameters:
+        componentName: "Grid Iterator 2 2"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq "
+        - - "job_name"
+          - "v_current_job_name"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}\r\
+          \n\r\nJOB Sequence :${v_current_job_seq}"
+        updateScalarVariables:
+    Trail CHILD Run Orchestration ITERATOR 2:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Trail CHILD Run Orchestration ITERATOR 2"
+        orchestrationJob: "Roopa_Jobs/RUN my job ORAC.orch.yaml"
+        setScalarVariables:
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Iteration in the Grid Present  :${v_current_job_name}\r\
+          \n\r\njob seq: ${v_current_job_seq}"
         updateScalarVariables:
   variables:
     v_all_jobs_processed:
@@ -532,11 +410,15 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
         columns:
-          job_name:
-            columnType: "TEXT"
           job_seq:
             columnType: "NUMBER"
-      defaultValue: []
+          job_name:
+            columnType: "TEXT"
+      defaultValue:
+      - - "1"
+        - "JOB_1"
+      - - "2"
+        - "JOB_2"
 design:
   components:
     Start:
@@ -554,46 +436,11 @@ design:
         x: -1010
         "y": -400
       tempMetlId: 7
-    Mark Job Running:
-      position:
-        x: -870
-        "y": -420
-      tempMetlId: 12
-    CHILD Run Orchestration ITERATOR:
-      position:
-        x: -620
-        "y": -620
-      tempMetlId: 13
     End Success:
       position:
         x: 170
         "y": -570
       tempMetlId: 14
-    End Failure:
-      position:
-        x: -230
-        "y": -130
-      tempMetlId: 15
-    Grid Iterator 2:
-      position:
-        x: -620
-        "y": -620
-      tempMetlId: 16
-    Mark Job Failed:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 18
-    Propagate Downstream Failure:
-      position:
-        x: -460
-        "y": -120
-      tempMetlId: 20
-    'Mark Job Completed ':
-      position:
-        x: -510
-        "y": -470
-      tempMetlId: 21
     Main Pipeline Loop:
       position:
         x: -1290
@@ -601,8 +448,8 @@ design:
       tempMetlId: 29
     Run Orchestration RE RUN:
       position:
-        x: 0
-        "y": -330
+        x: 60
+        "y": -350
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
       position:
@@ -616,51 +463,36 @@ design:
       tempMetlId: 36
     Python Pushdown:
       position:
-        x: -230
-        "y": -470
+        x: -290
+        "y": -420
       tempMetlId: 38
     All Jobs Processed?:
       position:
-        x: -120
-        "y": -470
+        x: -150
+        "y": -430
       tempMetlId: 39
-    Grid Iterator:
-      position:
-        x: -870
-        "y": -420
-      tempMetlId: 40
-    Grid Iterator 3:
-      position:
-        x: -510
-        "y": -490
-      tempMetlId: 41
-    Grid Iterator 4:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 42
     Print Variables:
       position:
-        x: -720
-        "y": -480
+        x: -770
+        "y": -430
       tempMetlId: 43
     check Pipeline Completion_2:
       position:
-        x: -350
-        "y": -470
+        x: -450
+        "y": -430
       tempMetlId: 45
     Check Completion:
       position:
         x: -870
         "y": -230
       tempMetlId: 46
-  notes:
-    "1":
+    Grid Iterator 2 2:
       position:
-        x: -700
-        "y": -210
-      size:
-        height: 208
-        width: 680
-      theme: "red"
-      content: "FAILURE PATH"
+        x: -610
+        "y": -450
+      tempMetlId: 49
+    Trail CHILD Run Orchestration ITERATOR 2:
+      position:
+        x: -610
+        "y": -450
+      tempMetlId: 51

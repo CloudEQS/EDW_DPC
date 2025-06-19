@@ -6,14 +6,14 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Orchestration RECURSIVE"
+        - "Run Orchestration"
       parameters:
         componentName: "Start"
-    Run Orchestration RECURSIVE:
+    Run Orchestration:
       type: "run-orchestration"
       parameters:
-        componentName: "Run Orchestration RECURSIVE"
-        orchestrationJob: "Roopa_Jobs/Trail _Child_JOb_run_dynamically_ORAC.orch.yaml"
+        componentName: "Run Orchestration"
+        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC12.orch.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -24,25 +24,25 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "COPIED"
+        scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "JOB_1"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "COPIED"
+        scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "1"
 design:
   components:
     Start:
       position:
-        x: -160
+        x: 0
         "y": 0
       tempMetlId: 1
-    Run Orchestration RECURSIVE:
+    Run Orchestration:
       position:
-        x: 10
+        x: 160
         "y": 0
       tempMetlId: 2

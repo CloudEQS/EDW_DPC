@@ -6,17 +6,17 @@ pipeline:
       type: "sql"
       parameters:
         componentName: "SQL"
-        query: "select  * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.PARTSUPP"
-    Rewrite Table:
+        query: "select  * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF100.PARTSUPP"
+    PART2 :JOB_7:
       type: "rewrite-table"
       sources:
       - "SQL"
       parameters:
-        componentName: "Rewrite Table"
+        componentName: "PART2 :JOB_7"
         warehouse: "[Environment Default]"
         database: "SCD_PRACTICE_DB"
         schema: "PUBLIC"
-        targetTable: "part2 "
+        targetTable: "PART2"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -28,7 +28,7 @@ design:
         x: -210
         "y": -60
       tempMetlId: 1
-    Rewrite Table:
+    PART2 :JOB_7:
       position:
         x: -50
         "y": -60

@@ -6,7 +6,7 @@ pipeline:
       type: "table-input"
       parameters:
         componentName: "ORDERS"
-        database: "TEST_DB_STREAMLIT"
+        database: "SNOWFLAKE_SAMPLE_DATA"
         schema: "TPCH_SF1"
         targetTable: "ORDERS"
         columnNames:
@@ -20,14 +20,16 @@ pipeline:
         - "O_SHIPPRIORITY"
         - "O_COMMENT"
         timeOffset:
-    Rewrite Table:
+    'JOB 2 : ORDER TABLE':
       type: "rewrite-table"
+      sources:
+      - "ORDERS"
       parameters:
-        componentName: "Rewrite Table"
+        componentName: "JOB 2 : ORDER TABLE"
         warehouse: "[Environment Default]"
-        database: "[Environment Default]"
-        schema: "[Environment Default]"
-        targetTable:
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STAGE_ORDERS_TABLE"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -44,10 +46,10 @@ design:
   components:
     ORDERS:
       position:
-        x: 0
-        "y": 0
+        x: -180
+        "y": -80
       tempMetlId: 1
-    Rewrite Table:
+    'JOB 2 : ORDER TABLE':
       position:
         x: -40
         "y": -80

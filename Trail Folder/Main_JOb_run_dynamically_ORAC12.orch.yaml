@@ -1,0 +1,178 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Initialize Job Status"
+      parameters:
+        componentName: "Start"
+    Initialize Job Status:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Get Total Job Count"
+      parameters:
+        componentName: "Initialize Job Status"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO INTERNAL_TRAINING.EDP_CURATED.job_status (job_seq,job_name,status)\r\
+          \nSELECT DISTINCT job_seq,job_name,'PENDING' FROM INTERNAL_TRAINING.EDP_CURATED.job_metadata"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Success Main Job:
+      type: "end-success"
+      parameters:
+        componentName: "Success Main Job"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Failed on Main Orachstration JOB:
+      type: "end-failure"
+      parameters:
+        componentName: "Failed on Main Orachstration JOB"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get Total Job Count:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "MAIN Run Orchestration"
+      parameters:
+        componentName: "Get Total Job Count"
+        mode: "Advanced"
+        query: "SELECT COUNT(DISTINCT job_seq) AS TOTAL_JOBS FROM INTERNAL_TRAINING.EDP_CURATED.job_metadata"
+        scalarVariableMapping:
+        - - "v_total_jobs"
+          - "TOTAL_JOBS"
+      postProcessing:
+        updateOutputMessage: "Total Number of JOBs going to Execute :${v_total_jobs}"
+        updateScalarVariables:
+    MAIN Run Orchestration:
+      type: "run-orchestration"
+      transitions:
+        success:
+        - "Success Main Job"
+        failure:
+        - "Failed on Main Orachstration JOB"
+      parameters:
+        componentName: "MAIN Run Orchestration"
+        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC12.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_all_jobs_processed:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "False"
+    v_failed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_pipeline_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "RUNNING"
+    v_running_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_completed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_total_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_ready_job_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    gv_ready_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_seq:
+            columnType: "NUMBER"
+          job_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -1410
+        "y": -70
+      tempMetlId: 1
+    Initialize Job Status:
+      position:
+        x: -1260
+        "y": -70
+      tempMetlId: 2
+    Success Main Job:
+      position:
+        x: -850
+        "y": -170
+      tempMetlId: 14
+    Failed on Main Orachstration JOB:
+      position:
+        x: -820
+        "y": 0
+      tempMetlId: 15
+    Get Total Job Count:
+      position:
+        x: -1130
+        "y": -70
+      tempMetlId: 16
+    MAIN Run Orchestration:
+      position:
+        x: -990
+        "y": -80
+      tempMetlId: 17

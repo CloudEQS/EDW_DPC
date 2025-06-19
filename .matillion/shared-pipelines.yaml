@@ -19,7 +19,7 @@ pipelines:
   - pipeline: Shared Jobs/Load_log_Orc.orch.yaml
     displayName: Load_log_Orc
     id: Load_log_Orc
-    enabled: true
+    enabled: false
     parameters:
       jv_job_name:
         type: TEXT
@@ -243,20 +243,12 @@ pipelines:
             columnType: TEXT
           gv_table_name:
             columnType: TEXT
-          gv_table_type:
-            columnType: TEXT
           gv_error_rows:
             columnType: TEXT
-          gv_subject_area:
-            columnType: TEXT
-          gv_run_date:
-            columnType: TEXT
-          gv_run_time:
+          gv_run_date_time:
             columnType: TEXT
           gv_run_history_id:
             columnType: NUMBER
-          gv_status:
-            columnType: TEXT
           gv_message:
             columnType: TEXT
   - pipeline: Trail Folder/Check Pipeline Completion.orch.yaml
@@ -301,3 +293,147 @@ pipelines:
         type: NUMERIC
         exportAllowed: true
         description: ""
+  - pipeline: LOAD_LOG_JOBS_O.orch.yaml
+    displayName: LOAD_LOG_JOBS_O
+    id: LOAD_LOG_JOBS_O
+    enabled: true
+    parameters:
+      load_log2:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: TEXT
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Load_Log_trans.tran.yaml
+    displayName: Load_Log_trans
+    id: Load_Log_trans
+    enabled: true
+    parameters:
+      gv_load_log_var:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Error_log_new.tran.yaml
+    displayName: Error_log_new
+    id: Error_log_new_2
+    enabled: true
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: TEXT
+          gv_subject_area:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Error_log_o.orch.yaml
+    displayName: Error_log_o
+    id: Error_log_o-1
+    enabled: true
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT

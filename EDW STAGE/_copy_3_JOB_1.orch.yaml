@@ -1,0 +1,167 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Mark Job Running"
+      parameters:
+        componentName: "Start"
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Mark Job Failed 2"
+        - "Mark Job Completed  2"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "EDW STAGE/job1_trans.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB 2 End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "JOB 2 End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    JOB 1 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 1 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Mark Job Failed 2:
+      type: "sql-executor"
+      transitions:
+        failure:
+        - "JOB 2 End Failure"
+      parameters:
+        componentName: "Mark Job Failed 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'FAILED' AS status,\r\n    CURRENT_TIMESTAMP() AS\
+          \ update_timestamp,\r\n   '${v_error_message}' as error_message \r\n) AS\
+          \ source\r\nON target.job_seq\r\n = source.row_id AND target.job_name =\
+          \ source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE SET status = source.status,\
+          \ END_TIME = source.update_timestamp,ERROR_MESSAGE=source.error_message\
+          \ \r\n\r\nWHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name, status,\
+          \ END_TIME,ERROR_MESSAGE)  VALUES (source.row_id\r\n, source.job_name, source.status,\
+          \ source.update_timestamp,source.error_message)\r\n"
+      postProcessing:
+        updateOutputMessage: "Current job status updated as 'FAILED' : ${v_current_job_name}"
+        updateScalarVariables:
+    Mark Job Completed  2:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "JOB 1 End Success"
+      parameters:
+        componentName: "Mark Job Completed  2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'COMPLETED' AS status,\r\n    CURRENT_TIMESTAMP()\
+          \ AS update_timestamp,    \r\n) AS source\r\nON target.job_seq\r\n = source.row_id\
+          \ AND target.job_name = source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE\
+          \ SET status = source.status, END_TIME = source.update_timestamp\r\n\r\n\
+          WHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name, status, END_TIME)\
+          \  VALUES (source.row_id\r\n, source.job_name, source.status, source.update_timestamp)\r\
+          \n"
+      postProcessing:
+        updateOutputMessage: "If Jobs competed successfully update in the job status\
+          \ as completed: \r\n\r\n${v_current_job_name}"
+        updateScalarVariables:
+    Mark Job Running:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Run Transformation"
+      parameters:
+        componentName: "Mark Job Running"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "\r\nMERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'RUNNING' AS status,\r\n    CURRENT_TIMESTAMP() AS\
+          \ start_timestamp,\r\n    CURRENT_TIMESTAMP() as last_updated_time\r\n\r\
+          \n) AS source\r\nON target.job_seq\r\n = source.row_id AND target.job_name\
+          \ = source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE SET status = source.status,\
+          \ START_TIME = source.last_updated_time, \r\n    LAST_UPDATED = source.start_timestamp\r\
+          \n\r\nWHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name, status,LAST_UPDATED,START_TIME)\
+          \  VALUES (source.row_id\r\n, source.job_name, source.status,source.last_updated_time,source.start_timestamp)\r\
+          \n"
+      postProcessing:
+        updateOutputMessage: ""
+        updateScalarVariables:
+  variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+design:
+  components:
+    Start:
+      position:
+        x: -70
+        "y": 0
+      tempMetlId: 1
+    Run Transformation:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2
+    JOB 2 End Failure:
+      position:
+        x: 460
+        "y": 50
+      tempMetlId: 3
+    JOB 1 End Success:
+      position:
+        x: 440
+        "y": -70
+      tempMetlId: 4
+    Mark Job Failed 2:
+      position:
+        x: 260
+        "y": 50
+      tempMetlId: 8
+    Mark Job Completed  2:
+      position:
+        x: 300
+        "y": -70
+      tempMetlId: 10
+    Mark Job Running:
+      position:
+        x: 40
+        "y": 0
+      tempMetlId: 11

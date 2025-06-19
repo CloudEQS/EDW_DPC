@@ -6,72 +6,79 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Trans_JOB3"
+        - "Run Transformation"
       parameters:
         componentName: "Start"
-    Run Trans_JOB3:
+    Run Transformation:
       type: "run-transformation"
       transitions:
         success:
-        - "Job 3 End Success"
+        - "JOB 3 End Success"
         failure:
-        - " JOB 3 End Failure"
+        - "JOB 3 End Failure"
       parameters:
-        componentName: "Run Trans_JOB3"
+        componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Trans_JOB3.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Job 3 End Success:
-      type: "end-success"
+    JOB 3 End Failure:
+      type: "end-failure"
       parameters:
-        componentName: "Job 3 End Success"
+        componentName: "JOB 3 End Failure"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    ' JOB 3 End Failure':
-      type: "end-failure"
+    JOB 3 End Success:
+      type: "end-success"
       parameters:
-        componentName: " JOB 3 End Failure"
+        componentName: "JOB 3 End Success"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
   variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     v_current_job_name:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "JOB_3"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "3"
 design:
   components:
     Start:
       position:
-        x: -120
-        "y": -10
+        x: -70
+        "y": 0
       tempMetlId: 1
-    Run Trans_JOB3:
+    Run Transformation:
       position:
-        x: 20
+        x: 160
         "y": 0
       tempMetlId: 2
-    Job 3 End Success:
+    JOB 3 End Failure:
       position:
-        x: 130
-        "y": -50
+        x: 460
+        "y": 50
       tempMetlId: 3
-    ' JOB 3 End Failure':
+    JOB 3 End Success:
       position:
-        x: 150
-        "y": 60
+        x: 440
+        "y": -70
       tempMetlId: 4

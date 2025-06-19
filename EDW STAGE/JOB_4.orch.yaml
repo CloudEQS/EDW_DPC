@@ -6,18 +6,18 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Trans_JOB4"
+        - "Run Transformation"
       parameters:
         componentName: "Start"
-    Run Trans_JOB4:
+    Run Transformation:
       type: "run-transformation"
       transitions:
         success:
-        - " JOB4 End Success"
+        - "JOB 4 End Success"
         failure:
         - "JOB 4 End Failure"
       parameters:
-        componentName: "Run Trans_JOB4"
+        componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Trans_JOB4.tran.yaml"
         setScalarVariables:
         setGridVariables:
@@ -31,13 +31,35 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    ' JOB4 End Success':
+    JOB 4 End Success:
       type: "end-success"
       parameters:
-        componentName: " JOB4 End Success"
+        componentName: "JOB 4 End Success"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+  variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
 design:
   components:
     Start:
@@ -45,18 +67,18 @@ design:
         x: -70
         "y": 0
       tempMetlId: 1
-    Run Trans_JOB4:
+    Run Transformation:
       position:
-        x: 90
+        x: 160
         "y": 0
       tempMetlId: 2
     JOB 4 End Failure:
       position:
-        x: 210
-        "y": 60
+        x: 460
+        "y": 50
       tempMetlId: 3
-    ' JOB4 End Success':
+    JOB 4 End Success:
       position:
-        x: 210
-        "y": -50
+        x: 440
+        "y": -70
       tempMetlId: 4

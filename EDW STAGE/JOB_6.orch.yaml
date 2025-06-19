@@ -24,13 +24,6 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    JOB 6 End Success:
-      type: "end-success"
-      parameters:
-        componentName: "JOB 6 End Success"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     JOB 6 End Failure:
       type: "end-failure"
       parameters:
@@ -38,25 +31,54 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    JOB 6 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 6 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_6"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "6"
 design:
   components:
     Start:
       position:
-        x: -240
-        "y": -70
+        x: -70
+        "y": 0
       tempMetlId: 1
     Run Transformation:
       position:
-        x: -80
-        "y": -70
+        x: 160
+        "y": 0
       tempMetlId: 2
-    JOB 6 End Success:
-      position:
-        x: 0
-        "y": -170
-      tempMetlId: 3
     JOB 6 End Failure:
       position:
-        x: 20
-        "y": 0
+        x: 460
+        "y": 50
+      tempMetlId: 3
+    JOB 6 End Success:
+      position:
+        x: 440
+        "y": -70
       tempMetlId: 4

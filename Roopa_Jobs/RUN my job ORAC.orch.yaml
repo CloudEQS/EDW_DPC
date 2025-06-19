@@ -1,0 +1,136 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Mark Job Running"
+      parameters:
+        componentName: "Start"
+    Run Orchestration:
+      type: "run-orchestration"
+      transitions:
+        success:
+        - "Mark Job Completed "
+        failure:
+        - "Mark Job Failed"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "EDW STAGE/${v_current_job_name}"
+        setScalarVariables:
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Detailed messgae : ${v_detailed_message}"
+        updateScalarVariables:
+        - - "v_detailed_message"
+          - "${sysvar.childPipeline.vars.error_message}"
+    Mark Job Running:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Run Orchestration"
+      parameters:
+        componentName: "Mark Job Running"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
+          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${v_detailed_message}'\r\n\
+          WHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB Running : ${v_current_job_name}"
+        updateScalarVariables:
+    Mark Job Failed:
+      type: "sql-executor"
+      parameters:
+        componentName: "Mark Job Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'FAILED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\
+          \nWHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB FAILED : ${v_current_job_name}"
+        updateScalarVariables:
+    'Mark Job Completed ':
+      type: "sql-executor"
+      parameters:
+        componentName: "Mark Job Completed "
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\
+          \nWHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB Completed : ${v_current_job_name}"
+        updateScalarVariables:
+  variables:
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    v_detailed_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_ready_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          job_seq:
+            columnType: "NUMBER"
+          job_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -260
+        "y": 0
+      tempMetlId: 1
+    Run Orchestration:
+      position:
+        x: 80
+        "y": 0
+      tempMetlId: 2
+    Mark Job Running:
+      position:
+        x: -130
+        "y": 0
+      tempMetlId: 8
+    Mark Job Failed:
+      position:
+        x: 280
+        "y": 70
+      tempMetlId: 10
+    'Mark Job Completed ':
+      position:
+        x: 290
+        "y": -50
+      tempMetlId: 11

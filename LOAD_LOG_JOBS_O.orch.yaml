@@ -19,6 +19,26 @@ pipeline:
         transformationJob: "Load_Log_trans.tran.yaml"
         setScalarVariables:
         setGridVariables:
+        - variable: "gv_load_log_var"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "load_log2"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -26,12 +46,12 @@ pipeline:
       type: "if"
       transitions:
         "true":
-        - "Set Status  in control table"
+        - "SQL Script"
       parameters:
         componentName: "If"
         mode: "Simple"
         condition:
-        - - "jv_status"
+        - - "gv_status"
           - "Is"
           - "Equal to"
           - "Success"
@@ -39,34 +59,20 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Set Status  in control table:
+    SQL Script:
       type: "sql-executor"
       parameters:
-        componentName: "Set Status  in control table"
+        componentName: "SQL Script"
         scriptLocation: "Component"
         declareSqlVariables: "Include selected"
         variablesToInclude:
-        sqlScript: "UPDATE ${ev_db}.${ev_schema}.JOB_CONTROL_TABLE\r\nSET RUN_STATUS\
-          \ = 'N'\r\nWHERE JOB_NAME = '${jv_job_name}';\r\n \r\n"
+        sqlScript: "UPDATE edw_lab.public.JOB_CONTROL_TABLE\r\nSET RUN_STATUS = 'N'\r\
+          \nWHERE JOB_NAME = '${jv_job_name}'\r\n \r\n"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
   variables:
-    jv_job_name:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    jv_status:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    load_log1:
+    load_log2:
       metadata:
         type: "GRID"
         description: ""
@@ -83,12 +89,8 @@ pipeline:
             columnType: "TEXT"
           gv_table_type:
             columnType: "TEXT"
-          gv_inserted_rows:
-            columnType: "TEXT"
           gv_updated_rows:
             columnType: "NUMBER"
-          gv_subject_area:
-            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
@@ -105,28 +107,26 @@ pipeline:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
-          gv_comment:
-            columnType: "TEXT"
       defaultValue: []
 design:
   components:
     Start:
       position:
-        x: -160
-        "y": -10
+        x: -260
+        "y": 0
       tempMetlId: 1
     Run Transformation:
       position:
-        x: -10
-        "y": -10
+        x: -140
+        "y": 0
       tempMetlId: 2
     If:
       position:
-        x: 150
-        "y": -10
+        x: -20
+        "y": 0
       tempMetlId: 3
-    Set Status  in control table:
+    SQL Script:
       position:
-        x: 310
-        "y": -10
+        x: 140
+        "y": 0
       tempMetlId: 4

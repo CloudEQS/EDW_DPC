@@ -73,7 +73,7 @@ pipeline:
       type: "if"
       transitions:
         "true":
-        - "Grid Iterator"
+        - "Print Variables"
         "false":
         - "Check Completion"
       parameters:
@@ -90,6 +90,7 @@ pipeline:
         updateScalarVariables:
     Mark Job Running:
       type: "sql-executor"
+      skipped: true
       parameters:
         componentName: "Mark Job Running"
         scriptLocation: "Component"
@@ -115,6 +116,8 @@ pipeline:
       postProcessing:
         updateOutputMessage: ""
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.childPipeline.vars.error_message}"
     End Success:
       type: "end-success"
       parameters:
@@ -133,9 +136,9 @@ pipeline:
       type: "grid-iterator"
       transitions:
         success:
-        - "Grid Iterator 3"
+        - "check Pipeline Completion_2"
         failure:
-        - "Grid Iterator 4"
+        - "Propagate Downstream Failure"
       iterationTarget: "CHILD Run Orchestration ITERATOR"
       parameters:
         componentName: "Grid Iterator 2"
@@ -148,21 +151,6 @@ pipeline:
         concurrency: "Concurrent"
       postProcessing:
         updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}"
-        updateScalarVariables:
-    Mark Job Failed:
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Failed"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status\r\nSET STATUS\
-          \ = 'FAILED',\r\n    END_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE = 'Job failed during execution\
-          \ in Matillion. Check logs for job: ' || '${v_current_job_name}'\r\nWHERE\
-          \ JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: "If Job gets failed marked as Failed in JOB Status: ${v_current_job_name}"
         updateScalarVariables:
     Propagate Downstream Failure:
       type: "sql-executor"
@@ -181,21 +169,6 @@ pipeline:
           \ JOB_SEQ in ${v_current_job_seq}"
       postProcessing:
         updateOutputMessage:
-        updateScalarVariables:
-    'Mark Job Completed ':
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Completed "
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${sysvar.sysvar.thisComponent.status}'\r\
-          \nWHERE JOB_SEQ = ${v_current_job_seq}\r\n"
-      postProcessing:
-        updateOutputMessage: "If Jobs competed successfully update in the job status\
-          \ as completed: \r\n\r\n${v_current_job_name}"
         updateScalarVariables:
     Main Pipeline Loop:
       type: "if"
@@ -220,7 +193,7 @@ pipeline:
       type: "run-orchestration"
       parameters:
         componentName: "Run Orchestration RE RUN"
-        orchestrationJob: "Roopa_Jobs/Recusive_job.orch.yaml"
+        orchestrationJob: "TEST Folder/Recusive_job.orch.yaml"
         setScalarVariables:
         - - "v_current_job_name"
           - "${v_current_job_name}"
@@ -324,57 +297,6 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Grid Iterator:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Print Variables"
-      iterationTarget: "Mark Job Running"
-      parameters:
-        componentName: "Grid Iterator"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "Yes"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 3:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "check Pipeline Completion_2"
-      iterationTarget: "Mark Job Completed "
-      parameters:
-        componentName: "Grid Iterator 3"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "Yes"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 4:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Propagate Downstream Failure"
-      iterationTarget: "Mark Job Failed"
-      parameters:
-        componentName: "Grid Iterator 4"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "No"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     Print Variables:
       type: "print-variables"
       transitions:
@@ -441,6 +363,62 @@ pipeline:
           \ ${v_failed_jobs}\t\r\n\r\n"
         updateScalarVariables:
   variables:
+    v_pipeline_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "RUNNING"
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_STALLED_OR_INCOMPLETE_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_total_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_completed_jobs:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    v_ready_job_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     v_all_jobs_processed:
       metadata:
         type: "TEXT"
@@ -462,13 +440,6 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "0"
-    v_pipeline_status:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "RUNNING"
     v_running_jobs:
       metadata:
         type: "NUMBER"
@@ -483,48 +454,6 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "0"
-    v_current_job_name:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "JOB_1"
-    v_STALLED_OR_INCOMPLETE_count:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
-    v_current_job_seq:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "1"
-    v_total_jobs:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "0"
-    v_completed_jobs:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "0"
-    v_ready_job_count:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: ""
     gv_ready_jobs:
       metadata:
         type: "GRID"
@@ -532,11 +461,15 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
         columns:
-          job_name:
-            columnType: "TEXT"
           job_seq:
             columnType: "NUMBER"
-      defaultValue: []
+          job_name:
+            columnType: "TEXT"
+      defaultValue:
+      - - "1"
+        - "JOB_1"
+      - - "2"
+        - "JOB_2"
 design:
   components:
     Start:
@@ -556,8 +489,8 @@ design:
       tempMetlId: 7
     Mark Job Running:
       position:
-        x: -870
-        "y": -420
+        x: -990
+        "y": 330
       tempMetlId: 12
     CHILD Run Orchestration ITERATOR:
       position:
@@ -571,29 +504,19 @@ design:
       tempMetlId: 14
     End Failure:
       position:
-        x: -230
-        "y": -130
+        x: -210
+        "y": -170
       tempMetlId: 15
     Grid Iterator 2:
       position:
         x: -620
         "y": -620
       tempMetlId: 16
-    Mark Job Failed:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 18
     Propagate Downstream Failure:
       position:
-        x: -460
-        "y": -120
+        x: -360
+        "y": -170
       tempMetlId: 20
-    'Mark Job Completed ':
-      position:
-        x: -510
-        "y": -470
-      tempMetlId: 21
     Main Pipeline Loop:
       position:
         x: -1290
@@ -601,7 +524,7 @@ design:
       tempMetlId: 29
     Run Orchestration RE RUN:
       position:
-        x: 0
+        x: 40
         "y": -330
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
@@ -624,25 +547,10 @@ design:
         x: -120
         "y": -470
       tempMetlId: 39
-    Grid Iterator:
-      position:
-        x: -870
-        "y": -420
-      tempMetlId: 40
-    Grid Iterator 3:
-      position:
-        x: -510
-        "y": -490
-      tempMetlId: 41
-    Grid Iterator 4:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 42
     Print Variables:
       position:
-        x: -720
-        "y": -480
+        x: -770
+        "y": -570
       tempMetlId: 43
     check Pipeline Completion_2:
       position:
@@ -657,8 +565,8 @@ design:
   notes:
     "1":
       position:
-        x: -700
-        "y": -210
+        x: -730
+        "y": -240
       size:
         height: 208
         width: 680

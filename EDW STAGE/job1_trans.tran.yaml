@@ -7,7 +7,7 @@ pipeline:
       parameters:
         componentName: "REGION"
         database: "SNOWFLAKE_SAMPLE_DATA"
-        schema: "TPCH_SF1"
+        schema: "TPCH_SF100"
         targetTable: "REGION"
         columnNames:
         - "R_REGIONKEY"

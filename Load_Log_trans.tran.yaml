@@ -27,16 +27,8 @@ pipeline:
           - "VARCHAR"
           - ""
           - ""
-        - - "gv_inserted_rows"
-          - "Number"
-          - ""
-          - ""
         - - "gv_updated_rows"
           - "Number"
-          - ""
-          - ""
-        - - "gv_subject_area"
-          - "VARCHAR"
           - ""
           - ""
         - - "gv_process_date"
@@ -44,7 +36,7 @@ pipeline:
           - ""
           - ""
         - - "gv_success_flag"
-          - "Number"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_start_time"
@@ -63,15 +55,7 @@ pipeline:
           - "Number"
           - ""
           - ""
-        - - "gv_status"
-          - "VARCHAR"
-          - ""
-          - ""
         - - "gv_message"
-          - "VARCHAR"
-          - ""
-          - ""
-        - - "gv_comment"
           - "VARCHAR"
           - ""
           - ""
@@ -92,10 +76,6 @@ pipeline:
             - "gv_start_time"
             - "gv_end_time"
             - "gv_row_count"
-            - "gv_run_history_id"
-            - "gv_status"
-            - "gv_message"
-            - "gv_comment"
     LOAD_LOG:
       type: "table-output"
       sources:
@@ -118,10 +98,6 @@ pipeline:
           - "TABLE_NAME"
         - - "gv_table_type"
           - "TABLE_TYPE"
-        - - "gv_subject_area"
-          - "SUBJECT_AREA"
-        - - "gv_inserted_rows"
-          - "INSERTED_ROWS"
         - - "gv_updated_rows"
           - "UPDATED_ROWS"
         - - "gv_process_date"
@@ -132,8 +108,6 @@ pipeline:
           - "START_TIME"
         - - "gv_end_time"
           - "END_TIME"
-        - - "gv_comment"
-          - "COMMENTS"
         orderBy:
         outputMode: "Append"
       postProcessing:
@@ -157,12 +131,8 @@ pipeline:
             columnType: "TEXT"
           gv_table_type:
             columnType: "TEXT"
-          gv_inserted_rows:
-            columnType: "NUMBER"
           gv_updated_rows:
             columnType: "NUMBER"
-          gv_subject_area:
-            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
@@ -179,13 +149,8 @@ pipeline:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
-          gv_comment:
-            columnType: "TEXT"
       defaultValue:
       - - ""
-        - ""
-        - ""
-        - ""
         - ""
         - ""
         - ""

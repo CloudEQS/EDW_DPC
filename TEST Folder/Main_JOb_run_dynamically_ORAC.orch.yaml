@@ -62,7 +62,7 @@ pipeline:
         - "Failed on Main Orachstration JOB"
       parameters:
         componentName: "Run Orchestration"
-        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        orchestrationJob: "TEST Folder/Child_JOb_run_dynamically_ORAC.orch.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -103,7 +103,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "JOB_1"
     v_completed_jobs:
       metadata:
         type: "NUMBER"
@@ -124,7 +124,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "1"
     v_ready_job_count:
       metadata:
         type: "NUMBER"
@@ -136,14 +136,18 @@ pipeline:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
           job_seq:
             columnType: "NUMBER"
           job_name:
             columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "1"
+        - "JOB_1"
+      - - "2"
+        - "JOB_2"
 design:
   components:
     Start:
@@ -168,11 +172,11 @@ design:
       tempMetlId: 15
     Get Total Job Count:
       position:
-        x: -1130
-        "y": -80
+        x: -1120
+        "y": -70
       tempMetlId: 16
     Run Orchestration:
       position:
         x: -990
-        "y": -80
+        "y": -70
       tempMetlId: 17

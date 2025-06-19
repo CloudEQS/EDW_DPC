@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - " JOB 5 End Success"
+        - "JOB 5 End Success"
         failure:
         - "JOB 5 End Failure"
       parameters:
@@ -24,13 +24,6 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    ' JOB 5 End Success':
-      type: "end-success"
-      parameters:
-        componentName: " JOB 5 End Success"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     JOB 5 End Failure:
       type: "end-failure"
       parameters:
@@ -38,25 +31,54 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    JOB 5 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 5 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
 design:
   components:
     Start:
       position:
-        x: -650
-        "y": -10
+        x: -70
+        "y": 0
       tempMetlId: 1
     Run Transformation:
       position:
-        x: -520
-        "y": -10
+        x: 160
+        "y": 0
       tempMetlId: 2
-    ' JOB 5 End Success':
-      position:
-        x: -400
-        "y": -10
-      tempMetlId: 3
     JOB 5 End Failure:
       position:
-        x: -410
-        "y": 70
+        x: 460
+        "y": 50
+      tempMetlId: 3
+    JOB 5 End Success:
+      position:
+        x: 440
+        "y": -70
       tempMetlId: 4

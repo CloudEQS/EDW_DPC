@@ -62,7 +62,7 @@ pipeline:
         - "Failed on Main Orachstration JOB"
       parameters:
         componentName: "Run Orchestration"
-        orchestrationJob: "Roopa_Jobs/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        orchestrationJob: "Roopa_Jobs/Trail _Child_JOb_run_dynamically_ORAC.orch.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -168,11 +168,11 @@ design:
       tempMetlId: 15
     Get Total Job Count:
       position:
-        x: -1130
-        "y": -80
+        x: -1120
+        "y": -70
       tempMetlId: 16
     Run Orchestration:
       position:
         x: -990
-        "y": -80
+        "y": -70
       tempMetlId: 17

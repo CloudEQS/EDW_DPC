@@ -6,10 +6,10 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run JOB2"
+        - "Run Transformation"
       parameters:
         componentName: "Start"
-    Run JOB2:
+    Run Transformation:
       type: "run-transformation"
       transitions:
         success:
@@ -17,17 +17,10 @@ pipeline:
         failure:
         - "JOB 2 End Failure"
       parameters:
-        componentName: "Run JOB2"
+        componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Trans_JOB2.tran.yaml"
         setScalarVariables:
         setGridVariables:
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    JOB 2 End Success:
-      type: "end-success"
-      parameters:
-        componentName: "JOB 2 End Success"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -38,40 +31,54 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    JOB 2 End Success:
+      type: "end-success"
+      parameters:
+        componentName: "JOB 2 End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     v_current_job_name:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "JOB_2"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "2"
 design:
   components:
     Start:
       position:
-        x: 0
+        x: -70
         "y": 0
       tempMetlId: 1
-    Run JOB2:
+    Run Transformation:
       position:
-        x: 110
-        "y": -10
+        x: 160
+        "y": 0
       tempMetlId: 2
-    JOB 2 End Success:
-      position:
-        x: 220
-        "y": -80
-      tempMetlId: 3
     JOB 2 End Failure:
       position:
-        x: 210
+        x: 460
         "y": 50
+      tempMetlId: 3
+    JOB 2 End Success:
+      position:
+        x: 440
+        "y": -70
       tempMetlId: 4

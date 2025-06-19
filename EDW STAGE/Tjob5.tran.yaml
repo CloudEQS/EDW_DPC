@@ -6,13 +6,13 @@ pipeline:
       type: "sql"
       parameters:
         componentName: "SQL"
-        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM"
-    Rewrite Table:
+        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITE8--M"
+    JOB 5 Line_item2:
       type: "rewrite-table"
       sources:
       - "SQL"
       parameters:
-        componentName: "Rewrite Table"
+        componentName: "JOB 5 Line_item2"
         warehouse: "[Environment Default]"
         database: "SCD_PRACTICE_DB"
         schema: "PUBLIC"
@@ -28,7 +28,7 @@ design:
         x: -290
         "y": -70
       tempMetlId: 1
-    Rewrite Table:
+    JOB 5 Line_item2:
       position:
         x: -130
         "y": -70

@@ -23,32 +23,16 @@ pipeline:
           - "VARCHAR"
           - ""
           - ""
-        - - "gv_table_type"
-          - "VARCHAR"
-          - ""
-          - ""
         - - "gv_error_rows"
           - "VARIANT"
           - ""
           - ""
-        - - "gv_subject_area"
-          - "VARCHAR"
-          - ""
-          - ""
-        - - "gv_run_date"
-          - "DATE"
-          - ""
-          - ""
-        - - "gv_run_time"
+        - - "gv_run_date_time"
           - "TIMESTAMP"
           - ""
           - ""
         - - "gv_run_history_id"
           - "NUMBER"
-          - ""
-          - ""
-        - - "gv_status"
-          - "VARCHAR"
           - ""
           - ""
         - - "gv_message"
@@ -124,28 +108,16 @@ pipeline:
             columnType: "TEXT"
           gv_table_name:
             columnType: "TEXT"
-          gv_table_type:
-            columnType: "TEXT"
           gv_error_rows:
             columnType: "TEXT"
-          gv_subject_area:
-            columnType: "TEXT"
-          gv_run_date:
-            columnType: "TEXT"
-          gv_run_time:
+          gv_run_date_time:
             columnType: "TEXT"
           gv_run_history_id:
             columnType: "NUMBER"
-          gv_status:
-            columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
       defaultValue:
       - - ""
-        - ""
-        - ""
-        - ""
-        - ""
         - ""
         - ""
         - ""
@@ -162,6 +134,6 @@ design:
       tempMetlId: 1
     ERROR_LOG:
       position:
-        x: -240
-        "y": 20
+        x: -230
+        "y": 10
       tempMetlId: 2

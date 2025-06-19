@@ -1,0 +1,198 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid"
+      parameters:
+        componentName: "Start"
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Python Pushdown"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Basic"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        table: "JOB_STATUS"
+        tableColumns:
+        - "JOB_SEQ"
+        - "JOB_NAME"
+        - "STATUS"
+        - "LAST_UPDATED"
+        - "START_TIME"
+        - "END_TIME"
+        - "ERROR_MESSAGE"
+        orderBy:
+        sort: "Ascending"
+        limit: "100"
+        gridVariable: "gv_job_status_data"
+        gridVariableMapping:
+        - - "JOB_SEQ"
+          - "job_seq"
+        - - "JOB_NAME"
+          - "job_name"
+        - - "STATUS"
+          - "status"
+        - - "ERROR_MESSAGE"
+          - "error_message"
+        filterConditions:
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "If"
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "jv_num_root_cause_failures"
+          - "Is"
+          - "Greater than"
+          - "0"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_categorize_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_num_dependency_affected_failures:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_categorize_error:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "false"
+    jv_num_root_cause_failures:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    gv_job_metadata_data:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_name_metadata:
+            columnType: "TEXT"
+          job_seq_metadata:
+            columnType: "NUMBER"
+      defaultValue: []
+    gv_job_status_data:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_name:
+            columnType: "TEXT"
+          status:
+            columnType: "TEXT"
+          error_message:
+            columnType: "TEXT"
+          job_seq:
+            columnType: "NUMBER"
+      defaultValue: []
+    gv_dependency_affected_failed_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_name:
+            columnType: "TEXT"
+          status:
+            columnType: "TEXT"
+          error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_root_cause_failed_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_name:
+            columnType: "TEXT"
+          status:
+            columnType: "TEXT"
+          error_message:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Query Result To Grid:
+      position:
+        x: 150
+        "y": 0
+      tempMetlId: 2
+    Python Pushdown:
+      position:
+        x: 310
+        "y": 0
+      tempMetlId: 3
+    If:
+      position:
+        x: 470
+        "y": 0
+      tempMetlId: 4

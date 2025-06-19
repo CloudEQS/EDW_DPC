@@ -19,29 +19,6 @@ pipeline:
         transformationJob: "Load_Log_trans.tran.yaml"
         setScalarVariables:
         setGridVariables:
-        - variable: "gv_load_log_var"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "load_log1"
-              columns:
-              - "gv_load_id"
-              - "gv_job_name"
-              - "gv_job_parent"
-              - "gv_table_name"
-              - "gv_table_type"
-              - "gv_inserted_rows"
-              - "gv_updated_rows"
-              - "gv_subject_area"
-              - "gv_process_date"
-              - "gv_success_flag"
-              - "gv_start_time"
-              - "gv_end_time"
-              - "gv_row_count"
-              - "gv_run_history_id"
-              - "gv_status"
-              - "gv_message"
-              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:

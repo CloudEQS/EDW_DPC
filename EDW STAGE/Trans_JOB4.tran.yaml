@@ -7,7 +7,7 @@ pipeline:
       parameters:
         componentName: "PARTSUPP"
         database: "SNOWFLAKE_SAMPLE_DATA"
-        schema: "TPCH_SF1"
+        schema: "TPCH_SF100"
         targetTable: "PARTSUPP"
         columnNames:
         - "PS_PARTKEY"

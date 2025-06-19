@@ -88,19 +88,6 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Mark Job Running:
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Running"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP()\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: ""
-        updateScalarVariables:
     CHILD Run Orchestration ITERATOR:
       type: "run-orchestration"
       parameters:
@@ -135,7 +122,7 @@ pipeline:
         success:
         - "Grid Iterator 3"
         failure:
-        - "Grid Iterator 4"
+        - "Grid Iterator 3 2"
       iterationTarget: "CHILD Run Orchestration ITERATOR"
       parameters:
         componentName: "Grid Iterator 2"
@@ -148,21 +135,6 @@ pipeline:
         concurrency: "Concurrent"
       postProcessing:
         updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}"
-        updateScalarVariables:
-    Mark Job Failed:
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Failed"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status\r\nSET STATUS\
-          \ = 'FAILED',\r\n    END_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE = 'Job failed during execution\
-          \ in Matillion. Check logs for job: ' || '${v_current_job_name}'\r\nWHERE\
-          \ JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: "If Job gets failed marked as Failed in JOB Status: ${v_current_job_name}"
         updateScalarVariables:
     Propagate Downstream Failure:
       type: "sql-executor"
@@ -181,21 +153,6 @@ pipeline:
           \ JOB_SEQ in ${v_current_job_seq}"
       postProcessing:
         updateOutputMessage:
-        updateScalarVariables:
-    'Mark Job Completed ':
-      type: "sql-executor"
-      parameters:
-        componentName: "Mark Job Completed "
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${sysvar.sysvar.thisComponent.status}'\r\
-          \nWHERE JOB_SEQ = ${v_current_job_seq}\r\n"
-      postProcessing:
-        updateOutputMessage: "If Jobs competed successfully update in the job status\
-          \ as completed: \r\n\r\n${v_current_job_name}"
         updateScalarVariables:
     Main Pipeline Loop:
       type: "if"
@@ -329,14 +286,16 @@ pipeline:
       transitions:
         success:
         - "Print Variables"
-      iterationTarget: "Mark Job Running"
+      iterationTarget: "Mark Job Running 2"
       parameters:
         componentName: "Grid Iterator"
         gridVariable: "gv_ready_jobs"
         gridIteratorVariableMapping:
         - - "job_seq"
           - "v_current_job_seq"
-        breakOnFailure: "Yes"
+        - - "job_name"
+          - "v_current_job_name"
+        breakOnFailure: "No"
         concurrency: "Sequential"
       postProcessing:
         updateOutputMessage:
@@ -346,31 +305,16 @@ pipeline:
       transitions:
         success:
         - "check Pipeline Completion_2"
-      iterationTarget: "Mark Job Completed "
+      iterationTarget: "Mark Job Completed  2"
       parameters:
         componentName: "Grid Iterator 3"
         gridVariable: "gv_ready_jobs"
         gridIteratorVariableMapping:
         - - "job_seq"
           - "v_current_job_seq"
+        - - "job_name"
+          - "v_current_job_name"
         breakOnFailure: "Yes"
-        concurrency: "Sequential"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 4:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "Propagate Downstream Failure"
-      iterationTarget: "Mark Job Failed"
-      parameters:
-        componentName: "Grid Iterator 4"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq"
-        breakOnFailure: "No"
         concurrency: "Sequential"
       postProcessing:
         updateOutputMessage:
@@ -439,6 +383,85 @@ pipeline:
         updateOutputMessage: "COMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
           \ ${vpending_running_jobs}\r\nRUNNING_COUNT:${v_running_jobs}\t\r\nFAILED_SKIPPED_COUNT:\
           \ ${v_failed_jobs}\t\r\n\r\n"
+        updateScalarVariables:
+    Mark Job Running 2:
+      type: "sql-executor"
+      parameters:
+        componentName: "Mark Job Running 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "\r\nMERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'RUNNING' AS status,\r\n    CURRENT_TIMESTAMP() AS\
+          \ start_timestamp,\r\n    CURRENT_TIMESTAMP() as last_updated_time\r\n\r\
+          \n) AS source\r\nON target.job_seq\r\n = source.row_id AND target.job_name\
+          \ = source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE SET status = source.status,\
+          \ START_TIME = source.last_updated_time, \r\n    LAST_UPDATED = source.start_timestamp\r\
+          \n\r\nWHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name,status,LAST_UPDATED,START_TIME)\
+          \  VALUES (source.row_id\r\n, source.job_name, source.status,source.last_updated_time,source.start_timestamp)\r\
+          \n"
+      postProcessing:
+        updateOutputMessage: ""
+        updateScalarVariables:
+    Mark Job Completed  2:
+      type: "sql-executor"
+      parameters:
+        componentName: "Mark Job Completed  2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'COMPLETED' AS status,\r\n    CURRENT_TIMESTAMP()\
+          \ AS update_timestamp,    \r\n) AS source\r\nON target.job_seq\r\n = source.row_id\
+          \ AND target.job_name = source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE\
+          \ SET status = source.status, END_TIME = source.update_timestamp\r\n\r\n\
+          WHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name, status, END_TIME)\
+          \  VALUES (source.row_id\r\n, source.job_name, source.status, source.update_timestamp)\r\
+          \n"
+      postProcessing:
+        updateOutputMessage: "If Jobs competed successfully update in the job status\
+          \ as completed: \r\n\r\n${v_current_job_name}"
+        updateScalarVariables:
+    Grid Iterator 3 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Propagate Downstream Failure"
+      iterationTarget: "Mark Job Failed 2"
+      parameters:
+        componentName: "Grid Iterator 3 2"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "${v_current_job_seq}"
+        - - "job_name"
+          - "${v_current_job_name}"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Mark Job Failed 2:
+      type: "sql-executor"
+      parameters:
+        componentName: "Mark Job Failed 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "MERGE INTO INTERNAL_TRAINING.EDP_CURATED.job_status AS target\r\
+          \nUSING (\r\n  SELECT\r\n    ${v_current_job_seq} AS row_id,\r\n    '${v_current_job_name}'\
+          \ AS job_name,\r\n    'FAILED' AS status,\r\n    CURRENT_TIMESTAMP() AS\
+          \ update_timestamp,\r\n    $$${v_detailed_message}$$ as error_message \r\
+          \n) AS source\r\nON target.job_seq\r\n = source.row_id AND target.job_name\
+          \ = source.job_name  \r\nWHEN MATCHED THEN\r\n  UPDATE SET status = source.status,\
+          \ END_TIME = source.update_timestamp,ERROR_MESSAGE=source.error_message\
+          \ \r\n\r\nWHEN NOT MATCHED THEN\r\n INSERT (job_seq\r\n, job_name, status,\
+          \ END_TIME)  VALUES (source.row_id\r\n, source.job_name, source.status,\
+          \ source.update_timestamp)\r\n"
+      postProcessing:
+        updateOutputMessage: "If Job gets failed marked as Failed in JOB Status: ${v_current_job_name}"
         updateScalarVariables:
   variables:
     v_all_jobs_processed:
@@ -554,11 +577,6 @@ design:
         x: -1010
         "y": -400
       tempMetlId: 7
-    Mark Job Running:
-      position:
-        x: -870
-        "y": -420
-      tempMetlId: 12
     CHILD Run Orchestration ITERATOR:
       position:
         x: -620
@@ -571,7 +589,7 @@ design:
       tempMetlId: 14
     End Failure:
       position:
-        x: -230
+        x: -220
         "y": -130
       tempMetlId: 15
     Grid Iterator 2:
@@ -579,21 +597,11 @@ design:
         x: -620
         "y": -620
       tempMetlId: 16
-    Mark Job Failed:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 18
     Propagate Downstream Failure:
       position:
-        x: -460
-        "y": -120
+        x: -430
+        "y": -130
       tempMetlId: 20
-    'Mark Job Completed ':
-      position:
-        x: -510
-        "y": -470
-      tempMetlId: 21
     Main Pipeline Loop:
       position:
         x: -1290
@@ -627,18 +635,13 @@ design:
     Grid Iterator:
       position:
         x: -870
-        "y": -420
+        "y": -440
       tempMetlId: 40
     Grid Iterator 3:
       position:
-        x: -510
-        "y": -490
+        x: -450
+        "y": -610
       tempMetlId: 41
-    Grid Iterator 4:
-      position:
-        x: -650
-        "y": -140
-      tempMetlId: 42
     Print Variables:
       position:
         x: -720
@@ -654,10 +657,30 @@ design:
         x: -870
         "y": -230
       tempMetlId: 46
+    Mark Job Running 2:
+      position:
+        x: -870
+        "y": -420
+      tempMetlId: 47
+    Mark Job Completed  2:
+      position:
+        x: -450
+        "y": -610
+      tempMetlId: 48
+    Grid Iterator 3 2:
+      position:
+        x: -600
+        "y": -150
+      tempMetlId: 49
+    Mark Job Failed 2:
+      position:
+        x: -600
+        "y": -150
+      tempMetlId: 50
   notes:
     "1":
       position:
-        x: -700
+        x: -690
         "y": -210
       size:
         height: 208

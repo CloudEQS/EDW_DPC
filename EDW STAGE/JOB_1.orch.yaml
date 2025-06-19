@@ -15,7 +15,7 @@ pipeline:
         success:
         - "JOB 1 End Success"
         failure:
-        - "JOB 2 End Failure"
+        - "JOB 1 End Failure"
       parameters:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/job1_trans.tran.yaml"
@@ -24,10 +24,10 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    JOB 2 End Failure:
+    JOB 1 End Failure:
       type: "end-failure"
       parameters:
-        componentName: "JOB 2 End Failure"
+        componentName: "JOB 1 End Failure"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -38,11 +38,33 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+  variables:
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
 design:
   components:
     Start:
       position:
-        x: 0
+        x: -70
         "y": 0
       tempMetlId: 1
     Run Transformation:
@@ -50,13 +72,13 @@ design:
         x: 160
         "y": 0
       tempMetlId: 2
-    JOB 2 End Failure:
+    JOB 1 End Failure:
       position:
-        x: 280
-        "y": 40
+        x: 460
+        "y": 50
       tempMetlId: 3
     JOB 1 End Success:
       position:
-        x: 270
-        "y": -80
+        x: 440
+        "y": -70
       tempMetlId: 4

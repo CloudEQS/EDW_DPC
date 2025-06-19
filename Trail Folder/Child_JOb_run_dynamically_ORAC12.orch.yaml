@@ -275,7 +275,7 @@ pipeline:
       type: "run-orchestration"
       parameters:
         componentName: "RE RUN SAME JOB"
-        orchestrationJob: "Trail Folder/Child_JOb_run_dynamically_ORAC"
+        orchestrationJob: "Trail Folder/"
         setScalarVariables:
         setGridVariables:
       postProcessing:
@@ -422,7 +422,7 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "JOB_1"
     v_completed_jobs:
@@ -450,7 +450,7 @@ pipeline:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "1"
     v_ready_job_count:
