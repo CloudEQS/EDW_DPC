@@ -364,10 +364,10 @@ pipeline:
       parameters:
         componentName: "Load Log Start"
         pipelineName: "EDW_LAB#load_log_insert"
-        version: "[Latest]"
+        version: "v1.0.12"
         setScalarVariables:
         setGridVariables:
-        - variable: "gv_load_log_var"
+        - variable: "gv_load_log"
           status: "grid"
           gridValues:
             fromGrid:

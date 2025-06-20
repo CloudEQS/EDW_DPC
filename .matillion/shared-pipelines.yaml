@@ -296,7 +296,7 @@ pipelines:
   - pipeline: LOAD_LOG_JOBS_O.orch.yaml
     displayName: LOAD_LOG_JOBS_O
     id: LOAD_LOG_JOBS_O
-    enabled: true
+    enabled: false
     parameters:
       load_log2:
         type: GRID
@@ -336,7 +336,7 @@ pipelines:
   - pipeline: Load_Log_trans.tran.yaml
     displayName: Load_Log_trans
     id: Load_Log_trans
-    enabled: true
+    enabled: false
     parameters:
       gv_load_log_var:
         type: GRID
@@ -480,9 +480,224 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert_trans.tran.yaml
-    displayName: error_log_insert_trans
+  - pipeline: Ingestion Framework/error_log_insert_trans1.tran.yaml
+    displayName: error_log_insert_trans1
     id: error_log_insert
+    enabled: false
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: TEXT
+          gv_subject_area:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Ingestion Framework/error_log_insert_orc.orch.yaml
+    displayName: error_log_insert_orc
+    id: error_log_insert-1
+    enabled: true
+    parameters: {}
+  - pipeline: Ingestion Framework/load_log_insert_orc.orch.yaml
+    displayName: load_log_insert_orc
+    id: load_log_insert
+    enabled: false
+    parameters:
+      gv_load_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_inserted_rows:
+            columnType: NUMBER
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+          gv_comment:
+            columnType: TEXT
+  - pipeline: Ingestion Framework/load_log_insert_trans1.tran.yaml
+    displayName: load_log_insert_trans1
+    id: load_log_insert-1
+    enabled: false
+    parameters:
+      gv_load_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_inserted_rows:
+            columnType: NUMBER
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+          gv_comment:
+            columnType: TEXT
+  - pipeline: load_log_insert_orc.orch.yaml
+    displayName: load_log_insert_orc
+    id: load_log_insert_orc
+    enabled: true
+    parameters:
+      gv_load_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_inserted_rows:
+            columnType: NUMBER
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+          gv_comment:
+            columnType: TEXT
+  - pipeline: load_log_insert_trans1.tran.yaml
+    displayName: load_log_insert_trans1
+    id: load_log_insert_trans1
+    enabled: true
+    parameters:
+      gv_load_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_inserted_rows:
+            columnType: NUMBER
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+          gv_comment:
+            columnType: TEXT
+  - pipeline: error_log_insert_trans1.tran.yaml
+    displayName: error_log_insert_trans1
+    id: error_log_insert_trans1
     enabled: true
     parameters:
       gv_error_log:
@@ -514,96 +729,8 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert_o.orch.yaml
-    displayName: error_log_insert_o
-    id: error_log_insert-1
+  - pipeline: error_log_insert_orc.orch.yaml
+    displayName: error_log_insert_orc
+    id: error_log_insert_orc
     enabled: true
     parameters: {}
-  - pipeline: Ingestion Framework/load_log_insert_o.orch.yaml
-    displayName: load_log_insert_o
-    id: load_log_insert
-    enabled: true
-    parameters:
-      gv_load_log:
-        type: GRID
-        exportAllowed: true
-        description: ""
-        columns:
-          gv_load_id:
-            columnType: NUMBER
-          gv_job_name:
-            columnType: TEXT
-          gv_job_parent:
-            columnType: TEXT
-          gv_table_name:
-            columnType: TEXT
-          gv_table_type:
-            columnType: TEXT
-          gv_inserted_rows:
-            columnType: NUMBER
-          gv_updated_rows:
-            columnType: NUMBER
-          gv_subject_area:
-            columnType: TEXT
-          gv_process_date:
-            columnType: TEXT
-          gv_success_flag:
-            columnType: NUMBER
-          gv_start_time:
-            columnType: TEXT
-          gv_end_time:
-            columnType: TEXT
-          gv_row_count:
-            columnType: NUMBER
-          gv_run_history_id:
-            columnType: NUMBER
-          gv_status:
-            columnType: TEXT
-          gv_message:
-            columnType: TEXT
-          gv_comment:
-            columnType: TEXT
-  - pipeline: Ingestion Framework/load_log_insert_trans.tran.yaml
-    displayName: load_log_insert_trans
-    id: load_log_insert-1
-    enabled: true
-    parameters:
-      gv_load_log:
-        type: GRID
-        exportAllowed: true
-        description: ""
-        columns:
-          gv_load_id:
-            columnType: NUMBER
-          gv_job_name:
-            columnType: TEXT
-          gv_job_parent:
-            columnType: TEXT
-          gv_table_name:
-            columnType: TEXT
-          gv_table_type:
-            columnType: TEXT
-          gv_inserted_rows:
-            columnType: NUMBER
-          gv_updated_rows:
-            columnType: NUMBER
-          gv_subject_area:
-            columnType: TEXT
-          gv_process_date:
-            columnType: TEXT
-          gv_success_flag:
-            columnType: NUMBER
-          gv_start_time:
-            columnType: TEXT
-          gv_end_time:
-            columnType: TEXT
-          gv_row_count:
-            columnType: NUMBER
-          gv_run_history_id:
-            columnType: NUMBER
-          gv_status:
-            columnType: TEXT
-          gv_message:
-            columnType: TEXT
-          gv_comment:
-            columnType: TEXT
