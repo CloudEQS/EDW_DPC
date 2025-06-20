@@ -483,7 +483,7 @@ pipelines:
   - pipeline: Ingestion Framework/error_log_insert_trans.tran.yaml
     displayName: error_log_insert_trans
     id: error_log_insert
-    enabled: false
+    enabled: true
     parameters:
       gv_error_log:
         type: GRID
@@ -517,17 +517,17 @@ pipelines:
   - pipeline: Ingestion Framework/error_log_insert_o.orch.yaml
     displayName: error_log_insert_o
     id: error_log_insert-1
-    enabled: false
+    enabled: true
     parameters: {}
   - pipeline: Ingestion Framework/load_log_insert_o.orch.yaml
     displayName: load_log_insert_o
     id: load_log_insert
-    enabled: false
+    enabled: true
     parameters: {}
   - pipeline: Ingestion Framework/load_log_insert_trans.tran.yaml
     displayName: load_log_insert_trans
     id: load_log_insert-1
-    enabled: false
+    enabled: true
     parameters:
       gv_load_log:
         type: GRID
