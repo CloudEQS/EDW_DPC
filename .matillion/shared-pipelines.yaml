@@ -729,8 +729,8 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: error_log_insert_orc.orch.yaml
-    displayName: error_log_insert_orc
+  - pipeline: error_log_insert_orc1.orch.yaml
+    displayName: error_log_insert_orc1
     id: error_log_insert_orc
     enabled: true
     parameters: {}

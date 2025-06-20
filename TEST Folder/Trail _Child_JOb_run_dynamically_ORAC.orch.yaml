@@ -363,8 +363,8 @@ pipeline:
         - "Main Pipeline Loop"
       parameters:
         componentName: "Load Log Start"
-        pipelineName: "EDW_LAB#load_log_insert"
-        version: "v1.0.12"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
+        version: "v1.0.13"
         setScalarVariables:
         setGridVariables:
         - variable: "gv_load_log"

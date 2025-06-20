@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "Ingestion Framework/load_log_insert_trans.tran.yaml"
+        transformationJob: "load_log_insert_trans1.tran.yaml"
         setScalarVariables:
         setGridVariables:
         - variable: "gv_load_log"

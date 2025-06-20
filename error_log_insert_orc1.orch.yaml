@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "Ingestion Framework/error_log_insert.tran.yaml"
+        transformationJob: "error_log_insert_trans1.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
