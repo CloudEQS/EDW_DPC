@@ -25,7 +25,7 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_PARTSUPP_TABLE"
+        targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
         updateOutputMessage: "JOB 4: PARTSUPP EXECUTED"
@@ -49,6 +49,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_PARTSUPP_TABLE;"
 design:
   components:
     PARTSUPP:

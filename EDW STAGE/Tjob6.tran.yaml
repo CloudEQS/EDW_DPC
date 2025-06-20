@@ -11,7 +11,7 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "NATION"
+        targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -48,6 +48,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_NATION"
 design:
   components:
     NATION :JOB 6:

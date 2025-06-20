@@ -16,7 +16,7 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "SCD_PRACTICE_DB"
         schema: "PUBLIC"
-        targetTable: "Line_item2"
+        targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -40,6 +40,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "stage_lineitem2"
 design:
   components:
     SQL:

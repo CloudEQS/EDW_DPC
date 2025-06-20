@@ -20,6 +20,8 @@ pipeline:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Tjob6.tran.yaml"
         setScalarVariables:
+        - - "v_current_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
@@ -71,6 +73,13 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "6"
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     Start:

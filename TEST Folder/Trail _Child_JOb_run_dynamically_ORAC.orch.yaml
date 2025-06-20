@@ -29,10 +29,10 @@ pipeline:
           \ Frames\n#   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes\n\
           ###)\ndef get_ready_jobs(session, context=None):\n    # Fetch all job metadata\
           \ and job status\n    job_metadata_df = session.table(\"JOB_METADATA\")\n\
-          \    job_status_df = session.table(\"JOB_STATUS\")\n \n    # Create sets\
-          \ for quick lookup\n    completed_job_seqs = {row['JOB_SEQ'] for row in\
-          \ job_status_df.filter(job_status_df[\"STATUS\"] == \"COMPLETED\").collect()}\n\
-          \    failed_job_seqs = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
+          \    job_status_df = session.table(\"JOB_STATUS\")\n    #print(job_metadata_df.to_pandas())\n\
+          \n    # Create sets for quick lookup\n    completed_job_seqs = {row['JOB_SEQ']\
+          \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"COMPLETED\"\
+          ).collect()}\n    failed_job_seqs = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
           STATUS\"] == \"FAILED\").collect()}\n    running_job_seqs = {row['JOB_SEQ']\
           \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"RUNNING\"\
           ).collect()}\n \n    # Get all unique job sequences from metadata\n    all_job_seqs\
@@ -46,25 +46,29 @@ pipeline:
           \ if status_rows else 'PENDING'\n \n        if current_status != 'PENDING':\n\
           \            continue\n \n        # Get job name\n        job_name_row =\
           \ job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"] == job_seq).select(\"\
-          JOB_NAME\").distinct().collect()\n        if not job_name_row:\n       \
-          \     continue\n        job_name = job_name_row[0]['JOB_NAME']\n \n    \
-          \    # Get dependencies for this job (may be multiple rows)\n        dependency_rows\
-          \ = job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"] == job_seq).collect()\n\
-          \        dependencies = [row['DEPENDENCY'] for row in dependency_rows if\
-          \ row['DEPENDENCY'] is not None]\n \n        # Check if all dependencies\
-          \ are completed\n        all_dependencies_met = all(dep in completed_job_seqs\
-          \ for dep in dependencies)\n \n        if all_dependencies_met:\n      \
-          \      ready_to_run_jobs.append({\"JOB_SEQ\": job_seq, \"JOB_NAME\": job_name})\n\
-          \        else:\n            print(f\"DEBUG: Job {job_seq} blocked by: {[d\
-          \ for d in dependencies if d not in completed_job_seqs]}\")\n \n    # Format\
-          \ for Matillion grid variable\n    grid_data = [[job[\"JOB_SEQ\"], job[\"\
-          JOB_NAME\"]] for job in ready_to_run_jobs]\n \n    # Update Matillion context\
-          \ if available\n    if context is not None:\n        context.updateGridVariable('gv_ready_jobs',\
-          \ grid_data)\n        context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))\n\
-          \    else:\n        print(\"Ready Jobs:\", ready_to_run_jobs)\n  \n    print(ready_to_run_jobs)\n\
-          \    print(v_ready_job_count)\n    return ready_to_run_jobs\n \n \n# Entry\
-          \ point\nget_ready_jobs(session, context if 'context' in globals() else\
-          \ None)\n"
+          JOB_NAME\").distinct().collect()\n        table_name_row = job_metadata_df.filter(job_metadata_df[\"\
+          JOB_SEQ\"] == job_seq).select(\"TABLE_NAME\").distinct().collect()\n   \
+          \     if not job_name_row:\n            continue\n        job_name = job_name_row[0]['JOB_NAME']\n\
+          \        table_name = table_name_row[0]['TABLE_NAME']\n        #print(table_name)\n\
+          \ \n        # Get dependencies for this job (may be multiple rows)\n   \
+          \     dependency_rows = job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"\
+          ] == job_seq).collect()\n        dependencies = [row['DEPENDENCY'] for row\
+          \ in dependency_rows if row['DEPENDENCY'] is not None]\n \n        # Check\
+          \ if all dependencies are completed\n        all_dependencies_met = all(dep\
+          \ in completed_job_seqs for dep in dependencies)\n \n        if all_dependencies_met:\n\
+          \            ready_to_run_jobs.append({\"JOB_SEQ\": job_seq, \"JOB_NAME\"\
+          : job_name,\"TABLE_NAME\":table_name})\n        else:\n            print(f\"\
+          DEBUG: Job {job_seq} blocked by: {[d for d in dependencies if d not in completed_job_seqs]}\"\
+          )\n \n    # Format for Matillion grid variable\n    grid_data = [[job[\"\
+          JOB_SEQ\"], job[\"JOB_NAME\"],job[\"TABLE_NAME\"]] for job in ready_to_run_jobs]\n\
+          \ \n    # Update Matillion context if available\n    if context is not None:\n\
+          \        context.updateGridVariable('gv_ready_jobs', grid_data)\n      \
+          \  context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))\n\
+          \    else:\n        print(\"Ready Jobs:\", ready_to_run_jobs)\n    #print('Grid\
+          \ variables',gv_ready_jobs)\n    print(ready_to_run_jobs)\n    print(\"\
+          Number of job are Ready to run:\",v_ready_job_count)\n    return ready_to_run_jobs\n\
+          \ \n \n# Entry point\nget_ready_jobs(session, context if 'context' in globals()\
+          \ else None)\n"
         scriptTimeout: "360"
       postProcessing:
         updateOutputMessage: "\r\n\r\n\r\nReady jobs count:${v_ready_job_count}"
@@ -315,6 +319,8 @@ pipeline:
           - "${v_current_job_name}"
         - - "v_current_job_seq"
           - "${v_current_job_seq}"
+        - - "jv_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Iteration in the Grid Present  :${v_current_job_name}\r\
@@ -344,6 +350,9 @@ pipeline:
           - "${sysvar.thisPipeline.executionId}"
           - "Started"
           - "Log Started at Child Orachstraion JOb"
+          - "Log Started"
+          - ""
+          - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -354,11 +363,11 @@ pipeline:
         - "Main Pipeline Loop"
       parameters:
         componentName: "Load Log Start"
-        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        pipelineName: "EDW_LAB#load_log_insert_o"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
-        - variable: "load_log2"
+        - variable: "gv_load_log"
           status: "grid"
           gridValues:
             fromGrid:
@@ -367,9 +376,11 @@ pipeline:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
-              - "gv_job_name"
+              - "gv_table_name"
               - "gv_table_type"
+              - "gv_inserted_rows"
               - "gv_updated_rows"
+              - "gv_subject_area"
               - "gv_process_date"
               - "gv_success_flag"
               - "gv_start_time"
@@ -378,6 +389,7 @@ pipeline:
               - "gv_run_history_id"
               - "gv_status"
               - "gv_message"
+              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -394,7 +406,7 @@ pipeline:
         - - "${sysvar.thisComponent.taskId}"
           - "${sysvar.thisPipeline.fullName}"
           - "${sysvar.rootPipeline.executionId}"
-          - "${x_table_name}"
+          - "${v_current_table_name}"
           - "${jv_table_type}"
           - "${x_row_count}"
           - "${new Date().toISOString()}"
@@ -402,6 +414,7 @@ pipeline:
           - "${sysvar.thisComponent.startedAt}"
           - "Failed"
           - "${jv_error_message}"
+          - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -425,10 +438,10 @@ pipeline:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
-              - "gv_job_name"
+              - "gv_table_name"
               - "gv_table_type"
               - "gv_error_rows"
-              - "gv_status"
+              - "gv_subject_area"
               - "gv_run_date"
               - "gv_run_time"
               - "gv_run_history_id"
@@ -494,6 +507,13 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_REGION_TABLE"
     v_all_jobs_processed:
       metadata:
         type: "TEXT"
@@ -553,12 +573,16 @@ pipeline:
             columnType: "TEXT"
           gv_table_type:
             columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
           gv_updated_rows:
             columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
-            columnType: "TEXT"
+            columnType: "NUMBER"
           gv_start_time:
             columnType: "TEXT"
           gv_end_time:
@@ -571,7 +595,26 @@ pipeline:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
-      defaultValue: []
+          gv_comment:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
     gv_error_log_child:
       metadata:
         type: "GRID"
@@ -590,6 +633,8 @@ pipeline:
           gv_table_type:
             columnType: "TEXT"
           gv_error_rows:
+            columnType: "TEXT"
+          gv_subject_area:
             columnType: "TEXT"
           gv_run_date:
             columnType: "TEXT"
@@ -706,8 +751,8 @@ design:
       tempMetlId: 53
     Load Log Start:
       position:
-        x: -1250
-        "y": -370
+        x: -1240
+        "y": -360
       tempMetlId: 54
     Error Log Append:
       position:

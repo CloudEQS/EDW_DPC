@@ -480,10 +480,10 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert.tran.yaml
-    displayName: error_log_insert
+  - pipeline: Ingestion Framework/error_log_insert_trans.tran.yaml
+    displayName: error_log_insert_trans
     id: error_log_insert
-    enabled: true
+    enabled: false
     parameters:
       gv_error_log:
         type: GRID
@@ -514,20 +514,20 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert.orch.yaml
-    displayName: error_log_insert
+  - pipeline: Ingestion Framework/error_log_insert_o.orch.yaml
+    displayName: error_log_insert_o
     id: error_log_insert-1
-    enabled: true
+    enabled: false
     parameters: {}
-  - pipeline: Ingestion Framework/load_log_insert.orch.yaml
-    displayName: load_log_insert
+  - pipeline: Ingestion Framework/load_log_insert_o.orch.yaml
+    displayName: load_log_insert_o
     id: load_log_insert
-    enabled: true
+    enabled: false
     parameters: {}
-  - pipeline: Ingestion Framework/load_log_insert.tran.yaml
-    displayName: load_log_insert
+  - pipeline: Ingestion Framework/load_log_insert_trans.tran.yaml
+    displayName: load_log_insert_trans
     id: load_log_insert-1
-    enabled: true
+    enabled: false
     parameters:
       gv_load_log:
         type: GRID

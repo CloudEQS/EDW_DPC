@@ -68,37 +68,6 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Load log:
-      type: "run-shared-pipeline"
-      parameters:
-        componentName: "Load log"
-        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
-        - variable: "load_log2"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "gv_load_log1"
-              columns:
-              - "gv_load_id"
-              - "gv_job_name"
-              - "gv_job_parent"
-              - "gv_table_name"
-              - "gv_table_type"
-              - "gv_updated_rows"
-              - "gv_process_date"
-              - "gv_success_flag"
-              - "gv_start_time"
-              - "gv_end_time"
-              - "gv_row_count"
-              - "gv_run_history_id"
-              - "gv_status"
-              - "gv_message"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
   variables:
     v_all_jobs_processed:
       metadata:
@@ -243,8 +212,3 @@ design:
         x: -1070
         "y": -90
       tempMetlId: 17
-    Load log:
-      position:
-        x: -1470
-        "y": -170
-      tempMetlId: 18

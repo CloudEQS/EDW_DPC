@@ -71,6 +71,13 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "1"
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     Start:

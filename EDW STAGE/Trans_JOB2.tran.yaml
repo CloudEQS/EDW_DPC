@@ -29,7 +29,7 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_ORDERS_TABLE"
+        targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -47,6 +47,13 @@ pipeline:
         visibility: "PUBLIC"
       defaultValue: ""
     v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_table_name:
       metadata:
         type: "TEXT"
         description: ""

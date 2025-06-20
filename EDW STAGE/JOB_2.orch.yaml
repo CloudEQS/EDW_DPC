@@ -20,6 +20,8 @@ pipeline:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Trans_JOB2.tran.yaml"
         setScalarVariables:
+        - - "v_current_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:

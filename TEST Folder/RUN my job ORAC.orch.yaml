@@ -24,6 +24,8 @@ pipeline:
           - "${v_current_job_name}"
         - - "v_current_job_seq"
           - "${v_current_job_seq}"
+        - - "v_current_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Detailed messgae : ${v_detailed_message}"
@@ -55,7 +57,7 @@ pipeline:
       type: "sql-executor"
       transitions:
         success:
-        - "Load log failed appand"
+        - "Error Log Append"
       parameters:
         componentName: "Mark Job Failed"
         scriptLocation: "Component"
@@ -107,6 +109,9 @@ pipeline:
           - "${sysvar.thisPipeline.executionId}"
           - "Successfully "
           - "Successfully loaded the data"
+          - "Success"
+          - "${sysvar.thisComponent.message}"
+          - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -114,11 +119,11 @@ pipeline:
       type: "run-shared-pipeline"
       parameters:
         componentName: "Load log"
-        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        pipelineName: "EDW_LAB#load_log_insert-1"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
-        - variable: "load_log2"
+        - variable: "gv_load_log"
           status: "grid"
           gridValues:
             fromGrid:
@@ -127,9 +132,11 @@ pipeline:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
-              - "gv_table_name"
+              - "gv_job_name"
               - "gv_table_type"
+              - "gv_inserted_rows"
               - "gv_updated_rows"
+              - "gv_subject_area"
               - "gv_process_date"
               - "gv_success_flag"
               - "gv_start_time"
@@ -138,59 +145,7 @@ pipeline:
               - "gv_run_history_id"
               - "gv_status"
               - "gv_message"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Load log failed appand:
-      type: "append-to-grid"
-      transitions:
-        success:
-        - "Load Log Failed"
-      parameters:
-        componentName: "Load log failed appand"
-        operation: "Append"
-        targetGridVariable: "gv_error_log"
-        valuesGrid:
-        - - "${sysvar.thisComponent.taskId}"
-          - "${sysvar.thisPipeline.fullName}"
-          - "${sysvar.rootPipeline.executionId}"
-          - "${jv_table_name}"
-          - "null"
-          - "${v_detailed_message}"
-          - "${new Date().toISOString()}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
-          - "${sysvar.thisComponent.startedAt}"
-          - "Failed"
-          - "${jv_error_message}"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Load Log Failed:
-      type: "run-shared-pipeline"
-      parameters:
-        componentName: "Load Log Failed"
-        pipelineName: "EDW_LAB#Error_log_o"
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
-        - variable: "gv_error_log"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "gv_error_log"
-              columns:
-              - "gv_load_id"
-              - "gv_job_name"
-              - "gv_job_parent"
-              - "gv_table_name"
-              - "gv_table_type"
-              - "gv_error_rows"
-              - "gv_table_type"
-              - "gv_run_date"
-              - "gv_run_time"
-              - "gv_run_history_id"
-              - "gv_status"
-              - "gv_message"
+              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -257,6 +212,60 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Error Log Append:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "ERROR LOG"
+      parameters:
+        componentName: "Error Log Append"
+        operation: "Append"
+        targetGridVariable: "gv_error_log"
+        valuesGrid:
+        - - "${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_table_name}"
+          - "${jv_table_type}"
+          - "${x_row_count}"
+          - "${new Date().toISOString()}"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "Failed"
+          - "${jv_error_message}"
+          - "${sysvar.thisComponent.message}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    ERROR LOG:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "ERROR LOG"
+        pipelineName: "EDW_LAB#error_log_insert"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_job_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_subject_area"
+              - "gv_run_date"
+              - "gv_run_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     Jv_process_date:
       metadata:
@@ -307,6 +316,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "Y"
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_REGION_TABLE"
     jv_end_time:
       metadata:
         type: "TEXT"
@@ -401,12 +417,16 @@ pipeline:
             columnType: "TEXT"
           gv_table_type:
             columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
           gv_updated_rows:
             columnType: "NUMBER"
+          gv_subject_area:
+            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
-            columnType: "TEXT"
+            columnType: "NUMBER"
           gv_start_time:
             columnType: "TEXT"
           gv_end_time:
@@ -418,6 +438,8 @@ pipeline:
           gv_status:
             columnType: "TEXT"
           gv_message:
+            columnType: "TEXT"
+          gv_comment:
             columnType: "TEXT"
       defaultValue: []
     gv_error_log:
@@ -438,6 +460,8 @@ pipeline:
           gv_table_type:
             columnType: "TEXT"
           gv_error_rows:
+            columnType: "TEXT"
+          gv_subject_area:
             columnType: "TEXT"
           gv_run_date:
             columnType: "TEXT"
@@ -460,6 +484,8 @@ pipeline:
           job_seq:
             columnType: "NUMBER"
           job_name:
+            columnType: "TEXT"
+          table_name:
             columnType: "TEXT"
       defaultValue: []
 design:
@@ -499,16 +525,6 @@ design:
         x: 530
         "y": -60
       tempMetlId: 13
-    Load log failed appand:
-      position:
-        x: 380
-        "y": 70
-      tempMetlId: 14
-    Load Log Failed:
-      position:
-        x: 540
-        "y": 70
-      tempMetlId: 15
     Append To Grid 3:
       position:
         x: -220
@@ -519,3 +535,13 @@ design:
         x: -110
         "y": 0
       tempMetlId: 17
+    Error Log Append:
+      position:
+        x: 350
+        "y": 80
+      tempMetlId: 18
+    ERROR LOG:
+      position:
+        x: 500
+        "y": 70
+      tempMetlId: 19

@@ -20,6 +20,8 @@ pipeline:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/job1_trans.tran.yaml"
         setScalarVariables:
+        - - "v_current_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Row Count: ${v_rowcount}\r\n\r\nTable name: ${x_table_name}"
@@ -86,13 +88,6 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: ""
-    x_table_name:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: "abc"
     v_current_job_name:
       metadata:
         type: "TEXT"
@@ -114,6 +109,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "abc"
 design:
   components:
     Start:
