@@ -194,25 +194,20 @@ pipeline:
       parameters:
         componentName: "Append To Grid 2 2 2"
         operation: "Append"
-        targetGridVariable: "gv_load_log1"
+        targetGridVariable: "gv_error_log"
         valuesGrid:
         - - " ${sysvar.thisComponent.taskId}"
           - "${sysvar.thisPipeline.fullName}"
           - "${sysvar.rootPipeline.executionId}"
-          - "abc"
+          - "${v_current_table_name}"
           - "table"
           - "0"
           - "0"
-          - ""
           - "${new Date().toISOString()}"
+          - "-1"
           - "Y"
           - "${sysvar.thisComponent.startedAt}"
-          - ""
-          - "0"
-          - "${sysvar.rootPipeline.executionId}"
-          - "Started"
-          - "Log started"
-          - ""
+          - "-1"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -221,33 +216,28 @@ pipeline:
       skipped: false
       parameters:
         componentName: "Run Shared Pipeline 2 2"
-        pipelineName: "EDW_LAB#load_log_insert_orc"
+        pipelineName: "EDW_LAB#error_log_insert_trans1"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
-        - variable: "gv_load_log"
+        - variable: "gv_error_log"
           status: "grid"
           gridValues:
             fromGrid:
-              variable: "gv_load_log1"
+              variable: "gv_error_log"
               columns:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
               - "gv_table_name"
               - "gv_table_type"
-              - "gv_inserted_rows"
-              - "gv_updated_rows"
+              - "gv_error_rows"
               - "gv_subject_area"
-              - "gv_process_date"
-              - "gv_success_flag"
-              - "gv_start_time"
-              - "gv_end_time"
-              - "gv_row_count"
+              - "gv_run_date"
+              - "gv_run_time"
               - "gv_run_history_id"
               - "gv_status"
               - "gv_message"
-              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -428,7 +418,7 @@ pipeline:
         visibility: "PUBLIC"
         columns:
           gv_load_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_job_name:
             columnType: "TEXT"
           gv_job_parent:
@@ -446,7 +436,7 @@ pipeline:
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_start_time:
             columnType: "TEXT"
           gv_end_time:
@@ -454,14 +444,31 @@ pipeline:
           gv_row_count:
             columnType: "NUMBER"
           gv_run_history_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_status:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
           gv_comment:
             columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
     gv_error_log:
       metadata:
         type: "GRID"
@@ -577,8 +584,8 @@ design:
       content: "Success Path"
     "2":
       position:
-        x: 140
-        "y": 100
+        x: 160
+        "y": 80
       size:
         height: 168
         width: 510
