@@ -41,6 +41,25 @@ pipeline:
       postProcessing:
         updateOutputMessage: "JOB 3: LINEITEM TABLE EXECEUTED"
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "v_row_count"
+          - "${sysvar.thisComponent.rowsInserted}"
+  variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     LINE ITEM:

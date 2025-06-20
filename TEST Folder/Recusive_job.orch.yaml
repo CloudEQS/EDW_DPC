@@ -13,12 +13,8 @@ pipeline:
       type: "run-orchestration"
       parameters:
         componentName: "Run Orchestration RECURSIVE"
-        orchestrationJob: "TEST Folder/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        orchestrationJob: "Roopa_Jobs/Trail _Child_JOb_run_dynamically_ORAC.orch.yaml"
         setScalarVariables:
-        - - "v_current_job_seq"
-          - "${v_current_job_seq}"
-        - - "v_current_job_name"
-          - "${v_current_job_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
@@ -28,14 +24,14 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "JOB_1"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "1"
 design:

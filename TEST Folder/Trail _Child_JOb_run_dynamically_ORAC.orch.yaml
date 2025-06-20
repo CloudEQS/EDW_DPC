@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Main Pipeline Loop"
+        - "Append To Grid 3"
       parameters:
         componentName: "Start"
     Identify Ready Jobs:
@@ -88,85 +88,10 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Mark Job Running:
-      type: "sql-executor"
-      skipped: true
-      parameters:
-        componentName: "Mark Job Running"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP()\r\nWHERE JOB_SEQ = ${v_current_job_seq}"
-      postProcessing:
-        updateOutputMessage: ""
-        updateScalarVariables:
-    CHILD Run Orchestration ITERATOR:
-      type: "run-orchestration"
-      parameters:
-        componentName: "CHILD Run Orchestration ITERATOR"
-        orchestrationJob: "EDW STAGE/${v_current_job_name}"
-        setScalarVariables:
-        - - "v_current_job_seq"
-          - "${v_current_job_seq}"
-        - - "v_current_job_name"
-          - "${v_current_job_name}"
-        setGridVariables:
-      postProcessing:
-        updateOutputMessage: ""
-        updateScalarVariables:
-        - - "v_error_message"
-          - "${sysvar.childPipeline.vars.error_message}"
     End Success:
       type: "end-success"
       parameters:
         componentName: "End Success"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    End Failure:
-      type: "end-failure"
-      parameters:
-        componentName: "End Failure"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Grid Iterator 2:
-      type: "grid-iterator"
-      transitions:
-        success:
-        - "check Pipeline Completion_2"
-        failure:
-        - "Propagate Downstream Failure"
-      iterationTarget: "CHILD Run Orchestration ITERATOR"
-      parameters:
-        componentName: "Grid Iterator 2"
-        gridVariable: "gv_ready_jobs"
-        gridIteratorVariableMapping:
-        - - "job_seq"
-          - "v_current_job_seq "
-        - - "job_name"
-          - "v_current_job_name"
-        concurrency: "Concurrent"
-      postProcessing:
-        updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}"
-        updateScalarVariables:
-    Propagate Downstream Failure:
-      type: "sql-executor"
-      transitions:
-        success:
-        - "End Failure"
-      parameters:
-        componentName: "Propagate Downstream Failure"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status\r\nSET STATUS\
-          \ = 'FAILED',\r\n    END_TIME = CURRENT_TIMESTAMP(),\r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE = 'Job failed during execution\
-          \ in Matillion. Check logs for job: ' || '${v_current_job_name}'\r\nWHERE\
-          \ JOB_SEQ in ${v_current_job_seq}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -195,10 +120,6 @@ pipeline:
         componentName: "Run Orchestration RE RUN"
         orchestrationJob: "TEST Folder/Recusive_job.orch.yaml"
         setScalarVariables:
-        - - "v_current_job_name"
-          - "${v_current_job_name}"
-        - - "v_current_job_seq"
-          - "${v_current_job_seq}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Re run the pipeline: ${v_current_job_name}"
@@ -239,7 +160,8 @@ pipeline:
         - - "v_pipeline_status"
           - "PIPELINE_FINAL_STATUS"
       postProcessing:
-        updateOutputMessage: "  Pipeline status: ${v_pipeline_status}"
+        updateOutputMessage: "  There is no jobs to process:\r\n  Pipeline status:\
+          \ ${v_pipeline_status}"
         updateScalarVariables:
     Python Pushdown:
       type: "python-pushdown"
@@ -301,7 +223,7 @@ pipeline:
       type: "print-variables"
       transitions:
         success:
-        - "Grid Iterator 2"
+        - "Grid Iterator 2 2"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
@@ -358,9 +280,169 @@ pipeline:
         - - "v_running_jobs"
           - "RUNNING_COUNT"
       postProcessing:
-        updateOutputMessage: "COMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
+        updateOutputMessage: "\r\nCOMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
           \ ${vpending_running_jobs}\r\nRUNNING_COUNT:${v_running_jobs}\t\r\nFAILED_SKIPPED_COUNT:\
           \ ${v_failed_jobs}\t\r\n\r\n"
+        updateScalarVariables:
+    Grid Iterator 2 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "check Pipeline Completion_2"
+        failure:
+        - "Error Log Append"
+      iterationTarget: "Trail CHILD Run Orchestration ITERATOR 2"
+      parameters:
+        componentName: "Grid Iterator 2 2"
+        gridVariable: "gv_ready_jobs"
+        gridIteratorVariableMapping:
+        - - "job_seq"
+          - "v_current_job_seq "
+        - - "job_name"
+          - "v_current_job_name"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}\r\
+          \n\r\nJOB Sequence :${v_current_job_seq}"
+        updateScalarVariables:
+    Trail CHILD Run Orchestration ITERATOR 2:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Trail CHILD Run Orchestration ITERATOR 2"
+        orchestrationJob: "TEST Folder/RUN my job ORAC.orch.yaml"
+        setScalarVariables:
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Iteration in the Grid Present  :${v_current_job_name}\r\
+          \n\r\njob seq: ${v_current_job_seq}"
+        updateScalarVariables:
+    Append To Grid 3:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Load Log Start"
+      parameters:
+        componentName: "Append To Grid 3"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_child"
+        valuesGrid:
+        - - "${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "abc"
+          - "null"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - "null"
+          - "0"
+          - "${sysvar.thisPipeline.executionId}"
+          - "Started"
+          - "Log Started at Child Orachstraion JOb"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load Log Start:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "Main Pipeline Loop"
+      parameters:
+        componentName: "Load Log Start"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_child"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_job_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Error Log Append:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "ERROR LOG"
+      parameters:
+        componentName: "Error Log Append"
+        operation: "Append"
+        targetGridVariable: "gv_error_log_child"
+        valuesGrid:
+        - - "${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${x_table_name}"
+          - "${jv_table_type}"
+          - "${x_row_count}"
+          - "${new Date().toISOString()}"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "Failed"
+          - "${jv_error_message}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    ERROR LOG:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Failure"
+      parameters:
+        componentName: "ERROR LOG"
+        pipelineName: "EDW_LAB#Error_log_o"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log_child"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_job_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_status"
+              - "gv_run_date"
+              - "gv_run_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
         updateScalarVariables:
   variables:
     v_pipeline_status:
@@ -370,13 +452,6 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "RUNNING"
-    v_error_message:
-      metadata:
-        type: "TEXT"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-      defaultValue: ""
     v_current_job_name:
       metadata:
         type: "TEXT"
@@ -391,6 +466,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
     v_total_jobs:
       metadata:
         type: "NUMBER"
@@ -405,13 +487,6 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "0"
-    v_current_job_seq:
-      metadata:
-        type: "NUMBER"
-        description: ""
-        scope: "COPIED"
-        visibility: "PUBLIC"
-      defaultValue: "1"
     v_ready_job_count:
       metadata:
         type: "NUMBER"
@@ -454,6 +529,79 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "0"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_load_log_child:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_error_log_child:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
     gv_ready_jobs:
       metadata:
         type: "GRID"
@@ -465,110 +613,114 @@ pipeline:
             columnType: "NUMBER"
           job_name:
             columnType: "TEXT"
+          table_name:
+            columnType: "TEXT"
       defaultValue:
       - - "1"
         - "JOB_1"
+        - "STAGE_REGION_TABLE"
       - - "2"
         - "JOB_2"
+        - "STAGE_ORDERS_TABLE"
 design:
   components:
     Start:
       position:
-        x: -1400
-        "y": -310
+        x: -1460
+        "y": -370
       tempMetlId: 1
     Identify Ready Jobs:
       position:
-        x: -1160
-        "y": -400
+        x: -1060
+        "y": -450
       tempMetlId: 6
     Jobs Ready?:
       position:
-        x: -1010
-        "y": -400
+        x: -940
+        "y": -450
       tempMetlId: 7
-    Mark Job Running:
-      position:
-        x: -990
-        "y": 330
-      tempMetlId: 12
-    CHILD Run Orchestration ITERATOR:
-      position:
-        x: -620
-        "y": -620
-      tempMetlId: 13
     End Success:
       position:
-        x: 170
-        "y": -570
+        x: 210
+        "y": -530
       tempMetlId: 14
-    End Failure:
-      position:
-        x: -210
-        "y": -170
-      tempMetlId: 15
-    Grid Iterator 2:
-      position:
-        x: -620
-        "y": -620
-      tempMetlId: 16
-    Propagate Downstream Failure:
-      position:
-        x: -360
-        "y": -170
-      tempMetlId: 20
     Main Pipeline Loop:
       position:
-        x: -1290
-        "y": -310
+        x: -1140
+        "y": -370
       tempMetlId: 29
     Run Orchestration RE RUN:
       position:
-        x: 40
-        "y": -330
+        x: -30
+        "y": -370
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
       position:
-        x: 20
-        "y": -570
+        x: -60
+        "y": -580
       tempMetlId: 35
     Pipeline status:
       position:
-        x: -1150
-        "y": -200
+        x: -1070
+        "y": -280
       tempMetlId: 36
     Python Pushdown:
       position:
-        x: -230
-        "y": -470
+        x: -300
+        "y": -530
       tempMetlId: 38
     All Jobs Processed?:
       position:
-        x: -120
+        x: -180
         "y": -470
       tempMetlId: 39
     Print Variables:
       position:
-        x: -770
-        "y": -570
+        x: -840
+        "y": -530
       tempMetlId: 43
     check Pipeline Completion_2:
       position:
-        x: -350
-        "y": -470
+        x: -460
+        "y": -530
       tempMetlId: 45
     Check Completion:
       position:
-        x: -870
-        "y": -230
+        x: -840
+        "y": -350
       tempMetlId: 46
-  notes:
-    "1":
+    Grid Iterator 2 2:
       position:
-        x: -730
-        "y": -240
-      size:
-        height: 208
-        width: 680
-      theme: "red"
-      content: "FAILURE PATH"
+        x: -640
+        "y": -550
+      tempMetlId: 49
+    Trail CHILD Run Orchestration ITERATOR 2:
+      position:
+        x: -640
+        "y": -550
+      tempMetlId: 51
+    Append To Grid 3:
+      position:
+        x: -1370
+        "y": -370
+      tempMetlId: 53
+    Load Log Start:
+      position:
+        x: -1250
+        "y": -370
+      tempMetlId: 54
+    Error Log Append:
+      position:
+        x: -440
+        "y": -250
+      tempMetlId: 55
+    ERROR LOG:
+      position:
+        x: -270
+        "y": -250
+      tempMetlId: 56
+    End Failure:
+      position:
+        x: -60
+        "y": -250
+      tempMetlId: 57

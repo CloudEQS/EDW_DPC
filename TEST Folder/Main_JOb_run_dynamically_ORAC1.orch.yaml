@@ -62,9 +62,40 @@ pipeline:
         - "Failed on Main Orachstration JOB"
       parameters:
         componentName: "Run Orchestration"
-        orchestrationJob: "TEST Folder/Child_JOb_run_dynamically_ORAC.orch.yaml"
+        orchestrationJob: "TEST Folder/Trail _Child_JOb_run_dynamically_ORAC.orch.yaml"
         setScalarVariables:
         setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load log:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Load log"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log1"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -103,7 +134,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "JOB_1"
+      defaultValue: ""
     v_completed_jobs:
       metadata:
         type: "NUMBER"
@@ -124,7 +155,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "1"
+      defaultValue: ""
     v_ready_job_count:
       metadata:
         type: "NUMBER"
@@ -132,51 +163,88 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "0"
+    gv_load_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
     gv_ready_jobs:
       metadata:
         type: "GRID"
         description: ""
-        scope: "COPIED"
+        scope: "SHARED"
         visibility: "PUBLIC"
         columns:
           job_seq:
             columnType: "NUMBER"
           job_name:
             columnType: "TEXT"
-      defaultValue:
-      - - "1"
-        - "JOB_1"
-      - - "2"
-        - "JOB_2"
+      defaultValue: []
 design:
   components:
     Start:
       position:
-        x: -1410
-        "y": -70
+        x: -1590
+        "y": -90
       tempMetlId: 1
     Initialize Job Status:
       position:
-        x: -1260
-        "y": -70
+        x: -1370
+        "y": -90
       tempMetlId: 2
     Success Main Job:
       position:
-        x: -850
+        x: -910
         "y": -170
       tempMetlId: 14
     Failed on Main Orachstration JOB:
       position:
-        x: -820
-        "y": 0
+        x: -910
+        "y": -30
       tempMetlId: 15
     Get Total Job Count:
       position:
-        x: -1120
-        "y": -70
+        x: -1230
+        "y": -90
       tempMetlId: 16
     Run Orchestration:
       position:
-        x: -990
-        "y": -70
+        x: -1070
+        "y": -90
       tempMetlId: 17
+    Load log:
+      position:
+        x: -1470
+        "y": -170
+      tempMetlId: 18

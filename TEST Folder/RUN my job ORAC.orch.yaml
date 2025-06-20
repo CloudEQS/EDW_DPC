@@ -1,0 +1,521 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Append To Grid 3"
+      parameters:
+        componentName: "Start"
+    Run Orchestration:
+      type: "run-orchestration"
+      transitions:
+        success:
+        - "Mark Job Completed "
+        failure:
+        - "Mark Job Failed"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "EDW STAGE/${v_current_job_name}"
+        setScalarVariables:
+        - - "v_current_job_name"
+          - "${v_current_job_name}"
+        - - "v_current_job_seq"
+          - "${v_current_job_seq}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Detailed messgae : ${v_detailed_message}"
+        updateScalarVariables:
+        - - "v_detailed_message"
+          - "${sysvar.childPipeline.vars.v_error_message}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipile.vars.v_row_count}"
+        - - "jv_table_name"
+          - "${sysvar.childPipeline.vars.x_table_name}"
+    Mark Job Running:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Run Orchestration"
+      parameters:
+        componentName: "Mark Job Running"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
+          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${v_detailed_message}'\r\n\
+          WHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB Running : ${v_current_job_name}"
+        updateScalarVariables:
+    Mark Job Failed:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Load log failed appand"
+      parameters:
+        componentName: "Mark Job Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'FAILED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\
+          \nWHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB FAILED : ${v_current_job_name}"
+        updateScalarVariables:
+    'Mark Job Completed ':
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Load log success"
+      parameters:
+        componentName: "Mark Job Completed "
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
+          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\
+          \nWHERE job_name='${v_current_job_name}'"
+      postProcessing:
+        updateOutputMessage: "JOB Completed : ${v_current_job_name}"
+        updateScalarVariables:
+    Load log success:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Load log"
+      parameters:
+        componentName: "Load log success"
+        operation: "Append"
+        targetGridVariable: "gv_load_log1"
+        valuesGrid:
+        - - "${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_table_name}"
+          - "null"
+          - "${jv_updated_rows}"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - ""
+          - "${sysvar.thisPipeline.executionId}"
+          - "Successfully "
+          - "Successfully loaded the data"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load log:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Load log"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log1"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load log failed appand:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Load Log Failed"
+      parameters:
+        componentName: "Load log failed appand"
+        operation: "Append"
+        targetGridVariable: "gv_error_log"
+        valuesGrid:
+        - - "${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_table_name}"
+          - "null"
+          - "${v_detailed_message}"
+          - "${new Date().toISOString()}"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "Failed"
+          - "${jv_error_message}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load Log Failed:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Load Log Failed"
+        pipelineName: "EDW_LAB#Error_log_o"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_table_type"
+              - "gv_run_date"
+              - "gv_run_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Append To Grid 3:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Load log 2"
+      skipped: true
+      parameters:
+        componentName: "Append To Grid 3"
+        operation: "Append"
+        targetGridVariable: "gv_load_log1"
+        valuesGrid:
+        - - "${Jv_load_id}"
+          - "${Jv_job_name}"
+          - "${jv_job_parent}"
+          - "${jv_table_name}"
+          - ""
+          - "${jv_updated_rows}"
+          - "${Jv_process_date}"
+          - "${jv_success_flag}"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_row_count}"
+          - "${jv_run_history_id}"
+          - "${jv_status}"
+          - "${jv_message}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Load log 2:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "Mark Job Running"
+      skipped: true
+      parameters:
+        componentName: "Load log 2"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log1"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    Jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_load_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    v_current_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    jv_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_job_seq:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_success_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Y"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_run_history_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_updated_rows:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "JOB_1"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Success"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_detailed_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Jv_job_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    gv_load_log1:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_ready_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          job_seq:
+            columnType: "NUMBER"
+          job_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -320
+        "y": 0
+      tempMetlId: 1
+    Run Orchestration:
+      position:
+        x: 80
+        "y": 0
+      tempMetlId: 2
+    Mark Job Running:
+      position:
+        x: -10
+        "y": 0
+      tempMetlId: 8
+    Mark Job Failed:
+      position:
+        x: 220
+        "y": 70
+      tempMetlId: 10
+    'Mark Job Completed ':
+      position:
+        x: 220
+        "y": -60
+      tempMetlId: 11
+    Load log success:
+      position:
+        x: 370
+        "y": -60
+      tempMetlId: 12
+    Load log:
+      position:
+        x: 530
+        "y": -60
+      tempMetlId: 13
+    Load log failed appand:
+      position:
+        x: 380
+        "y": 70
+      tempMetlId: 14
+    Load Log Failed:
+      position:
+        x: 540
+        "y": 70
+      tempMetlId: 15
+    Append To Grid 3:
+      position:
+        x: -220
+        "y": 0
+      tempMetlId: 16
+    Load log 2:
+      position:
+        x: -110
+        "y": 0
+      tempMetlId: 17

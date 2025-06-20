@@ -6,7 +6,7 @@ pipeline:
       type: "sql"
       parameters:
         componentName: "SQL"
-        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITE8--M"
+        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM--"
     JOB 5 Line_item2:
       type: "rewrite-table"
       sources:
@@ -21,6 +21,25 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "v_row_count"
+          - "${sysvar.thisComponent.rowsInserted}"
+  variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     SQL:

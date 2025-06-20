@@ -1,8 +1,6 @@
 type: "transformation"
 version: "1.0"
 pipeline:
-  metadata:
-    description: "Logging the audit values in load_log table. This is a shared job"
   components:
     grid_var_load_log:
       type: "fixed-flow"

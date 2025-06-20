@@ -24,6 +24,10 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.childPipeline.vars.v_error_message}"
+        - - "v_row_count"
+          - "${sysvar.childPipeline.vars.v_row_count}"
     JOB 7 End Failure:
       type: "end-failure"
       parameters:
@@ -39,6 +43,13 @@ pipeline:
         updateOutputMessage:
         updateScalarVariables:
   variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     v_error_message:
       metadata:
         type: "TEXT"

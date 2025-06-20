@@ -169,7 +169,7 @@ pipeline:
         componentName: "Create table from metadata"
         createMethod: "Replace"
         database: "${ev_sf_database}"
-        schema: "${ev_edp_staging_schema}"
+        schema: "PUBLIC"
         table: "${jv_refresh_type == 'Merge'  ? jv_target_table +'_TMP' : jv_refresh_type\
           \ == 'Append' ? jv_target_table +'_TMP' : jv_target_table}"
         snowflakeTableType: "Permanent"
@@ -179,12 +179,13 @@ pipeline:
             columns:
             - "field_name"
             - "data_type"
-            -
-            -
-            -
-            -
-            -
-            -
+            - ""
+            - ""
+            - ""
+            - "field_name"
+            - "field_name"
+            - ""
+            - ""
         defaultDdlCollation: ""
         primaryKeys:
         clusteringKeys:
@@ -293,43 +294,11 @@ pipeline:
           error\" \n(select * from table(validate(${jv_refresh_type == 'Merge'  ?\
           \ jv_target_table +'_TMP' : jv_refresh_type == 'Append' ? jv_target_table\
           \ +'_TMP' : jv_target_table}, job_id => '_last')));"
-    Dynamic_query 1:
-      type: "python-script"
-      transitions:
-        success:
-        - "Dynamic_query_sql 1"
-      skipped: false
-      parameters:
-        componentName: "Dynamic_query 1"
-        script: "merge_query_string = \"MERGE INTO \"\ninsert_query_string = \"INSERT\
-          \ INTO\"\ntable_name = jv_target_table\ncolumn_string = \"\"\nupdate_string\
-          \ = \"\"\ninsert_string = \"\"\nbusiness_key_col = jv_business_key\ndynamic_query_string\
-          \ = \"\"\nrefresh_type = jv_refresh_type\narray = context.getGridVariable('gv_table_creator')\n\
-          \nif refresh_type == \"Merge\":\n  for data in array:\n      insert_string\
-          \ += table_name + \"_tmp.\" + data[0] + \",\"\n\n  insert_string = insert_string.rstrip(',')\n\
-          \n  for data in array:\n      column_string += data[1] + \",\"\n\n  column_string\
-          \ = column_string.rstrip(',')  \n\n  for data in array:\n      update_string\
-          \ += table_name + \".\" + data[1] + \" = \" + table_name + \"_tmp.\" + \
-          \ data[1] + \",\"\n\n  update_string = update_string.rstrip(',')   \n\n\
-          \  merge_query_string = merge_query_string + \" \" + table_name + \" USING\
-          \ \" + table_name + \"_tmp ON \" + table_name + \".\" + business_key_col\
-          \ + \" = \" + table_name + \"_tmp.\" + business_key_col+ \" WHEN MATCHED\
-          \ THEN UPDATE SET \" + update_string + \" WHEN NOT MATCHED THEN INSERT (\"\
-          \ +column_string+\") VALUES (\" +insert_string +\")\" \n\n  print (merge_query_string)\n\
-          \n  context.updateVariable(\"dynamic_query_str\", merge_query_string)\n\n\
-          \  \nif refresh_type == \"Append\":\n\n  for data in array:\n      column_string\
-          \ += data[1] + \",\"\n\n  column_string = column_string.rstrip(',')    \n\
-          \n  insert_query_string = insert_query_string + \" \" + table_name + \"\
-          ( \" + column_string + \") \" + \"Select \" + column_string + \" from \"\
-          \ + table_name + \"_tmp\"\n\n  print (insert_query_string)\n\n  context.updateVariable(\"\
-          dynamic_query_str\", insert_query_string)\n"
-        interpreter: "Python 3"
-        timeout: "360"
     Dynamic_query_sql 1:
       type: "sql-script"
       transitions:
         success:
-        - "load_log 0"
+        - "Run Shared Pipeline 3"
       skipped: false
       parameters:
         componentName: "Dynamic_query_sql 1"
@@ -343,46 +312,16 @@ pipeline:
       type: "sql-script"
       transitions:
         success:
-        - "load_log 3"
+        - "Run Shared Pipeline 4 2"
       skipped: false
       parameters:
         componentName: "Dynamic_query_sql 0"
         sqlScript: "${dynamic_query_str}"
-    dynamic_query 1:
-      type: "python-script"
-      transitions:
-        success:
-        - "Dynamic_query_sql 0"
-      skipped: false
-      parameters:
-        componentName: "dynamic_query 1"
-        script: "merge_query_string = \"MERGE INTO \"\ninsert_query_string = \"INSERT\
-          \ INTO\"\ntable_name = jv_target_table\ncolumn_string = \"\"\nupdate_string\
-          \ = \"\"\ninsert_string = \"\"\nbusiness_key_col = jv_business_key\ndynamic_query_string\
-          \ = \"\"\nrefresh_type = jv_refresh_type\narray = context.getGridVariable('gv_table_creator')\n\
-          \nif refresh_type == \"Merge\":\n  for data in array:\n      insert_string\
-          \ += f'{table_name}_TMP.\"{data[1]}\",'\n\n  insert_string = insert_string.rstrip(',')\n\
-          \n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n  column_string\
-          \ = column_string.rstrip(',')  \n\n  for data in array:\n      update_string\
-          \ += f'{table_name}.\"{data[1]}\" = {table_name}_TMP.\"{data[1]}\",'\n\n\
-          \  update_string = update_string.rstrip(',')   \n\n  merge_query_string\
-          \ = f'{merge_query_string} {table_name} USING  {table_name}_TMP ON {table_name}.\"\
-          {business_key_col}\" = {table_name}_TMP.\"{business_key_col}\" WHEN MATCHED\
-          \ THEN UPDATE SET {update_string} WHEN NOT MATCHED THEN INSERT ({column_string})\
-          \ VALUES ({insert_string})' \n\n  print (merge_query_string)\n\n  context.updateVariable(\"\
-          dynamic_query_str\", merge_query_string)\n\n  \nif refresh_type == \"Append\"\
-          :\n\n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n\
-          \  column_string = column_string.rstrip(',')    \n\n  insert_query_string\
-          \ = f'{insert_query_string}  {table_name} ({column_string}) Select  {column_string}\
-          \ from  {table_name}_TMP'\n\n  print (insert_query_string)\n\n  context.updateVariable(\"\
-          dynamic_query_str\", insert_query_string)\n"
-        interpreter: "Python 3"
-        timeout: "360"
     Append To load log 0:
       type: "append-to-grid"
       transitions:
         success:
-        - "Python Script 0"
+        - "Python Pushdown 4"
       skipped: false
       parameters:
         componentName: "Append To load log 0"
@@ -438,36 +377,11 @@ pipeline:
       skipped: false
       parameters:
         componentName: "End Success 0"
-    Grid to job variables:
-      type: "python-script"
-      transitions:
-        success:
-        - "If 0"
-      skipped: false
-      parameters:
-        componentName: "Grid to job variables"
-        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
-          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
-          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
-          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
-          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
-          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
-          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint(jv_object_name)\n\
-          print(jv_object_type)\nprint(jv_refresh_frequency)\nprint(jv_refresh_type)\n\
-          print(jv_source_custom_query)\nprint(jv_source_object_id)\nprint(jv_source_system_code)\n\
-          print(jv_source_system_id)\nprint(jv_target_table)\nprint(jv_wharehouse_name)\n\
-          print(merge_str)\n\n\nSource_Object_Details = context.getGridVariable('gv_source_object_details')\n\
-          print(Source_Object_Details)\n\n\nif Source_Object_Details != None:\n  for\
-          \ array in Source_Object_Details:\n    if array[0] == 'Wharehouse_size':\n\
-          \      context.updateVariable('jv_wharehouse_name', array[1])\n      context.updateVariable('jv_detail_code',\
-          \ array[0])\n    print(jv_wharehouse_name,jv_detail_code)"
-        interpreter: "Python 3"
-        timeout: "360"
     Read source objects:
       type: "query-to-grid"
       transitions:
         success:
-        - "Grid to job variables"
+        - "Python Pushdown"
       skipped: false
       parameters:
         componentName: "Read source objects"
@@ -536,73 +450,19 @@ pipeline:
         scalarVariableMapping:
         - - "jv_business_key"
           - "FIELD_NAME"
-    Get error message 1:
-      type: "python-script"
-      transitions:
-        success:
-        - "error_log 0"
-      skipped: false
-      parameters:
-        componentName: "Get error message 1"
-        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
-          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
-          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
-          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
-          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
-          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
-          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
-          context.updateVariable('jv_error_message' , detailed_error)\nprint(jv_error_message)"
-        interpreter: "Python 3"
-        timeout: "360"
     End Failure 1:
       type: "end-failure"
       skipped: false
       parameters:
         componentName: "End Failure 1"
-    Python Script 0:
-      type: "python-script"
-      transitions:
-        success:
-        - "load_log 2"
-      skipped: false
-      parameters:
-        componentName: "Python Script 0"
-        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
-          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
-          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
-          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
-          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
-          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
-          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint\
-          \ (context.getGridVariable('gv_load_log'))"
-        interpreter: "Python 3"
-        timeout: "360"
     Or 0:
       type: "or"
       transitions:
         unconditional:
-        - "Get error message 0"
+        - "Python Pushdown 6"
       skipped: false
       parameters:
         componentName: "Or 0"
-    Get error message 0:
-      type: "python-script"
-      transitions:
-        success:
-        - "Error_log 0"
-      skipped: false
-      parameters:
-        componentName: "Get error message 0"
-        script: "###\n# Variables are directly accessible: \n#   print (myvar)\n#\
-          \ Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
-          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
-          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
-          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
-          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
-          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
-          context.updateVariable('jv_error_message' , detailed_error)\nprint(jv_error_message)"
-        interpreter: "Python 3"
-        timeout: "360"
     End Failure 0:
       type: "end-failure"
       skipped: false
@@ -612,27 +472,15 @@ pipeline:
       type: "or"
       transitions:
         unconditional:
-        - "Get error message 1"
+        - "Python Pushdown 2"
       skipped: false
       parameters:
         componentName: "Or 1"
-    Error_log 0:
-      type: "unknown-orchestration"
-      transitions:
-        success:
-        - "End Failure 0"
-      skipped: false
-      parameters:
-        "1": "Error_log 0"
-        "2": "[{\"1\":[[\"gv_error_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_inserted_rows\"\
-          ,\"gv_subject_area\",\"gv_process_date\",\"gv_start_time\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_error_message\"]]}]"
     Append To load log 3:
       type: "append-to-grid"
       transitions:
         success:
-        - "load_log 1"
+        - "Run Shared Pipeline 2"
       skipped: false
       parameters:
         componentName: "Append To load log 3"
@@ -664,7 +512,7 @@ pipeline:
       type: "or"
       transitions:
         unconditional:
-        - "Dynamic_query 1"
+        - "Python Pushdown 3"
       skipped: false
       parameters:
         componentName: "Or 1_2"
@@ -736,7 +584,7 @@ pipeline:
       type: "or"
       transitions:
         unconditional:
-        - "dynamic_query 1"
+        - "Python Pushdown 5"
       skipped: false
       parameters:
         componentName: "Or 1_1"
@@ -802,78 +650,385 @@ pipeline:
           - "Equal to"
           - "Append"
         combineConditions: "Or"
-    error_log 0:
-      type: "unknown-orchestration"
+    Python Pushdown:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "If 0"
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "###\n# Variables are directly accessible: \n#   print (myvar)\n\
+          # Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint(jv_object_name)\n\
+          print(jv_object_type)\nprint(jv_refresh_frequency)\nprint(jv_refresh_type)\n\
+          print(jv_source_custom_query)\nprint(jv_source_object_id)\nprint(jv_source_system_code)\n\
+          print(jv_source_system_id)\nprint(jv_target_table)\nprint(jv_wharehouse_name)\n\
+          print(merge_str)\n\n\nSource_Object_Details = context.getGridVariable('gv_source_object_details')\n\
+          print(Source_Object_Details)\n\n\nif Source_Object_Details != None:\n  for\
+          \ array in Source_Object_Details:\n    if array[0] == 'Wharehouse_size':\n\
+          \      context.updateVariable('jv_wharehouse_name', array[1])\n      context.updateVariable('jv_detail_code',\
+          \ array[0])\n    print(jv_wharehouse_name,jv_detail_code)"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 2:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Run Shared Pipeline"
+      parameters:
+        componentName: "Python Pushdown 2"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "###\n# Variables are directly accessible: \n#   print (myvar)\n\
+          # Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
+          context.updateVariable('jv_error_message' , detailed_error)\nprint(jv_error_message)"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 3:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Dynamic_query_sql 1"
+      parameters:
+        componentName: "Python Pushdown 3"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "merge_query_string = \"MERGE INTO \"\ninsert_query_string =\
+          \ \"INSERT INTO\"\ntable_name = jv_target_table\ncolumn_string = \"\"\n\
+          update_string = \"\"\ninsert_string = \"\"\nbusiness_key_col = jv_business_key\n\
+          dynamic_query_string = \"\"\nrefresh_type = jv_refresh_type\narray = context.getGridVariable('gv_table_creator')\n\
+          \nif refresh_type == \"Merge\":\n  for data in array:\n      insert_string\
+          \ += table_name + \"_tmp.\" + data[0] + \",\"\n\n  insert_string = insert_string.rstrip(',')\n\
+          \n  for data in array:\n      column_string += data[1] + \",\"\n\n  column_string\
+          \ = column_string.rstrip(',')  \n\n  for data in array:\n      update_string\
+          \ += table_name + \".\" + data[1] + \" = \" + table_name + \"_tmp.\" + \
+          \ data[1] + \",\"\n\n  update_string = update_string.rstrip(',')   \n\n\
+          \  merge_query_string = merge_query_string + \" \" + table_name + \" USING\
+          \ \" + table_name + \"_tmp ON \" + table_name + \".\" + business_key_col\
+          \ + \" = \" + table_name + \"_tmp.\" + business_key_col+ \" WHEN MATCHED\
+          \ THEN UPDATE SET \" + update_string + \" WHEN NOT MATCHED THEN INSERT (\"\
+          \ +column_string+\") VALUES (\" +insert_string +\")\" \n\n  print (merge_query_string)\n\
+          \n  context.updateVariable(\"dynamic_query_str\", merge_query_string)\n\n\
+          \  \nif refresh_type == \"Append\":\n\n  for data in array:\n      column_string\
+          \ += data[1] + \",\"\n\n  column_string = column_string.rstrip(',')    \n\
+          \n  insert_query_string = insert_query_string + \" \" + table_name + \"\
+          ( \" + column_string + \") \" + \"Select \" + column_string + \" from \"\
+          \ + table_name + \"_tmp\"\n\n  print (insert_query_string)\n\n  context.updateVariable(\"\
+          dynamic_query_str\", insert_query_string)\n"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 4:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Run Shared Pipeline 4"
+      parameters:
+        componentName: "Python Pushdown 4"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "###\n# Variables are directly accessible: \n#   print (myvar)\n\
+          # Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\nprint\
+          \ (context.getGridVariable('gv_load_log'))"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 5:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Dynamic_query_sql 0"
+      parameters:
+        componentName: "Python Pushdown 5"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "merge_query_string = \"MERGE INTO \"\ninsert_query_string =\
+          \ \"INSERT INTO\"\ntable_name = jv_target_table\ncolumn_string = \"\"\n\
+          update_string = \"\"\ninsert_string = \"\"\nbusiness_key_col = jv_business_key\n\
+          dynamic_query_string = \"\"\nrefresh_type = jv_refresh_type\narray = context.getGridVariable('gv_table_creator')\n\
+          \nif refresh_type == \"Merge\":\n  for data in array:\n      insert_string\
+          \ += f'{table_name}_TMP.\"{data[1]}\",'\n\n  insert_string = insert_string.rstrip(',')\n\
+          \n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n  column_string\
+          \ = column_string.rstrip(',')  \n\n  for data in array:\n      update_string\
+          \ += f'{table_name}.\"{data[1]}\" = {table_name}_TMP.\"{data[1]}\",'\n\n\
+          \  update_string = update_string.rstrip(',')   \n\n  merge_query_string\
+          \ = f'{merge_query_string} {table_name} USING  {table_name}_TMP ON {table_name}.\"\
+          {business_key_col}\" = {table_name}_TMP.\"{business_key_col}\" WHEN MATCHED\
+          \ THEN UPDATE SET {update_string} WHEN NOT MATCHED THEN INSERT ({column_string})\
+          \ VALUES ({insert_string})' \n\n  print (merge_query_string)\n\n  context.updateVariable(\"\
+          dynamic_query_str\", merge_query_string)\n\n  \nif refresh_type == \"Append\"\
+          :\n\n  for data in array:\n      column_string += f'\"{data[1]}\",'\n\n\
+          \  column_string = column_string.rstrip(',')    \n\n  insert_query_string\
+          \ = f'{insert_query_string}  {table_name} ({column_string}) Select  {column_string}\
+          \ from  {table_name}_TMP'\n\n  print (insert_query_string)\n\n  context.updateVariable(\"\
+          dynamic_query_str\", insert_query_string)\n"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 6:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Run Shared Pipeline 4 3"
+      parameters:
+        componentName: "Python Pushdown 6"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: "###\n# Variables are directly accessible: \n#   print (myvar)\n\
+          # Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
+          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
+          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
+          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
+          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
+          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
+          context.updateVariable('jv_error_message' , detailed_error)\nprint(jv_error_message)"
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline:
+      type: "run-shared-pipeline"
       transitions:
         success:
         - "End Failure 1"
-      skipped: false
       parameters:
-        "1": "error_log 0"
-        "2": "[{\"1\":[[\"gv_error_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_error_rows\"\
-          ,\"gv_subject_area\",\"gv_process_date\",\"gv_start_time\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_message\"]]}]"
-    load_log 0:
-      type: "unknown-orchestration"
-      transitions:
-        success:
-        - "End Success 4"
-      skipped: false
-      parameters:
-        "1": "load_log 0"
-        "2": "${jv_status}"
-        "3": "${jv_job_name}"
-        "4": "[{\"1\":[[\"gv_load_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_inserted_rows\"\
-          ,\"gv_updated_rows\",\"gv_subject_area\",\"gv_process_date\",\"gv_success_flag\"\
-          ,\"gv_start_time\",\"gv_end_time\",\"gv_row_count\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_message\",\"gv_comment\"]]}]"
-    load_log 1:
-      type: "unknown-orchestration"
+        componentName: "Run Shared Pipeline"
+        pipelineName: "EDW_LAB#Error_log_o"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_error_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_error_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_error_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_start_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 2:
+      type: "run-shared-pipeline"
       transitions:
         success:
         - "End Success 3"
-      skipped: false
       parameters:
-        "1": "load_log 1"
-        "2": "${jv_status}"
-        "3": "${jv_job_name}"
-        "4": "[{\"1\":[[\"gv_load_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_inserted_rows\"\
-          ,\"gv_updated_rows\",\"gv_subject_area\",\"gv_process_date\",\"gv_success_flag\"\
-          ,\"gv_start_time\",\"gv_end_time\",\"gv_row_count\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_message\",\"gv_comment\"]]}]"
-    load_log 2:
-      type: "unknown-orchestration"
+        componentName: "Run Shared Pipeline 2"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 3:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Success 4"
+      parameters:
+        componentName: "Run Shared Pipeline 3"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 4:
+      type: "run-shared-pipeline"
       transitions:
         success:
         - "End Success 0"
-      skipped: false
       parameters:
-        "1": "load_log 2"
-        "2": "${jv_status}"
-        "3": "${jv_job_name}"
-        "4": "[{\"1\":[[\"gv_load_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_inserted_rows\"\
-          ,\"gv_updated_rows\",\"gv_subject_area\",\"gv_process_date\",\"gv_success_flag\"\
-          ,\"gv_start_time\",\"gv_end_time\",\"gv_row_count\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_message\",\"gv_comment\"]]}]"
-    load_log 3:
-      type: "unknown-orchestration"
+        componentName: "Run Shared Pipeline 4"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 4 2:
+      type: "run-shared-pipeline"
       transitions:
         success:
         - "End Success 1"
-      skipped: false
       parameters:
-        "1": "load_log 3"
-        "2": "${jv_status}"
-        "3": "${jv_job_name}"
-        "4": "[{\"1\":[[\"gv_load_log\"]]},{\"1\":[[\"gv_load_id\",\"gv_job_name\"\
-          ,\"gv_job_parent\",\"gv_table_name\",\"gv_table_type\",\"gv_inserted_rows\"\
-          ,\"gv_updated_rows\",\"gv_subject_area\",\"gv_process_date\",\"gv_success_flag\"\
-          ,\"gv_start_time\",\"gv_end_time\",\"gv_row_count\",\"gv_run_history_id\"\
-          ,\"gv_status\",\"gv_message\",\"gv_comment\"]]}]"
+        componentName: "Run Shared Pipeline 4 2"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 4 3:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Failure 0"
+      parameters:
+        componentName: "Run Shared Pipeline 4 3"
+        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "load_log2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_updated_rows"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     jv_object_type:
       metadata:
@@ -1306,7 +1461,7 @@ design:
     S3 Load 1:
       position:
         x: -640
-        "y": -176
+        "y": -180
       tempMetlId: 912705
     Path for Merge 0:
       position:
@@ -1360,14 +1515,9 @@ design:
       tempMetlId: 912721
     Error rows to table 1:
       position:
-        x: -544
-        "y": -176
+        x: -540
+        "y": -180
       tempMetlId: 912724
-    Dynamic_query 1:
-      position:
-        x: 0
-        "y": -176
-      tempMetlId: 912725
     Dynamic_query_sql 1:
       position:
         x: 112
@@ -1375,19 +1525,14 @@ design:
       tempMetlId: 912726
     End Success 3:
       position:
-        x: -128
-        "y": -96
+        x: -130
+        "y": -90
       tempMetlId: 912727
     Dynamic_query_sql 0:
       position:
         x: 32
         "y": 176
       tempMetlId: 912728
-    dynamic_query 1:
-      position:
-        x: -80
-        "y": 176
-      tempMetlId: 912729
     Append To load log 0:
       position:
         x: -528
@@ -1408,11 +1553,6 @@ design:
         x: 48
         "y": 48
       tempMetlId: 912733
-    Grid to job variables:
-      position:
-        x: -1344
-        "y": 0
-      tempMetlId: 912734
     Read source objects:
       position:
         x: -1504
@@ -1433,31 +1573,16 @@ design:
         x: -192
         "y": -240
       tempMetlId: 912739
-    Get error message 1:
-      position:
-        x: -432
-        "y": -400
-      tempMetlId: 912740
     End Failure 1:
       position:
         x: 112
         "y": -400
       tempMetlId: 912741
-    Python Script 0:
-      position:
-        x: -288
-        "y": 48
-      tempMetlId: 912742
     Or 0:
       position:
         x: -736
         "y": 400
       tempMetlId: 912743
-    Get error message 0:
-      position:
-        x: -496
-        "y": 400
-      tempMetlId: 912744
     End Failure 0:
       position:
         x: 96
@@ -1468,15 +1593,10 @@ design:
         x: -640
         "y": -400
       tempMetlId: 912746
-    Error_log 0:
-      position:
-        x: -176
-        "y": 400
-      tempMetlId: 912747
     Append To load log 3:
       position:
-        x: -432
-        "y": -96
+        x: -430
+        "y": -90
       tempMetlId: 912749
     Or 1_2:
       position:
@@ -1513,31 +1633,66 @@ design:
         x: -432
         "y": -176
       tempMetlId: 912783
-    error_log 0:
+    Python Pushdown:
       position:
-        x: -160
+        x: -1344
+        "y": 0
+      tempMetlId: 913591
+    Python Pushdown 2:
+      position:
+        x: -410
         "y": -400
-      tempMetlId: 913471
-    load_log 0:
+      tempMetlId: 913592
+    Python Pushdown 3:
       position:
-        x: 242
-        "y": -175
-      tempMetlId: 913508
-    load_log 1:
+        x: 48
+        "y": -176
+      tempMetlId: 913593
+    Python Pushdown 4:
       position:
-        x: -288
-        "y": -96
-      tempMetlId: 913563
-    load_log 2:
+        x: -340
+        "y": 50
+      tempMetlId: 913594
+    Python Pushdown 5:
       position:
-        x: -128
-        "y": 48
-      tempMetlId: 913578
-    load_log 3:
+        x: -90
+        "y": 180
+      tempMetlId: 913595
+    Python Pushdown 6:
+      position:
+        x: -470
+        "y": 400
+      tempMetlId: 913596
+    Run Shared Pipeline:
+      position:
+        x: -170
+        "y": -400
+      tempMetlId: 913597
+    Run Shared Pipeline 2:
+      position:
+        x: -290
+        "y": -90
+      tempMetlId: 913598
+    Run Shared Pipeline 3:
+      position:
+        x: 272
+        "y": -176
+      tempMetlId: 913599
+    Run Shared Pipeline 4:
+      position:
+        x: -180
+        "y": 50
+      tempMetlId: 913600
+    Run Shared Pipeline 4 2:
       position:
         x: 160
-        "y": 176
-      tempMetlId: 913590
+        "y": 180
+      tempMetlId: 913603
+    Run Shared Pipeline 4 3:
+      position:
+        x: -250
+        "y": 400
+      tempMetlId: 913604
   notes:
     "912712":
       position:

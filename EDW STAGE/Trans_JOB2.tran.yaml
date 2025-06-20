@@ -34,10 +34,21 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "v_row_count"
+          - "${sysvar.thisComponent.rowsInserted}"
   variables:
-    jv_dependenies_on_job_id:
+    v_row_count:
       metadata:
         type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_error_message:
+      metadata:
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"

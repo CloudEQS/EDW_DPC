@@ -16,6 +16,10 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "v_row_count"
+          - "${sysvar.thisComponent.rowsInserted}"
     NATION:
       type: "table-input"
       parameters:
@@ -29,6 +33,21 @@ pipeline:
         - "N_REGIONKEY"
         - "N_COMMENT"
         timeOffset:
+  variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     NATION :JOB 6:

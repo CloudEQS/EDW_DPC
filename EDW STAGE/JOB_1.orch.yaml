@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "JOB 1 End Success"
+        - "Print Variables"
         failure:
         - "JOB 1 End Failure"
       parameters:
@@ -22,8 +22,18 @@ pipeline:
         setScalarVariables:
         setGridVariables:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "Row Count: ${v_rowcount}\r\n\r\nTable name: ${x_table_name}"
         updateScalarVariables:
+        - - "v_rowcount"
+          - "${sysvar.childPipeline.vars.v_row_count}"
+        - - "x_table_name"
+          - "${sysvar.childPipeline.vars.x_table_name}"
+        - - "x_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "x_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "v_error_message"
+          - "${sysvar.childPipeline.vars.v_error_message}"
     JOB 1 End Failure:
       type: "end-failure"
       parameters:
@@ -38,7 +48,37 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 1 End Success"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "v_rowcount"
+        - - "x_table_name"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Row count:${v_rowcount}\r\nTable Name: ${x_table_name}\r\
+          \nstart_time:${x_start_time}\r\nEnd time:${x_end_time}"
+        updateScalarVariables:
   variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    x_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     v_error_message:
       metadata:
         type: "TEXT"
@@ -46,6 +86,13 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: ""
+    x_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "abc"
     v_current_job_name:
       metadata:
         type: "TEXT"
@@ -60,6 +107,13 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "1"
+    x_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     Start:
@@ -69,16 +123,21 @@ design:
       tempMetlId: 1
     Run Transformation:
       position:
-        x: 160
+        x: 80
         "y": 0
       tempMetlId: 2
     JOB 1 End Failure:
       position:
-        x: 460
-        "y": 50
+        x: 360
+        "y": 80
       tempMetlId: 3
     JOB 1 End Success:
       position:
-        x: 440
-        "y": -70
+        x: 310
+        "y": -100
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: 190
+        "y": -90
+      tempMetlId: 5

@@ -23,11 +23,44 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "STAGE_REGION_TABLE"
+        targetTable: "${x_table_name}"
         orderBy:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "Row count: ${v_row_count}\r\n\r\nTable name:${x_table_name}"
         updateScalarVariables:
+        - - "v_row_count"
+          - "${sysvar.thisComponent.rowCount}"
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+  variables:
+    v_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    x_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_REGION_TABLE"
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    x_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     REGION:

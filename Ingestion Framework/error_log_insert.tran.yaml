@@ -2,33 +2,37 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    Fixed Flow:
+    grid_var_error_log:
       type: "fixed-flow"
       parameters:
-        componentName: "Fixed Flow"
+        componentName: "grid_var_error_log"
         columns:
         - - "gv_load_id"
-          - "Number"
+          - "NUMBER"
           - ""
           - ""
         - - "gv_job_name"
-          - "Text"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_job_parent"
-          - "Text"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_table_name"
-          - "Text"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_table_type"
-          - "Text"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_error_rows"
-          - "TIME"
+          - "VARIANT"
+          - ""
+          - ""
+        - - "gv_subject_area"
+          - "VARCHAR"
           - ""
           - ""
         - - "gv_run_date"
@@ -48,7 +52,7 @@ pipeline:
           - ""
           - ""
         - - "gv_message"
-          - "Text"
+          - "VARCHAR"
           - ""
           - ""
         values:
@@ -67,16 +71,16 @@ pipeline:
             - "gv_run_history_id"
             - "gv_status"
             - "gv_message"
-    ERROR_LOG:
+    Error log insert:
       type: "table-output"
       sources:
-      - "Fixed Flow"
+      - "grid_var_error_log"
       parameters:
-        componentName: "ERROR_LOG"
+        componentName: "Error log insert"
         warehouse: "[Environment Default]"
-        database: "EDW_LAB"
-        schema: "PUBLIC"
-        targetTable: "ERROR_LOG"
+        database: "${ev_db}"
+        schema: "${ev_edp_curated_schema}"
+        targetTable: "${ev_error_log}"
         fixDataTypeMismatches: "No"
         columnMapping:
         - - "gv_load_id"
@@ -87,77 +91,21 @@ pipeline:
           - "PROCEDURE_PARENT"
         - - "gv_table_name"
           - "TABLE_NAME"
-        - - "gv_message"
-          - "ERROR_MESSAGE"
-        - - "gv_run_date_time"
-          - "RUN_TIME"
+        - - "gv_table_type"
+          - "TABLE_TYPE"
+        - - "gv_subject_area"
+          - "SUBJECT_AREA"
         - - "gv_error_rows"
           - "ERROR_ROWS"
+        - - "gv_message"
+          - "ERROR_MESSAGE"
+        - - "gv_run_date"
+          - "RUN_DATE"
+        - - "gv_run_time"
+          - "RUN_TIME"
         orderBy:
         outputMode: "Append"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
   variables:
-    gv_load_log:
-      metadata:
-        type: "GRID"
-        description: ""
-        scope: "SHARED"
-        visibility: "PUBLIC"
-        columns:
-          gv_load_id:
-            columnType: "NUMBER"
-          gv_job_name:
-            columnType: "TEXT"
-          gv_job_parent:
-            columnType: "TEXT"
-          gv_table_name:
-            columnType: "TEXT"
-          gv_table_type:
-            columnType: "TEXT"
-          gv_inserted_rows:
-            columnType: "NUMBER"
-          gv_updated_rows:
-            columnType: "NUMBER"
-          gv_subject_area:
-            columnType: "TEXT"
-          gv_process_date:
-            columnType: "TEXT"
-          gv_success_flag:
-            columnType: "NUMBER"
-          gv_start_time:
-            columnType: "TEXT"
-          gv_end_time:
-            columnType: "TEXT"
-          gv_row_count:
-            columnType: "NUMBER"
-          gv_run_history_id:
-            columnType: "NUMBER"
-          gv_status:
-            columnType: "TEXT"
-          gv_message:
-            columnType: "TEXT"
-          gv_comment:
-            columnType: "TEXT"
-      defaultValue:
-      - - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "1970-01-01"
-        - "-1"
-        - "1970-01-01"
-        - "1970-01-01"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
     gv_error_log:
       metadata:
         type: "GRID"
@@ -177,6 +125,8 @@ pipeline:
             columnType: "TEXT"
           gv_error_rows:
             columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
           gv_run_date:
             columnType: "TEXT"
           gv_run_time:
@@ -188,26 +138,27 @@ pipeline:
           gv_message:
             columnType: "TEXT"
       defaultValue:
-      - - "1"
-        - "abc"
-        - "xyz"
-        - "STAGE_REGION_TABLE"
-        - "table"
-        - "text"
-        - "2025-06-20"
-        - "2025-06-20 02:30:13.591 -0700"
-        - "1"
-        - "success"
-        - "Error log "
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
 design:
   components:
-    Fixed Flow:
+    grid_var_error_log:
       position:
-        x: -460
-        "y": 10
-      tempMetlId: 1
-    ERROR_LOG:
+        x: -384
+        "y": 112
+      tempMetlId: 912872
+    Error log insert:
       position:
-        x: -240
-        "y": 20
-      tempMetlId: 2
+        x: -30
+        "y": 110
+      tempMetlId: 912875
