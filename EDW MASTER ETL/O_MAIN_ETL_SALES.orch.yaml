@@ -617,8 +617,8 @@ design:
   components:
     Update control table:
       position:
-        x: 60
-        "y": -170
+        x: 100
+        "y": -120
       tempMetlId: 9959
     Or 1:
       position:
@@ -627,32 +627,32 @@ design:
       tempMetlId: 9960
     Or 2:
       position:
-        x: 64
+        x: 160
         "y": 0
       tempMetlId: 9961
     SALES Jobs:
       position:
-        x: 288
-        "y": 32
+        x: 360
+        "y": -20
       tempMetlId: 9962
     setting success flag run_status fail:
       position:
-        x: 176
+        x: 380
         "y": 240
       tempMetlId: 9963
     Grid Iterator 0:
       position:
-        x: 288
-        "y": 0
+        x: 360
+        "y": -20
       tempMetlId: 9964
     Check last run dt:
       position:
-        x: -320
+        x: -310
         "y": 0
       tempMetlId: 9965
     Main ETL Log Entry RE-Start:
       position:
-        x: -32
+        x: 10
         "y": 0
       tempMetlId: 9966
     Update_run_status 0:
@@ -662,8 +662,8 @@ design:
       tempMetlId: 9968
     Main ETL Log Entry Start:
       position:
-        x: -130
-        "y": -180
+        x: -40
+        "y": -120
       tempMetlId: 9969
     Main ETL Log Entry Complete:
       position:
@@ -677,8 +677,8 @@ design:
       tempMetlId: 9972
     setting success flag run_status:
       position:
-        x: 416
-        "y": 0
+        x: 510
+        "y": -10
       tempMetlId: 9973
     If 0:
       position:
@@ -687,46 +687,65 @@ design:
       tempMetlId: 9974
     If 1:
       position:
-        x: -128
+        x: -110
         "y": 0
       tempMetlId: 9975
     End Success 0:
       position:
-        x: 976
-        "y": -16
+        x: 1030
+        "y": -10
       tempMetlId: 9976
     Append To Grid error log for main job:
       position:
-        x: -240
+        x: -100
         "y": 240
       tempMetlId: 9977
     End Failure 0:
       position:
-        x: 976
-        "y": 208
+        x: 1040
+        "y": 260
       tempMetlId: 9978
     Or 0:
       position:
-        x: -432
+        x: -290
         "y": 240
       tempMetlId: 9979
     Check current run dt:
       position:
-        x: -224
+        x: -180
         "y": 0
       tempMetlId: 9980
     Start new load:
       position:
-        x: 176
+        x: 230
         "y": 0
       tempMetlId: 9981
     Run Shared Pipeline:
       position:
-        x: -430
+        x: -440
         "y": 0
       tempMetlId: 9982
     Error Log Insert:
       position:
-        x: -80
+        x: 80
         "y": 240
       tempMetlId: 9983
+  notes:
+    "1":
+      position:
+        x: -350
+        "y": -150
+      size:
+        height: 348
+        width: 1520
+      theme: "green"
+      content: "**Success Path**"
+    "2":
+      position:
+        x: -360
+        "y": 190
+      size:
+        height: 158
+        width: 1470
+      theme: "red"
+      content: "**Failure Path**"

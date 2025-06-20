@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Append To Grid 3"
+        - "Append To Grid 2"
       parameters:
         componentName: "Start"
     Identify Ready Jobs:
@@ -304,6 +304,8 @@ pipeline:
           - "v_current_job_seq "
         - - "job_name"
           - "v_current_job_name"
+        - - "table_name"
+          - "v_current_table_name"
         concurrency: "Concurrent"
       postProcessing:
         updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}\r\
@@ -319,85 +321,19 @@ pipeline:
           - "${v_current_job_name}"
         - - "v_current_job_seq"
           - "${v_current_job_seq}"
-        - - "jv_table_name"
+        - - "v_current_table_name"
           - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage: "Iteration in the Grid Present  :${v_current_job_name}\r\
           \n\r\njob seq: ${v_current_job_seq}"
         updateScalarVariables:
-    Append To Grid 3:
-      type: "append-to-grid"
-      transitions:
-        success:
-        - "Load Log Start"
-      parameters:
-        componentName: "Append To Grid 3"
-        operation: "Append"
-        targetGridVariable: "gv_load_log_child"
-        valuesGrid:
-        - - "${sysvar.thisComponent.taskId}"
-          - "${sysvar.thisPipeline.fullName}"
-          - "${sysvar.rootPipeline.executionId}"
-          - "abc"
-          - "null"
-          - "0"
-          - "${new Date().toISOString()}"
-          - "Y"
-          - "${sysvar.thisComponent.startedAt}"
-          - "null"
-          - "0"
-          - "${sysvar.thisPipeline.executionId}"
-          - "Started"
-          - "Log Started at Child Orachstraion JOb"
-          - "Log Started"
-          - ""
-          - ""
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Load Log Start:
-      type: "run-shared-pipeline"
-      transitions:
-        success:
-        - "Main Pipeline Loop"
-      parameters:
-        componentName: "Load Log Start"
-        pipelineName: "EDW_LAB#load_log_insert_orc"
-        version: "v1.0.13"
-        setScalarVariables:
-        setGridVariables:
-        - variable: "gv_load_log"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "gv_load_log_child"
-              columns:
-              - "gv_load_id"
-              - "gv_job_name"
-              - "gv_job_parent"
-              - "gv_table_name"
-              - "gv_table_type"
-              - "gv_inserted_rows"
-              - "gv_updated_rows"
-              - "gv_subject_area"
-              - "gv_process_date"
-              - "gv_success_flag"
-              - "gv_start_time"
-              - "gv_end_time"
-              - "gv_row_count"
-              - "gv_run_history_id"
-              - "gv_status"
-              - "gv_message"
-              - "gv_comment"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     Error Log Append:
       type: "append-to-grid"
       transitions:
         success:
         - "ERROR LOG"
+      skipped: true
       parameters:
         componentName: "Error Log Append"
         operation: "Append"
@@ -423,9 +359,10 @@ pipeline:
       transitions:
         success:
         - "End Failure"
+      skipped: true
       parameters:
         componentName: "ERROR LOG"
-        pipelineName: "EDW_LAB#Error_log_o"
+        pipelineName: "EDW_LAB#error_log_insert_orc"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
@@ -454,6 +391,107 @@ pipeline:
       type: "end-failure"
       parameters:
         componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "Main Pipeline Loop"
+      skipped: false
+      parameters:
+        componentName: "Run Shared Pipeline"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_load_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_child"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_inserted_rows"
+              - "gv_updated_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_end_time"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+              - "gv_comment"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Append To Grid 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Python Pushdown 2"
+      skipped: false
+      parameters:
+        componentName: "Append To Grid 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_child"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "abc"
+          - "table"
+          - "0"
+          - "0"
+          - ""
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - ""
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "Started"
+          - "Log started"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 2:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Run Shared Pipeline"
+      parameters:
+        componentName: "Python Pushdown 2"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |-
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+
+          print(gv_load_log_child)
+        scriptTimeout: "360"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -564,7 +602,7 @@ pipeline:
         visibility: "PUBLIC"
         columns:
           gv_load_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_job_name:
             columnType: "TEXT"
           gv_job_parent:
@@ -590,7 +628,7 @@ pipeline:
           gv_row_count:
             columnType: "NUMBER"
           gv_run_history_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_status:
             columnType: "TEXT"
           gv_message:
@@ -671,101 +709,125 @@ design:
   components:
     Start:
       position:
-        x: -1460
-        "y": -370
+        x: -1420
+        "y": -530
       tempMetlId: 1
     Identify Ready Jobs:
       position:
-        x: -1060
-        "y": -450
+        x: -930
+        "y": -530
       tempMetlId: 6
     Jobs Ready?:
       position:
-        x: -940
-        "y": -450
+        x: -810
+        "y": -530
       tempMetlId: 7
     End Success:
       position:
-        x: 210
-        "y": -530
+        x: 160
+        "y": -580
       tempMetlId: 14
     Main Pipeline Loop:
       position:
-        x: -1140
-        "y": -370
+        x: -1040
+        "y": -530
       tempMetlId: 29
     Run Orchestration RE RUN:
       position:
-        x: -30
-        "y": -370
+        x: 20
+        "y": -460
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
       position:
-        x: -60
+        x: 0
         "y": -580
       tempMetlId: 35
     Pipeline status:
       position:
-        x: -1070
-        "y": -280
+        x: -990
+        "y": -220
       tempMetlId: 36
     Python Pushdown:
       position:
-        x: -300
+        x: -260
         "y": -530
       tempMetlId: 38
     All Jobs Processed?:
       position:
-        x: -180
-        "y": -470
+        x: -130
+        "y": -530
       tempMetlId: 39
     Print Variables:
       position:
-        x: -840
+        x: -700
         "y": -530
       tempMetlId: 43
     check Pipeline Completion_2:
       position:
-        x: -460
+        x: -390
         "y": -530
       tempMetlId: 45
     Check Completion:
       position:
-        x: -840
-        "y": -350
+        x: -760
+        "y": -220
       tempMetlId: 46
     Grid Iterator 2 2:
       position:
-        x: -640
+        x: -540
         "y": -550
       tempMetlId: 49
     Trail CHILD Run Orchestration ITERATOR 2:
       position:
-        x: -640
+        x: -540
         "y": -550
       tempMetlId: 51
-    Append To Grid 3:
-      position:
-        x: -1370
-        "y": -370
-      tempMetlId: 53
-    Load Log Start:
-      position:
-        x: -1240
-        "y": -360
-      tempMetlId: 54
     Error Log Append:
       position:
-        x: -440
-        "y": -250
+        x: -500
+        "y": -230
       tempMetlId: 55
     ERROR LOG:
       position:
-        x: -270
-        "y": -250
+        x: -290
+        "y": -240
       tempMetlId: 56
     End Failure:
       position:
-        x: -60
-        "y": -250
+        x: -80
+        "y": -240
       tempMetlId: 57
+    Run Shared Pipeline:
+      position:
+        x: -1120
+        "y": -530
+      tempMetlId: 58
+    Append To Grid 2:
+      position:
+        x: -1300
+        "y": -530
+      tempMetlId: 60
+    Python Pushdown 2:
+      position:
+        x: -1200
+        "y": -530
+      tempMetlId: 61
+  notes:
+    "1":
+      position:
+        x: -1310
+        "y": -620
+      size:
+        height: 238
+        width: 1620
+      theme: "light-green"
+      content: "Success Path"
+    "2":
+      position:
+        x: -1110
+        "y": -300
+      size:
+        height: 178
+        width: 1170
+      theme: "red"
+      content: "Failure Path"

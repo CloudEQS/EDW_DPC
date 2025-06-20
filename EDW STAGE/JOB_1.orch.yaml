@@ -24,9 +24,9 @@ pipeline:
           - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
-        updateOutputMessage: "Row Count: ${v_rowcount}\r\n\r\nTable name: ${x_table_name}"
+        updateOutputMessage: "Row Count: ${v_row_count}\r\n\r\nTable name: ${x_table_name}"
         updateScalarVariables:
-        - - "v_rowcount"
+        - - "v_row_count"
           - "${sysvar.childPipeline.vars.v_row_count}"
         - - "x_table_name"
           - "${sysvar.childPipeline.vars.x_table_name}"
@@ -58,8 +58,8 @@ pipeline:
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
-        - - "v_rowcount"
-        - - "x_table_name"
+        - - "v_row_count"
+        - - "v_current_table_name"
         prefixText:
         includeVariableName: "No"
       postProcessing:

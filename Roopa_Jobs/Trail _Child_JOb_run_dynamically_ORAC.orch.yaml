@@ -423,76 +423,95 @@ design:
   components:
     Start:
       position:
-        x: -1400
-        "y": -310
+        x: -1350
+        "y": -470
       tempMetlId: 1
     Identify Ready Jobs:
       position:
-        x: -1160
-        "y": -400
+        x: -1110
+        "y": -470
       tempMetlId: 6
     Jobs Ready?:
       position:
-        x: -1010
-        "y": -400
+        x: -970
+        "y": -470
       tempMetlId: 7
     End Success:
       position:
-        x: 170
-        "y": -570
+        x: 150
+        "y": -530
       tempMetlId: 14
     Main Pipeline Loop:
       position:
-        x: -1290
-        "y": -310
+        x: -1250
+        "y": -470
       tempMetlId: 29
     Run Orchestration RE RUN:
       position:
-        x: 60
-        "y": -350
+        x: -40
+        "y": -370
       tempMetlId: 34
     Final Pipeline Status and Cleanup:
       position:
-        x: 20
-        "y": -570
+        x: -40
+        "y": -530
       tempMetlId: 35
     Pipeline status:
       position:
-        x: -1150
-        "y": -200
+        x: -1170
+        "y": -190
       tempMetlId: 36
     Python Pushdown:
       position:
-        x: -290
-        "y": -420
+        x: -350
+        "y": -470
       tempMetlId: 38
     All Jobs Processed?:
       position:
-        x: -150
-        "y": -430
+        x: -210
+        "y": -470
       tempMetlId: 39
     Print Variables:
       position:
-        x: -770
-        "y": -430
+        x: -830
+        "y": -470
       tempMetlId: 43
     check Pipeline Completion_2:
       position:
-        x: -450
-        "y": -430
+        x: -540
+        "y": -470
       tempMetlId: 45
     Check Completion:
       position:
-        x: -870
-        "y": -230
+        x: -890
+        "y": -200
       tempMetlId: 46
     Grid Iterator 2 2:
       position:
-        x: -610
-        "y": -450
+        x: -710
+        "y": -490
       tempMetlId: 49
     Trail CHILD Run Orchestration ITERATOR 2:
       position:
-        x: -610
-        "y": -450
+        x: -710
+        "y": -490
       tempMetlId: 51
+  notes:
+    "1":
+      position:
+        x: -1270
+        "y": -560
+      size:
+        height: 278
+        width: 1510
+      theme: "green"
+      content: "Success Path"
+    "2":
+      position:
+        x: -1280
+        "y": -240
+      size:
+        height: 198
+        width: 1500
+      theme: "red"
+      content: "Failure Path"

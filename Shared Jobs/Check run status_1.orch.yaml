@@ -262,31 +262,31 @@ design:
       tempMetlId: 7
     Ins run status for start:
       position:
-        x: 380
-        "y": -240
+        x: 350
+        "y": -220
       tempMetlId: 8
     Get Load Id 1:
       position:
-        x: 350
-        "y": -40
+        x: 340
+        "y": -70
       tempMetlId: 9
     Get Load Id 1 2:
       position:
-        x: 490
-        "y": -240
+        x: 480
+        "y": -220
       tempMetlId: 10
     Update run status for restart:
       position:
         x: 510
-        "y": -40
+        "y": -70
       tempMetlId: 11
     Or:
       position:
-        x: 680
-        "y": -150
+        x: 610
+        "y": -160
       tempMetlId: 12
     Get Current Date:
       position:
-        x: 800
-        "y": -150
+        x: 750
+        "y": -160
       tempMetlId: 13

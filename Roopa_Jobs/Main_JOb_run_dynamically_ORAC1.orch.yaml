@@ -148,31 +148,31 @@ design:
   components:
     Start:
       position:
-        x: -1500
-        "y": -90
+        x: -1480
+        "y": -70
       tempMetlId: 1
     Initialize Job Status:
       position:
-        x: -1260
+        x: -1310
         "y": -70
       tempMetlId: 2
     Success Main Job:
       position:
-        x: -850
-        "y": -170
+        x: -820
+        "y": -140
       tempMetlId: 14
     Failed on Main Orachstration JOB:
       position:
-        x: -820
-        "y": 0
+        x: -810
+        "y": 20
       tempMetlId: 15
     Get Total Job Count:
       position:
-        x: -1120
+        x: -1130
         "y": -70
       tempMetlId: 16
     Run Orchestration:
       position:
-        x: -990
+        x: -970
         "y": -70
       tempMetlId: 17

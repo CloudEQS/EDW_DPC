@@ -126,11 +126,30 @@ design:
       tempMetlId: 8
     Mark Job Failed:
       position:
-        x: 280
-        "y": 70
+        x: 230
+        "y": 140
       tempMetlId: 10
     'Mark Job Completed ':
       position:
-        x: 290
-        "y": -50
+        x: 240
+        "y": -90
       tempMetlId: 11
+  notes:
+    "1":
+      position:
+        x: -210
+        "y": -110
+      size:
+        height: 188
+        width: 810
+      theme: "green"
+      content: "Success Path"
+    "2":
+      position:
+        x: 100
+        "y": 110
+      size:
+        height: 168
+        width: 480
+      theme: "red"
+      content: "Failure Path"

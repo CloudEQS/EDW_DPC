@@ -614,11 +614,11 @@ pipelines:
     parameters:
       gv_load_log:
         type: GRID
-        exportAllowed: true
+        exportAllowed: false
         description: ""
         columns:
           gv_load_id:
-            columnType: NUMBER
+            columnType: TEXT
           gv_job_name:
             columnType: TEXT
           gv_job_parent:
@@ -636,7 +636,7 @@ pipelines:
           gv_process_date:
             columnType: TEXT
           gv_success_flag:
-            columnType: NUMBER
+            columnType: TEXT
           gv_start_time:
             columnType: TEXT
           gv_end_time:
@@ -644,7 +644,7 @@ pipelines:
           gv_row_count:
             columnType: NUMBER
           gv_run_history_id:
-            columnType: NUMBER
+            columnType: TEXT
           gv_status:
             columnType: TEXT
           gv_message:
@@ -662,7 +662,7 @@ pipelines:
         description: ""
         columns:
           gv_load_id:
-            columnType: NUMBER
+            columnType: TEXT
           gv_job_name:
             columnType: TEXT
           gv_job_parent:
@@ -680,7 +680,7 @@ pipelines:
           gv_process_date:
             columnType: TEXT
           gv_success_flag:
-            columnType: NUMBER
+            columnType: TEXT
           gv_start_time:
             columnType: TEXT
           gv_end_time:
@@ -688,7 +688,7 @@ pipelines:
           gv_row_count:
             columnType: NUMBER
           gv_run_history_id:
-            columnType: NUMBER
+            columnType: TEXT
           gv_status:
             columnType: TEXT
           gv_message:

@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation"
+        - "Python Pushdown"
       parameters:
         componentName: "Start"
     Run Transformation:
@@ -42,16 +42,47 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Python Pushdown:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Run Transformation"
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |-
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+          print(gv_load_log)
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     gv_load_log:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
           gv_load_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_job_name:
             columnType: "TEXT"
           gv_job_parent:
@@ -69,7 +100,7 @@ pipeline:
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_start_time:
             columnType: "TEXT"
           gv_end_time:
@@ -77,19 +108,36 @@ pipeline:
           gv_row_count:
             columnType: "NUMBER"
           gv_run_history_id:
-            columnType: "NUMBER"
+            columnType: "TEXT"
           gv_status:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
           gv_comment:
             columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "load"
+        - "abc"
+        - "xyz"
+        - "abc_tab"
+        - "table"
+        - "0"
+        - "0"
+        - "sss"
+        - "rr"
+        - "n"
+        - "1970-01-01 00:00:00.000"
+        - "end"
+        - "0"
+        - "run"
+        - "success"
+        - "log"
+        - "log c ooment"
 design:
   components:
     Start:
       position:
-        x: 0
+        x: -160
         "y": 0
       tempMetlId: 1
     Run Transformation:
@@ -97,3 +145,8 @@ design:
         x: 160
         "y": 0
       tempMetlId: 2
+    Python Pushdown:
+      position:
+        x: -30
+        "y": 0
+      tempMetlId: 3

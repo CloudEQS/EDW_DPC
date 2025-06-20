@@ -90,6 +90,7 @@ pipeline:
       transitions:
         success:
         - "Load log"
+      skipped: true
       parameters:
         componentName: "Load log success"
         operation: "Append"
@@ -117,6 +118,7 @@ pipeline:
         updateScalarVariables:
     Load log:
       type: "run-shared-pipeline"
+      skipped: true
       parameters:
         componentName: "Load log"
         pipelineName: "EDW_LAB#load_log_insert-1"
@@ -217,6 +219,7 @@ pipeline:
       transitions:
         success:
         - "ERROR LOG"
+      skipped: true
       parameters:
         componentName: "Error Log Append"
         operation: "Append"
@@ -239,6 +242,7 @@ pipeline:
         updateScalarVariables:
     ERROR LOG:
       type: "run-shared-pipeline"
+      skipped: true
       parameters:
         componentName: "ERROR LOG"
         pipelineName: "EDW_LAB#error_log_insert"
@@ -492,23 +496,23 @@ design:
   components:
     Start:
       position:
-        x: -320
+        x: -360
         "y": 0
       tempMetlId: 1
     Run Orchestration:
       position:
-        x: 80
+        x: 100
         "y": 0
       tempMetlId: 2
     Mark Job Running:
       position:
-        x: -10
+        x: -20
         "y": 0
       tempMetlId: 8
     Mark Job Failed:
       position:
         x: 220
-        "y": 70
+        "y": 150
       tempMetlId: 10
     'Mark Job Completed ':
       position:
@@ -527,21 +531,40 @@ design:
       tempMetlId: 13
     Append To Grid 3:
       position:
-        x: -220
+        x: -240
         "y": 0
       tempMetlId: 16
     Load log 2:
       position:
-        x: -110
+        x: -140
         "y": 0
       tempMetlId: 17
     Error Log Append:
       position:
-        x: 350
-        "y": 80
+        x: 340
+        "y": 150
       tempMetlId: 18
     ERROR LOG:
       position:
-        x: 500
-        "y": 70
+        x: 460
+        "y": 150
       tempMetlId: 19
+  notes:
+    "1":
+      position:
+        x: 140
+        "y": -110
+      size:
+        height: 138
+        width: 510
+      theme: "green"
+      content: "Success Path"
+    "2":
+      position:
+        x: 140
+        "y": 100
+      size:
+        height: 168
+        width: 510
+      theme: "red"
+      content: "Failure Path"
