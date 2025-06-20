@@ -523,7 +523,46 @@ pipelines:
     displayName: load_log_insert_o
     id: load_log_insert
     enabled: true
-    parameters: {}
+    parameters:
+      gv_load_log:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: NUMBER
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_inserted_rows:
+            columnType: NUMBER
+          gv_updated_rows:
+            columnType: NUMBER
+          gv_subject_area:
+            columnType: TEXT
+          gv_process_date:
+            columnType: TEXT
+          gv_success_flag:
+            columnType: NUMBER
+          gv_start_time:
+            columnType: TEXT
+          gv_end_time:
+            columnType: TEXT
+          gv_row_count:
+            columnType: NUMBER
+          gv_run_history_id:
+            columnType: NUMBER
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+          gv_comment:
+            columnType: TEXT
   - pipeline: Ingestion Framework/load_log_insert_trans.tran.yaml
     displayName: load_log_insert_trans
     id: load_log_insert-1
