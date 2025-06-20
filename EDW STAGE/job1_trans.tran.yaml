@@ -26,7 +26,7 @@ pipeline:
         targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
-        updateOutputMessage: "Row count: ${v_row_count}\r\n\r\nTable name:${x_table_name}"
+        updateOutputMessage: "Row count: ${v_row_count}\r\n\r\nTable name:${v_current_table_name}"
         updateScalarVariables:
         - - "v_row_count"
           - "${sysvar.thisComponent.rowCount}"

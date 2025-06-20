@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "Print Variables"
+        - "JOB 1 End Success"
         failure:
         - "JOB 1 End Failure"
       parameters:
@@ -24,11 +24,11 @@ pipeline:
           - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
-        updateOutputMessage: "Row Count: ${v_row_count}\r\n\r\nTable name: ${x_table_name}"
+        updateOutputMessage: ""
         updateScalarVariables:
         - - "v_row_count"
           - "${sysvar.childPipeline.vars.v_row_count}"
-        - - "x_table_name"
+        - - "v_current_table_name"
           - "${sysvar.childPipeline.vars.x_table_name}"
         - - "x_start_time"
           - "${sysvar.thisComponent.startedAt}"
@@ -49,22 +49,6 @@ pipeline:
         componentName: "JOB 1 End Success"
       postProcessing:
         updateOutputMessage:
-        updateScalarVariables:
-    Print Variables:
-      type: "print-variables"
-      transitions:
-        success:
-        - "JOB 1 End Success"
-      parameters:
-        componentName: "Print Variables"
-        variablesToPrint:
-        - - "v_row_count"
-        - - "v_current_table_name"
-        prefixText:
-        includeVariableName: "No"
-      postProcessing:
-        updateOutputMessage: "Row count:${v_rowcount}\r\nTable Name: ${x_table_name}\r\
-          \nstart_time:${x_start_time}\r\nEnd time:${x_end_time}"
         updateScalarVariables:
   variables:
     v_row_count:
@@ -138,8 +122,3 @@ design:
         x: 310
         "y": -100
       tempMetlId: 4
-    Print Variables:
-      position:
-        x: 190
-        "y": -90
-      tempMetlId: 5

@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Append To Grid 3"
+        - "Append To Grid 2"
       parameters:
         componentName: "Start"
     Run Orchestration:
@@ -34,7 +34,7 @@ pipeline:
           - "${sysvar.childPipeline.vars.v_error_message}"
         - - "jv_updated_rows"
           - "${sysvar.childPipile.vars.v_row_count}"
-        - - "jv_table_name"
+        - - "v_current_table_name"
           - "${sysvar.childPipeline.vars.x_table_name}"
     Mark Job Running:
       type: "sql-executor"
@@ -57,7 +57,7 @@ pipeline:
       type: "sql-executor"
       transitions:
         success:
-        - "Error Log Append"
+        - "Append To Grid 2 2 2"
       parameters:
         componentName: "Mark Job Failed"
         scriptLocation: "Component"
@@ -73,7 +73,7 @@ pipeline:
       type: "sql-executor"
       transitions:
         success:
-        - "Load log success"
+        - "Append To Grid 2 2"
       parameters:
         componentName: "Mark Job Completed "
         scriptLocation: "Component"
@@ -85,43 +85,46 @@ pipeline:
       postProcessing:
         updateOutputMessage: "JOB Completed : ${v_current_job_name}"
         updateScalarVariables:
-    Load log success:
+    Append To Grid 2:
       type: "append-to-grid"
       transitions:
         success:
-        - "Load log"
-      skipped: true
+        - "Run Shared Pipeline"
+      skipped: false
       parameters:
-        componentName: "Load log success"
+        componentName: "Append To Grid 2"
         operation: "Append"
         targetGridVariable: "gv_load_log1"
         valuesGrid:
-        - - "${sysvar.thisComponent.taskId}"
+        - - " ${sysvar.thisComponent.taskId}"
           - "${sysvar.thisPipeline.fullName}"
           - "${sysvar.rootPipeline.executionId}"
-          - "${jv_table_name}"
-          - "null"
-          - "${jv_updated_rows}"
+          - "abc"
+          - "table"
+          - "0"
+          - "0"
+          - ""
           - "${new Date().toISOString()}"
           - "Y"
           - "${sysvar.thisComponent.startedAt}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
           - ""
-          - "${sysvar.thisPipeline.executionId}"
-          - "Successfully "
-          - "Successfully loaded the data"
-          - "Success"
-          - "${sysvar.thisComponent.message}"
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "Jobs running started"
+          - "Log started"
           - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Load log:
+    Run Shared Pipeline:
       type: "run-shared-pipeline"
-      skipped: true
+      transitions:
+        success:
+        - "Mark Job Running"
+      skipped: false
       parameters:
-        componentName: "Load log"
-        pipelineName: "EDW_LAB#load_log_insert-1"
+        componentName: "Run Shared Pipeline"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
@@ -134,7 +137,7 @@ pipeline:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
-              - "gv_job_name"
+              - "gv_table_name"
               - "gv_table_type"
               - "gv_inserted_rows"
               - "gv_updated_rows"
@@ -151,47 +154,78 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Append To Grid 3:
+    Append To Grid 2 2:
       type: "append-to-grid"
       transitions:
         success:
-        - "Load log 2"
-      skipped: true
+        - "Run Shared Pipeline 2"
+      skipped: false
       parameters:
-        componentName: "Append To Grid 3"
+        componentName: "Append To Grid 2 2"
         operation: "Append"
         targetGridVariable: "gv_load_log1"
         valuesGrid:
-        - - "${Jv_load_id}"
-          - "${Jv_job_name}"
-          - "${jv_job_parent}"
-          - "${jv_table_name}"
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "${sysvar..thisComponent.rowsInserted}"
+          - "${sysvar..thisComponent.rowsUpdated}"
           - ""
-          - "${jv_updated_rows}"
-          - "${Jv_process_date}"
-          - "${jv_success_flag}"
-          - "${jv_start_time}"
-          - "${jv_end_time}"
-          - "${jv_row_count}"
-          - "${jv_run_history_id}"
-          - "${jv_status}"
-          - "${jv_message}"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - ""
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "COMPLETED"
+          - "${sysvar.thisComponent.status}"
+          - "${sysvar.thisComponent.message}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Load log 2:
-      type: "run-shared-pipeline"
+    Append To Grid 2 2 2:
+      type: "append-to-grid"
       transitions:
         success:
-        - "Mark Job Running"
-      skipped: true
+        - "Run Shared Pipeline 2 2"
+      skipped: false
       parameters:
-        componentName: "Load log 2"
-        pipelineName: "EDW_LAB#LOAD_LOG_JOBS_O"
+        componentName: "Append To Grid 2 2 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log1"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "abc"
+          - "table"
+          - "0"
+          - "0"
+          - ""
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - ""
+          - "0"
+          - "${sysvar.rootPipeline.executionId}"
+          - "Started"
+          - "Log started"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 2 2:
+      type: "run-shared-pipeline"
+      skipped: false
+      parameters:
+        componentName: "Run Shared Pipeline 2 2"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
-        - variable: "load_log2"
+        - variable: "gv_load_log"
           status: "grid"
           gridValues:
             fromGrid:
@@ -202,7 +236,9 @@ pipeline:
               - "gv_job_parent"
               - "gv_table_name"
               - "gv_table_type"
+              - "gv_inserted_rows"
               - "gv_updated_rows"
+              - "gv_subject_area"
               - "gv_process_date"
               - "gv_success_flag"
               - "gv_start_time"
@@ -211,62 +247,42 @@ pipeline:
               - "gv_run_history_id"
               - "gv_status"
               - "gv_message"
+              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Error Log Append:
-      type: "append-to-grid"
-      transitions:
-        success:
-        - "ERROR LOG"
-      skipped: true
-      parameters:
-        componentName: "Error Log Append"
-        operation: "Append"
-        targetGridVariable: "gv_error_log"
-        valuesGrid:
-        - - "${sysvar.thisComponent.taskId}"
-          - "${sysvar.thisPipeline.fullName}"
-          - "${sysvar.rootPipeline.executionId}"
-          - "${jv_table_name}"
-          - "${jv_table_type}"
-          - "${x_row_count}"
-          - "${new Date().toISOString()}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
-          - "${sysvar.thisComponent.startedAt}"
-          - "Failed"
-          - "${jv_error_message}"
-          - "${sysvar.thisComponent.message}"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    ERROR LOG:
+    Run Shared Pipeline 2:
       type: "run-shared-pipeline"
-      skipped: true
+      skipped: false
       parameters:
-        componentName: "ERROR LOG"
-        pipelineName: "EDW_LAB#error_log_insert"
+        componentName: "Run Shared Pipeline 2"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
-        - variable: "gv_error_log"
+        - variable: "gv_load_log"
           status: "grid"
           gridValues:
             fromGrid:
-              variable: "gv_error_log"
+              variable: "gv_load_log1"
               columns:
               - "gv_load_id"
               - "gv_job_name"
               - "gv_job_parent"
-              - "gv_job_name"
+              - "gv_table_name"
               - "gv_table_type"
-              - "gv_error_rows"
+              - "gv_inserted_rows"
+              - "gv_updated_rows"
               - "gv_subject_area"
-              - "gv_run_date"
-              - "gv_run_time"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
               - "gv_run_history_id"
               - "gv_status"
               - "gv_message"
+              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -516,44 +532,44 @@ design:
       tempMetlId: 10
     'Mark Job Completed ':
       position:
-        x: 220
-        "y": -60
+        x: 250
+        "y": -50
       tempMetlId: 11
-    Load log success:
+    Append To Grid 2:
       position:
-        x: 370
-        "y": -60
-      tempMetlId: 12
-    Load log:
-      position:
-        x: 530
-        "y": -60
-      tempMetlId: 13
-    Append To Grid 3:
-      position:
-        x: -240
+        x: -280
         "y": 0
-      tempMetlId: 16
-    Load log 2:
+      tempMetlId: 20
+    Run Shared Pipeline:
       position:
-        x: -140
+        x: -150
         "y": 0
-      tempMetlId: 17
-    Error Log Append:
+      tempMetlId: 21
+    Append To Grid 2 2:
       position:
-        x: 340
-        "y": 150
-      tempMetlId: 18
-    ERROR LOG:
+        x: 390
+        "y": -50
+      tempMetlId: 22
+    Append To Grid 2 2 2:
       position:
-        x: 460
+        x: 350
         "y": 150
-      tempMetlId: 19
+      tempMetlId: 24
+    Run Shared Pipeline 2 2:
+      position:
+        x: 480
+        "y": 150
+      tempMetlId: 25
+    Run Shared Pipeline 2:
+      position:
+        x: 520
+        "y": -40
+      tempMetlId: 26
   notes:
     "1":
       position:
-        x: 140
-        "y": -110
+        x: 160
+        "y": -100
       size:
         height: 138
         width: 510
