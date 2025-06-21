@@ -459,6 +459,9 @@ pipeline:
         updateScalarVariables:
     Log start:
       type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "Main Pipeline Loop"
       skipped: false
       parameters:
         componentName: "Log start"
