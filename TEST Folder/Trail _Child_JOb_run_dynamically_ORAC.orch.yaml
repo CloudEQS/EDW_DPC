@@ -394,41 +394,35 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Run Shared Pipeline:
-      type: "run-shared-pipeline"
+    Python Pushdown 2:
+      type: "python-pushdown"
       transitions:
         success:
-        - "Main Pipeline Loop"
-      skipped: false
+        - "Log start"
       parameters:
-        componentName: "Run Shared Pipeline"
-        pipelineName: "EDW_LAB#load_log_insert_orc"
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
-        - variable: "gv_load_log"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "gv_load_log_child"
-              columns:
-              - "gv_load_id"
-              - "gv_job_name"
-              - "gv_job_parent"
-              - "gv_table_name"
-              - "gv_table_type"
-              - "gv_inserted_rows"
-              - "gv_updated_rows"
-              - "gv_subject_area"
-              - "gv_process_date"
-              - "gv_success_flag"
-              - "gv_start_time"
-              - "gv_end_time"
-              - "gv_end_time"
-              - "gv_run_history_id"
-              - "gv_status"
-              - "gv_message"
-              - "gv_comment"
+        componentName: "Python Pushdown 2"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |-
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+
+          print(gv_load_log_child)
+        scriptTimeout: "360"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -457,41 +451,44 @@ pipeline:
           - ""
           - "0"
           - "${sysvar.rootPipeline.executionId}"
-          - "Started"
+          - "Jobs running started"
           - "Log started"
           - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Python Pushdown 2:
-      type: "python-pushdown"
-      transitions:
-        success:
-        - "Run Shared Pipeline"
+    Log start:
+      type: "run-shared-pipeline"
+      skipped: false
       parameters:
-        componentName: "Python Pushdown 2"
-        warehouse: "[Environment Default]"
-        externalAccessIntegrations:
-        pythonVersion: "3.10"
-        packagesGrid:
-        scriptLocation: "Component"
-        pythonScript: |-
-          ###
-          # Variables are directly accessible:
-          #   print (myvar)
-          # Updating a variable:
-          #   context.updateVariable('myvar', 'new-value')
-          # Updating a grid variable:
-          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
-          # Running SQL against Snowflake
-          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
-          # Using Data Frames
-          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
-          ###)
-
-
-          print(gv_load_log_child)
-        scriptTimeout: "360"
+        componentName: "Log start"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_load_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_child"
+              columns:
+              - "gv_load_id"
+              - "gv_job_name"
+              - "gv_job_parent"
+              - "gv_table_name"
+              - "gv_table_type"
+              - "gv_inserted_rows"
+              - "gv_updated_rows"
+              - "gv_subject_area"
+              - "gv_process_date"
+              - "gv_success_flag"
+              - "gv_start_time"
+              - "gv_end_time"
+              - "gv_row_count"
+              - "gv_run_history_id"
+              - "gv_status"
+              - "gv_message"
+              - "gv_comment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -797,21 +794,21 @@ design:
         x: -80
         "y": -240
       tempMetlId: 57
-    Run Shared Pipeline:
-      position:
-        x: -1120
-        "y": -530
-      tempMetlId: 58
-    Append To Grid 2:
-      position:
-        x: -1300
-        "y": -530
-      tempMetlId: 60
     Python Pushdown 2:
       position:
         x: -1200
         "y": -530
       tempMetlId: 61
+    Append To Grid 2:
+      position:
+        x: -1330
+        "y": -540
+      tempMetlId: 62
+    Log start:
+      position:
+        x: -1110
+        "y": -530
+      tempMetlId: 63
   notes:
     "1":
       position:
