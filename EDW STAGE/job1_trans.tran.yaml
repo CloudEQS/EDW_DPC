@@ -26,7 +26,7 @@ pipeline:
         targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
-        updateOutputMessage: "Row count: ${v_row_count}\r\n\r\nTable name:${v_current_table_name}"
+        updateOutputMessage: ""
         updateScalarVariables:
         - - "v_row_count"
           - "${sysvar.thisComponent.rowCount}"
@@ -60,7 +60,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "STAGE_REGION_TABLE"
+      defaultValue: "abc1"
 design:
   components:
     REGION:

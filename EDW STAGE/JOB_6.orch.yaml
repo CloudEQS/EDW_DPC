@@ -13,9 +13,9 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "JOB 6 End Success"
+        - "Print Variables"
         failure:
-        - "JOB 6 End Failure"
+        - "Print Variables 2"
       parameters:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Tjob6.tran.yaml"
@@ -43,6 +43,36 @@ pipeline:
         componentName: "JOB 6 End Success"
       postProcessing:
         updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 6 End Success"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 6 End Failure"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
         updateScalarVariables:
   variables:
     v_row_count:
@@ -77,9 +107,9 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "abc6"
 design:
   components:
     Start:
@@ -102,3 +132,13 @@ design:
         x: 440
         "y": -70
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: 280
+        "y": -20
+      tempMetlId: 5
+    Print Variables 2:
+      position:
+        x: 310
+        "y": 80
+      tempMetlId: 6

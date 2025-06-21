@@ -13,13 +13,14 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "JOB 7 End Success"
-        failure:
-        - "JOB 7 End Failure"
+        - "Print Variables"
+        - "Print Variables 2"
       parameters:
         componentName: "Run Transformation"
         transformationJob: "EDW STAGE/Tjob7.tran.yaml"
         setScalarVariables:
+        - - "v_current_table_name"
+          - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
         updateOutputMessage:
@@ -42,6 +43,36 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 7 End Success"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 7 End Failure"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
+        updateScalarVariables:
   variables:
     v_row_count:
       metadata:
@@ -63,19 +94,19 @@ pipeline:
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "JOB_1"
+      defaultValue: "JOB_7"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "1"
+      defaultValue: "7"
     v_current_table_name:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: ""
 design:
@@ -92,11 +123,21 @@ design:
       tempMetlId: 2
     JOB 7 End Failure:
       position:
-        x: 460
-        "y": 50
+        x: 470
+        "y": 100
       tempMetlId: 3
     JOB 7 End Success:
       position:
         x: 440
         "y": -70
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: 290
+        "y": -70
+      tempMetlId: 5
+    Print Variables 2:
+      position:
+        x: 290
+        "y": 100
+      tempMetlId: 6

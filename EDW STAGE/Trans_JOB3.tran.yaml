@@ -44,7 +44,7 @@ pipeline:
         - - "v_error_message"
           - "${sysvar.thisComponent.message}"
         - - "v_row_count"
-          - "${sysvar.thisComponent.rowsInserted}"
+          - "${sysvar.thisComponent.rowCount}"
   variables:
     v_row_count:
       metadata:
@@ -52,7 +52,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "0"
     v_error_message:
       metadata:
         type: "TEXT"

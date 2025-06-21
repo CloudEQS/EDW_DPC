@@ -6,48 +6,75 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation"
+        - "JOB 1 TRANSFORMATION"
       parameters:
         componentName: "Start"
-    Run Transformation:
+    JOB 1 TRANSFORMATION:
       type: "run-transformation"
       transitions:
         success:
-        - "JOB 2 End Success"
+        - "Print Variables"
         failure:
-        - "JOB 2 End Failure"
+        - "JOB 1 End Failure"
       parameters:
-        componentName: "Run Transformation"
-        transformationJob: "EDW STAGE/Trans_JOB2.tran.yaml"
+        componentName: "JOB 1 TRANSFORMATION"
+        transformationJob: "EDW STAGE/Trans_job2.tran.yaml"
         setScalarVariables:
         - - "v_current_table_name"
           - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "JOB 1:  ${v_current_table_name} success\r\n\r\nTABLE\
+          \ NAME: ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
         updateScalarVariables:
-        - - "${v_error_message}"
-          - "${sysvar.childPipeline.vars.v_error_message}"
-        - - "${v_row_count}"
+        - - "v_row_count"
           - "${sysvar.childPipeline.vars.v_row_count}"
-    JOB 2 End Failure:
+        - - "x_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "x_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "v_error_message"
+          - "${sysvar.childPipeline.vars.v_error_message}"
+    JOB 1 End Failure:
       type: "end-failure"
       parameters:
-        componentName: "JOB 2 End Failure"
+        componentName: "JOB 1 End Failure"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    JOB 2 End Success:
+    JOB 1 End Success:
       type: "end-success"
       parameters:
-        componentName: "JOB 2 End Success"
+        componentName: "JOB 1 End Success"
       postProcessing:
         updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 1 End Success"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "v_current_job_name"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB 1:  ${v_current_table_name} success\r\n\r\nTABLE\
+          \ NAME: ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
         updateScalarVariables:
   variables:
     v_row_count:
       metadata:
         type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    x_end_time:
+      metadata:
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
@@ -65,14 +92,28 @@ pipeline:
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "JOB_2"
+      defaultValue: "JOB_1"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "2"
+      defaultValue: "1"
+    x_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    v_current_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     Start:
@@ -80,18 +121,23 @@ design:
         x: -70
         "y": 0
       tempMetlId: 1
-    Run Transformation:
+    JOB 1 TRANSFORMATION:
       position:
-        x: 160
+        x: 80
         "y": 0
       tempMetlId: 2
-    JOB 2 End Failure:
+    JOB 1 End Failure:
       position:
-        x: 460
-        "y": 50
+        x: 360
+        "y": 80
       tempMetlId: 3
-    JOB 2 End Success:
+    JOB 1 End Success:
       position:
-        x: 440
-        "y": -70
+        x: 310
+        "y": -100
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: 190
+        "y": -60
+      tempMetlId: 5

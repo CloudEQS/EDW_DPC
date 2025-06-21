@@ -2,29 +2,49 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    SQL:
-      type: "sql"
+    LINE ITEM2:
+      type: "table-input"
       parameters:
-        componentName: "SQL"
-        query: "select  Top 100000 * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM--"
-    JOB 5 Line_item2:
+        componentName: "LINE ITEM2"
+        database: "SNOWFLAKE_SAMPLE_DATA"
+        schema: "TPCH_SF1"
+        targetTable: "LINEITEM"
+        columnNames:
+        - "L_ORDERKEY"
+        - "L_PARTKEY"
+        - "L_SUPPKEY"
+        - "L_LINENUMBER"
+        - "L_QUANTITY"
+        - "L_EXTENDEDPRICE"
+        - "L_DISCOUNT"
+        - "L_TAX"
+        - "L_RETURNFLAG"
+        - "L_LINESTATUS"
+        - "L_SHIPDATE"
+        - "L_COMMITDATE"
+        - "L_RECEIPTDATE"
+        - "L_SHIPINSTRUCT"
+        - "L_SHIPMODE"
+        - "L_COMMENT"
+        timeOffset:
+    LINE ITEM3:
       type: "rewrite-table"
       sources:
-      - "SQL"
+      - "LINE ITEM2"
       parameters:
-        componentName: "JOB 5 Line_item2"
+        componentName: "LINE ITEM3"
         warehouse: "[Environment Default]"
-        database: "SCD_PRACTICE_DB"
+        database: "EDW_LAB"
         schema: "PUBLIC"
         targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "JOB 3: LINEITEM TABLE EXECEUTED"
         updateScalarVariables:
         - - "v_error_message"
           - "${sysvar.thisComponent.message}"
         - - "v_row_count"
-          - "${sysvar.thisComponent.rowsInserted}"
+          - "${sysvar.thisComponent.rowCount}"
   variables:
     v_row_count:
       metadata:
@@ -32,7 +52,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "0"
     v_error_message:
       metadata:
         type: "TEXT"
@@ -46,16 +66,16 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "stage_lineitem2"
+      defaultValue: "STAGE_REGION_TABLE"
 design:
   components:
-    SQL:
+    LINE ITEM2:
       position:
-        x: -290
-        "y": -70
+        x: 0
+        "y": 0
       tempMetlId: 1
-    JOB 5 Line_item2:
+    LINE ITEM3:
       position:
-        x: -130
-        "y": -70
+        x: 160
+        "y": 0
       tempMetlId: 2

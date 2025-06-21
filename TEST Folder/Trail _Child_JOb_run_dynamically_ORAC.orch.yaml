@@ -261,8 +261,8 @@ pipeline:
           - "RUNNING_COUNT"
       postProcessing:
         updateOutputMessage: "COMPLETED_COUNT: ${v_completed_jobs}\r\nPENDING_RUNNING_COUNT:\
-          \ ${v_pending_running_jobs}\r\nRUNNING_COUNT:${v_running_jobs}\t\r\nFAILED_SKIPPED_COUNT:\
-          \ ${v_failed_jobs}\t\r\n\r\n"
+          \ ${v_pending_running_jobs}\r\nRUNNING_COUNT:   ${v_running_jobs}\t\r\n\
+          FAILED_SKIPPED_COUNT: ${v_failed_jobs}\t\r\n\r\n"
         updateScalarVariables:
     Check Completion:
       type: "query-to-scalar"
@@ -309,7 +309,8 @@ pipeline:
         concurrency: "Concurrent"
       postProcessing:
         updateOutputMessage: "JOB is Running Currently in the Orachstration: ${v_current_job_name}\r\
-          \n\r\nJOB Sequence :${v_current_job_seq}"
+          \n\r\nTarget Table Name :${v_current_table_name}\r\n\r\nJOB Sequence :${v_current_job_seq}\r\
+          \n\r\n"
         updateScalarVariables:
     Trail CHILD Run Orchestration ITERATOR 2:
       type: "run-orchestration"
@@ -549,7 +550,7 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "STAGE_REGION_TABLE"
     v_all_jobs_processed:

@@ -14,9 +14,9 @@ pipeline:
       parameters:
         componentName: "PART2 :JOB_7"
         warehouse: "[Environment Default]"
-        database: "SCD_PRACTICE_DB"
+        database: "EDW_LAB"
         schema: "PUBLIC"
-        targetTable: "PART2"
+        targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
         updateOutputMessage:
@@ -24,7 +24,7 @@ pipeline:
         - - "v_error_message"
           - "${sysvar.thisComponent.message}"
         - - "v_row_count"
-          - "${sysvar.thisComponent.rowsInserted}"
+          - "${sysvar.thisComponent.rowCount}"
   variables:
     v_row_count:
       metadata:
@@ -46,7 +46,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "PART2"
+      defaultValue: "abc7"
 design:
   components:
     SQL:

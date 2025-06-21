@@ -28,14 +28,14 @@ pipeline:
           - "${v_current_table_name}"
         setGridVariables:
       postProcessing:
-        updateOutputMessage: "Detailed messgae : ${v_detailed_message}"
+        updateOutputMessage: "Detailed messgae : ${v_detailed_message}\r\n\r\n${sysvar.childPipeline.vars.v_row_count}"
         updateScalarVariables:
         - - "v_detailed_message"
           - "${sysvar.childPipeline.vars.v_error_message}"
-        - - "jv_updated_rows"
-          - "${sysvar.childPipile.vars.v_row_count}"
         - - "v_current_table_name"
-          - "${sysvar.childPipeline.vars.x_table_name}"
+          - "${sysvar.childPipeline.vars.v_current_table_name}"
+        - - "jv_row_count"
+          - "${sysvar.childPipeline.vars.v_row_count}"
     Mark Job Running:
       type: "sql-executor"
       transitions:
@@ -47,9 +47,9 @@ pipeline:
         declareSqlVariables: "Include selected"
         variablesToInclude:
         sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'RUNNING', \r\n    START_TIME = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED\
-          \ = CURRENT_TIMESTAMP(),\r\n    ERROR_MESSAGE='${v_detailed_message}'\r\n\
-          WHERE job_name='${v_current_job_name}'"
+          \ = 'RUNNING', \r\n    TABLE_NAME='${v_current_table_name}',\r\n    START_TIME\
+          \ = CURRENT_TIMESTAMP(), \r\n    LAST_UPDATED = CURRENT_TIMESTAMP(),\r\n\
+          \    ERROR_MESSAGE='${v_detailed_message}'\r\nWHERE job_name='${v_current_job_name}'"
       postProcessing:
         updateOutputMessage: "JOB Running : ${v_current_job_name}"
         updateScalarVariables:
@@ -80,10 +80,11 @@ pipeline:
         declareSqlVariables: "Include selected"
         variablesToInclude:
         sqlScript: "UPDATE INTERNAL_TRAINING.EDP_CURATED.job_status \r\nSET STATUS\
-          \ = 'COMPLETED', \r\n    END_TIME = CURRENT_TIMESTAMP(), \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\
-          \nWHERE job_name='${v_current_job_name}'"
+          \ = 'COMPLETED', \r\n    row_count=${jv_row_count},\r\n    END_TIME = CURRENT_TIMESTAMP(),\
+          \ \r\n    ERROR_MESSAGE='${v_detailed_message}'\r\nWHERE job_name='${v_current_job_name}'"
       postProcessing:
-        updateOutputMessage: "JOB Completed : ${v_current_job_name}"
+        updateOutputMessage: "JOB Completed : ${v_current_job_name}\r\n\r\nTable name\
+          \ : ${jv_table_name}\r\n\r\nRow Count: ${jv_updated_rows}"
         updateScalarVariables:
     Logs append 2:
       type: "append-to-grid"
@@ -99,7 +100,7 @@ pipeline:
         - - " ${sysvar.thisComponent.taskId}"
           - "${sysvar.thisPipeline.fullName}"
           - "${sysvar.rootPipeline.executionId}"
-          - "abc"
+          - "${v_current_table_name}"
           - "table"
           - "0"
           - "0"
@@ -224,10 +225,10 @@ pipeline:
         - - " ${sysvar.thisComponent.taskId}"
           - "${sysvar.thisPipeline.fullName}"
           - "${sysvar.rootPipeline.executionId}"
-          - "abc"
+          - "${v_current_table_name}"
           - "table"
           - "0"
-          - "0"
+          - "${jv_row_count}"
           - ""
           - "${new Date().toISOString()}"
           - "Y"
@@ -309,9 +310,9 @@ pipeline:
       metadata:
         type: "NUMBER"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "0"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
@@ -330,7 +331,7 @@ pipeline:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: "STAGE_REGION_TABLE"
     jv_end_time:

@@ -6,18 +6,18 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation"
+        - "Run Transformation JOB 4"
       parameters:
         componentName: "Start"
-    Run Transformation:
+    Run Transformation JOB 4:
       type: "run-transformation"
       transitions:
         success:
-        - "JOB 4 End Success"
+        - "Print Variables"
         failure:
-        - "JOB 4 End Failure"
+        - "Print Variables 2"
       parameters:
-        componentName: "Run Transformation"
+        componentName: "Run Transformation JOB 4"
         transformationJob: "EDW STAGE/Trans_JOB4.tran.yaml"
         setScalarVariables:
         - - "v_current_table_name"
@@ -44,6 +44,36 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 4 End Success"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      transitions:
+        success:
+        - "JOB 4 End Failure"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "v_row_count"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "JOB :  ${v_current_job_name} success\r\n\r\nTABLE NAME:\
+          \ ${v_current_table_name}\r\n\r\nRow_count:  ${v_row_count} "
+        updateScalarVariables:
   variables:
     v_row_count:
       metadata:
@@ -65,21 +95,21 @@ pipeline:
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "JOB_1"
+      defaultValue: "JOB_4"
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "1"
+      defaultValue: "4"
     v_current_table_name:
       metadata:
         type: "TEXT"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "STAGE_REGION_TABLE"
+      defaultValue: ""
 design:
   components:
     Start:
@@ -87,18 +117,28 @@ design:
         x: -70
         "y": 0
       tempMetlId: 1
-    Run Transformation:
+    Run Transformation JOB 4:
       position:
         x: 160
         "y": 0
       tempMetlId: 2
     JOB 4 End Failure:
       position:
-        x: 460
-        "y": 50
+        x: 490
+        "y": 70
       tempMetlId: 3
     JOB 4 End Success:
       position:
-        x: 440
-        "y": -70
+        x: 480
+        "y": -50
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: 340
+        "y": -50
+      tempMetlId: 5
+    Print Variables 2:
+      position:
+        x: 350
+        "y": 70
+      tempMetlId: 6

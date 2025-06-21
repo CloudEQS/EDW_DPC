@@ -19,7 +19,7 @@ pipeline:
         - - "v_error_message"
           - "${sysvar.thisComponent.message}"
         - - "v_row_count"
-          - "${sysvar.thisComponent.rowsInserted}"
+          - "${sysvar.thisComponent.rowCount}"
     NATION:
       type: "table-input"
       parameters:
@@ -54,7 +54,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "STAGE_NATION"
+      defaultValue: "abcc6"
 design:
   components:
     NATION :JOB 6:

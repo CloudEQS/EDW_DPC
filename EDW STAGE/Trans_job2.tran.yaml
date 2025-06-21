@@ -20,24 +20,24 @@ pipeline:
         - "O_SHIPPRIORITY"
         - "O_COMMENT"
         timeOffset:
-    'JOB 2 : ORDER TABLE':
+    Orders:
       type: "rewrite-table"
       sources:
       - "ORDERS"
       parameters:
-        componentName: "JOB 2 : ORDER TABLE"
+        componentName: "Orders"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
         targetTable: "${v_current_table_name}"
         orderBy:
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: ""
         updateScalarVariables:
         - - "v_error_message"
           - "${sysvar.thisComponent.message}"
         - - "v_row_count"
-          - "${sysvar.thisComponent.rowsInserted}"
+          - "${sysvar.thisComponent.rowCount}"
   variables:
     v_row_count:
       metadata:
@@ -45,7 +45,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "0"
     v_error_message:
       metadata:
         type: "TEXT"
@@ -59,16 +59,16 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "STAGE_REGION_TABLE"
 design:
   components:
     ORDERS:
       position:
-        x: -180
-        "y": -80
+        x: 0
+        "y": 0
       tempMetlId: 1
-    'JOB 2 : ORDER TABLE':
+    Orders:
       position:
-        x: -40
-        "y": -80
+        x: 160
+        "y": 0
       tempMetlId: 2
