@@ -1,0 +1,312 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid"
+      parameters:
+        componentName: "Start"
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Print Variables"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Advanced"
+        gridVariable: "gv_source_system_details"
+        gridVariableMapping:
+        - - "SOURCE_SYSTEM_CODE"
+          - "source_system_code"
+        - - "SOURCE_CONNECTION_URL"
+          - "source_connection_url"
+        - - "SOURCE_OBJECT_ID"
+          - "source_object_id"
+        - - "SOURCE_SYSTEM_ID"
+          - "source_system_id"
+        - - "OBJECT_TYPE"
+          - "source_object_type"
+        - - "OBJECT_NAME"
+          - "object_name"
+        - - "REFRESH_FREQUENCY"
+          - "refresh_frequency"
+        - - "REFRESH_TYPE"
+          - "refresh_type"
+        - - "ACTIVE_FLAG"
+          - "active_flage"
+        - - "TARGET_TABLE"
+          - "target_table"
+        - - "SRC_DB"
+          - "src_db"
+        - - "SRC_SCHEMA"
+          - "src_schema"
+        - - "TAR_DB"
+          - "tar_db"
+        - - "TAR_SCHEMA"
+          - "tar_schema"
+        query: "  \r\n   select ss.Source_system_code,ss.source_connection_url,so.*\r\
+          \n   from edw_lab.public.Source_Objects so \r\n   left join edw_lab.public.Source_system\
+          \ ss \r\n   on ss.Source_system_id = so.Source_system_id\r\n   where so.active_flag\
+          \ = TRUE and ss.active_flag = TRUE"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Grid Iterator"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_source_system_details"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Orchestration:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "Ingestion to Facts and Dim/${jv_source_system_code}_Load"
+        setScalarVariables:
+        - - "jv_source_connection_url"
+          - "${jv_source_connection_url}"
+        - - "jv_refresh_type"
+          - "${jv_refresh_type}"
+        - - "jv_tar_schema"
+          - "${jv_tar_schema}"
+        - - "jv_tar_db"
+          - "${jv_tar_db}"
+        - - "jv_active_flage"
+          - "${jv_active_flage}"
+        - - "jv_source_object_name"
+          - "${jv_source_object_name}"
+        - - "jv_src_db"
+          - "${jv_src_db}"
+        - - "jv_src_schema"
+          - "${jv_src_schmea}"
+        - - "jv_source_object_type"
+          - "${jv_source_object_type}"
+        - - "jv_source_system_code"
+          - "${jv_source_code}"
+        - - "jv_source_object_id"
+          - "${jv_source_object_id}"
+        - - "jv_source_system_id"
+          - "${jv_source_system_id}"
+        - - "jv_target_table"
+          - "${jv_target_table}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      iterationTarget: "Run Orchestration"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_source_system_details"
+        gridIteratorVariableMapping:
+        - - "source_object_id"
+          - "jv_source_object_id"
+        - - "source_system_id"
+          - "jv_source_system_id"
+        - - "source_object_type"
+          - "jv_source_object_type"
+        - - "object_name"
+          - "jv_source_object_name"
+        - - "refresh_type"
+          - "jv_refresh_type"
+        - - "active_flage"
+          - "jv_active_flage"
+        - - "target_table"
+          - "jv_target_table"
+        - - "source_system_code"
+          - "jv_source_system_code"
+        - - "source_connection_url"
+          - "jv_source_connection_url"
+        - - "src_db"
+          - "jv_src_db"
+        - - "src_schema"
+          - "jv_src_schema"
+        - - "tar_schema"
+          - "jv_tar_schema"
+        - - "tar_db"
+          - "jv_tar_db"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_source_connection_url:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "url"
+    jv_refresh_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "FULL"
+    jv_tar_schema:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_SCHEMA"
+    jv_tar_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "EDW_LAB"
+    jv_active_flage:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "true"
+    jv_source_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "CUSTO"
+    jv_src_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "SOURCE_DB_TEST"
+    jv_src_schema:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "SOURCE_SCHEMA"
+    jv_source_object_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_source_object_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "Table"
+    jv_source_system_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_target_table:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "stage_customer"
+    jv_source_system_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "SNOWFLAKE"
+    gv_source_system_details:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          source_object_id:
+            columnType: "NUMBER"
+          source_system_id:
+            columnType: "NUMBER"
+          source_object_type:
+            columnType: "TEXT"
+          object_name:
+            columnType: "TEXT"
+          refresh_frequency:
+            columnType: "TEXT"
+          refresh_type:
+            columnType: "TEXT"
+          active_flage:
+            columnType: "TEXT"
+          target_table:
+            columnType: "TEXT"
+          source_system_code:
+            columnType: "TEXT"
+          source_connection_url:
+            columnType: "TEXT"
+          src_db:
+            columnType: "TEXT"
+          src_schema:
+            columnType: "TEXT"
+          tar_db:
+            columnType: "TEXT"
+          tar_schema:
+            columnType: "TEXT"
+      defaultValue:
+      - - "1"
+        - "1"
+        - "TABLE"
+        - "CUSTOMER"
+        - "DAILY"
+        - "FULL"
+        - "TRUE"
+        - "CUSTOMER"
+        - "SNOWFLAKE"
+        - "conn"
+        - "db"
+        - "schma"
+        - "tar_db"
+        - "tar_sch"
+design:
+  components:
+    Start:
+      position:
+        x: -360
+        "y": -20
+      tempMetlId: 1
+    Query Result To Grid:
+      position:
+        x: -240
+        "y": -20
+      tempMetlId: 4
+    Print Variables:
+      position:
+        x: -70
+        "y": -20
+      tempMetlId: 5
+    Run Orchestration:
+      position:
+        x: 90
+        "y": -40
+      tempMetlId: 6
+    Grid Iterator:
+      position:
+        x: 90
+        "y": -40
+      tempMetlId: 7

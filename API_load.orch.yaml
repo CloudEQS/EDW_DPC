@@ -7,7 +7,6 @@ pipeline:
       transitions:
         unconditional:
         - "My cust user conn"
-        - "Run Shared Pipeline"
       parameters:
         componentName: "Start"
     My cust user conn:
@@ -42,14 +41,28 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Run Shared Pipeline:
-      type: "run-shared-pipeline"
+    Database Query:
+      type: "database-query"
       parameters:
-        componentName: "Run Shared Pipeline"
-        pipelineName:
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
+        componentName: "Database Query"
+        basicAdvancedMode: "Advanced"
+        databaseType: "Snowflake"
+        connectionUrl:
+        username:
+        password:
+        connectionOptions:
+        sqlQuery: "select ..."
+        fetchSize:
+        type: "Standard"
+        primaryKeys:
+        warehouse1: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable:
+        stage1: "[Custom]"
+        stagePlatform: "Snowflake Managed"
+        loadOptions:
+        sshTunnel:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -65,8 +78,8 @@ design:
         x: -1390
         "y": -290
       tempMetlId: 2
-    Run Shared Pipeline:
+    Database Query:
       position:
-        x: -1560
-        "y": -160
+        x: -1570
+        "y": -350
       tempMetlId: 3

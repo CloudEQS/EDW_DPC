@@ -1,0 +1,167 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Print Variables"
+      parameters:
+        componentName: "Start"
+    Log Started:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Run Transformation"
+      parameters:
+        componentName: "Log Started"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO EDW_LAB.STAGE_SCHEMA.LOAD_LOG(LOAD_ID,JOB_NAME,TABLE_NAME,\
+          \ SCD_TYPE,STATUS,START_TIME)\r\nVALUES('${sysvar.thisPipeline.executionId}','${jv_job_name}','${jv_table_name}','${jv_scd_type}','Job\
+          \ is Started',CURRENT_TIMESTAMP)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Completed"
+        failure:
+        - "Log Failed"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "Source to Fact/${jv_job_name}"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "${jv_job_name} is Runnning Present"
+        updateScalarVariables:
+        - - "v_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+    Log Completed:
+      type: "sql-executor"
+      parameters:
+        componentName: "Log Completed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.STAGE_SCHEMA.LOAD_LOG SET \r\n    LOAD_ID='${sysvar.thisPipeline.executionId}',JOB_NAME='${jv_job_name}',TABLE_NAME='${jv_table_name}',SCD_TYPE='${jv_scd_type}',INSERTED_ROWS='${jv_inserted_rows}',UPDATED_ROWS='${jv_updated_rows}',STATUS='Completed\
+          \ Successfully',END_TIME=CURRENT_TIMESTAMP\r\n\r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Failed:
+      type: "sql-executor"
+      parameters:
+        componentName: "Log Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include all"
+        sqlScript: "\r\nupdate EDW_LAB.STAGE_SCHEMA.LOAD_LOG SET \r\n    LOAD_ID='${sysvar.thisPipeline.executionId}',JOB_NAME='${jv_job_name}',TABLE_NAME='${jv_table_name}',SCD_TYPE='${jv_scd_type}',INSERTED_ROWS='${jv_inserted_rows}',UPDATED_ROWS='${jv_updated_rows}',STATUS='Failed',END_TIME=CURRENT_TIMESTAMP,ERROR_MESSAGE='${v_error_message}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Log Started"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "jv_job_name"
+        - - "jv_table_name"
+        prefixText: "JOB Details= "
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    v_row_count:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "t_Stg_Region_to_Dim_Region_Scd1"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "ABC"
+    jv_scd_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    Start:
+      position:
+        x: -1180
+        "y": 50
+      tempMetlId: 1
+    Log Started:
+      position:
+        x: -890
+        "y": 50
+      tempMetlId: 2
+    Run Transformation:
+      position:
+        x: -770
+        "y": 50
+      tempMetlId: 3
+    Log Completed:
+      position:
+        x: -630
+        "y": -20
+      tempMetlId: 4
+    Log Failed:
+      position:
+        x: -610
+        "y": 150
+      tempMetlId: 5
+    Print Variables:
+      position:
+        x: -1040
+        "y": 50
+      tempMetlId: 6

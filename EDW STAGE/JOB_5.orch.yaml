@@ -6,10 +6,10 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation JOB 4"
+        - "Run Transformation :JOB 5"
       parameters:
         componentName: "Start"
-    Run Transformation JOB 4:
+    Run Transformation :JOB 5:
       type: "run-transformation"
       transitions:
         success:
@@ -17,8 +17,8 @@ pipeline:
         failure:
         - "Print Variables 2"
       parameters:
-        componentName: "Run Transformation JOB 4"
-        transformationJob: "EDW STAGE/Trans_JOB4.tran.yaml"
+        componentName: "Run Transformation :JOB 5"
+        transformationJob: "EDW STAGE/Trans_JOB_5.tran.yaml"
         setScalarVariables:
         - - "v_current_table_name"
           - "${v_current_table_name}"
@@ -30,17 +30,17 @@ pipeline:
           - "${sysvar.childPipeline.vars.v_error_message}"
         - - "v_row_count"
           - "${sysvar.childPipeline.vars.v_row_count}"
-    JOB 4 End Failure:
+    JOB 5 End Failure:
       type: "end-failure"
       parameters:
-        componentName: "JOB 4 End Failure"
+        componentName: "JOB 5 End Failure"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    JOB 4 End Success:
+    JOB 5 End Success:
       type: "end-success"
       parameters:
-        componentName: "JOB 4 End Success"
+        componentName: "JOB 5 End Success"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -48,7 +48,7 @@ pipeline:
       type: "print-variables"
       transitions:
         success:
-        - "JOB 4 End Success"
+        - "JOB 5 End Success"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
@@ -63,7 +63,7 @@ pipeline:
       type: "print-variables"
       transitions:
         success:
-        - "JOB 4 End Failure"
+        - "JOB 5 End Failure"
       parameters:
         componentName: "Print Variables 2"
         variablesToPrint:
@@ -81,7 +81,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: ""
+      defaultValue: "0"
     v_error_message:
       metadata:
         type: "TEXT"
@@ -95,21 +95,21 @@ pipeline:
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "JOB_4"
+      defaultValue: ""
     v_current_job_seq:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "4"
+      defaultValue: "5"
     v_current_table_name:
       metadata:
         type: "TEXT"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
-      defaultValue: "abc4"
+      defaultValue: ""
 design:
   components:
     Start:
@@ -117,28 +117,28 @@ design:
         x: -70
         "y": 0
       tempMetlId: 1
-    Run Transformation JOB 4:
+    Run Transformation :JOB 5:
       position:
         x: 160
         "y": 0
       tempMetlId: 2
-    JOB 4 End Failure:
+    JOB 5 End Failure:
       position:
-        x: 490
-        "y": 70
+        x: 460
+        "y": 50
       tempMetlId: 3
-    JOB 4 End Success:
+    JOB 5 End Success:
       position:
-        x: 480
-        "y": -50
+        x: 440
+        "y": -70
       tempMetlId: 4
     Print Variables:
       position:
-        x: 340
-        "y": -50
+        x: 290
+        "y": -40
       tempMetlId: 5
     Print Variables 2:
       position:
-        x: 350
-        "y": 70
+        x: 330
+        "y": 60
       tempMetlId: 6

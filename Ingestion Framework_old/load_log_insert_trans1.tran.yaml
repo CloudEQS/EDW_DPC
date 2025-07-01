@@ -8,7 +8,7 @@ pipeline:
         componentName: "grid_var_load_log"
         columns:
         - - "gv_load_id"
-          - "VARCHAR"
+          - "NUMBER"
           - ""
           - ""
         - - "gv_job_name"
@@ -40,19 +40,19 @@ pipeline:
           - ""
           - ""
         - - "gv_process_date"
-          - "VARCHAR"
+          - "DATE"
           - ""
           - ""
         - - "gv_success_flag"
-          - "VARCHAR"
+          - "NUMBER"
           - ""
           - ""
         - - "gv_start_time"
-          - "VARCHAR"
+          - "TIMESTAMP"
           - ""
           - ""
         - - "gv_end_time"
-          - "VARCHAR"
+          - "TIMESTAMP"
           - ""
           - ""
         - - "gv_row_count"
@@ -60,7 +60,7 @@ pipeline:
           - ""
           - ""
         - - "gv_run_history_id"
-          - "VARCHAR"
+          - "NUMBER"
           - ""
           - ""
         - - "gv_status"
@@ -103,11 +103,13 @@ pipeline:
       parameters:
         componentName: "Load log insert"
         warehouse: "[Environment Default]"
-        database: "EDW_LAB"
-        schema: "PUBLIC"
-        targetTable: "LOAD_LOG"
+        database: "${ev_sf_database}"
+        schema: "${ev_edp_curated_schema}"
+        targetTable: "${ev_load_log}"
         fixDataTypeMismatches: "No"
         columnMapping:
+        - - "gv_load_id"
+          - "LOAD_ID"
         - - "gv_job_name"
           - "PROCEDURE_NAME"
         - - "gv_job_parent"
@@ -116,6 +118,8 @@ pipeline:
           - "TABLE_NAME"
         - - "gv_table_type"
           - "TABLE_TYPE"
+        - - "gv_subject_area"
+          - "SUBJECT_AREA"
         - - "gv_inserted_rows"
           - "INSERTED_ROWS"
         - - "gv_updated_rows"
@@ -130,12 +134,6 @@ pipeline:
           - "END_TIME"
         - - "gv_comment"
           - "COMMENTS"
-        - - "gv_message"
-          - "MESSAGE"
-        - - "gv_row_count"
-          - "ROW_COUNT"
-        - - "gv_status"
-          - "ERROR_ROWS"
         orderBy:
         outputMode: "Append"
   variables:
@@ -147,7 +145,7 @@ pipeline:
         visibility: "PUBLIC"
         columns:
           gv_load_id:
-            columnType: "TEXT"
+            columnType: "NUMBER"
           gv_job_name:
             columnType: "TEXT"
           gv_job_parent:
@@ -165,7 +163,7 @@ pipeline:
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
-            columnType: "TEXT"
+            columnType: "NUMBER"
           gv_start_time:
             columnType: "TEXT"
           gv_end_time:
@@ -173,7 +171,7 @@ pipeline:
           gv_row_count:
             columnType: "NUMBER"
           gv_run_history_id:
-            columnType: "TEXT"
+            columnType: "NUMBER"
           gv_status:
             columnType: "TEXT"
           gv_message:
@@ -181,32 +179,32 @@ pipeline:
           gv_comment:
             columnType: "TEXT"
       defaultValue:
-      - - "a"
-        - "b"
-        - "c"
-        - "d"
-        - "f"
-        - "0"
-        - "-0"
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
         - "-1"
         - "1970-01-01"
-        - "y"
-        - "acb"
-        - "abh"
-        - "0"
-        - "hj"
-        - "whj"
-        - "mes"
-        - "kk"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
 design:
   components:
     grid_var_load_log:
       position:
-        x: 30
-        "y": 110
+        x: 160
+        "y": 112
       tempMetlId: 912876
     Load log insert:
       position:
-        x: 320
+        x: 300
         "y": 110
       tempMetlId: 912879

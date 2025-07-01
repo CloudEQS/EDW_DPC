@@ -1,0 +1,435 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "t_Stg_Region_to_Dim_Region_Scd1"
+      parameters:
+        componentName: "Start"
+    Stage Customer to Dim Customer Status:
+      type: "print-variables"
+      parameters:
+        componentName: "Stage Customer to Dim Customer Status"
+        variablesToPrint:
+        - - "jv_table_name"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Row are Updated: ${jv_updated_rows}\r\nRows are Inseted:\
+          \ ${jv_inserted_rows}\r\n"
+        updateScalarVariables:
+    t_Stg_Customer_to_Dim_Customer_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append"
+        - "Stage Customer to Dim Customer Status"
+      parameters:
+        componentName: "t_Stg_Customer_to_Dim_Customer_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Customer_to_Dim_Customer_Scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Log Append:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "t_Stg_Part_to_Dim_Part_Scd1"
+      skipped: false
+      parameters:
+        componentName: "Log Append"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_dim_fact"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "0"
+          - "0"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    t_Stg_Part_to_Dim_Part_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append 2"
+        - "Print Variables 2"
+      parameters:
+        componentName: "t_Stg_Part_to_Dim_Part_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Part_to_Dim_Part_Scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Stage Part to Dim Part SCD1 is Executing Now"
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Log Append 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "t_Stg_Supplier_to_Dim_Supplier_Scd1"
+      skipped: false
+      parameters:
+        componentName: "Log Append 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_dim_fact"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "0"
+          - "0"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "gv_load_log_dim_fact"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Row are Updated: ${jv_updated_rows}\r\nRows are Inseted:\
+          \ ${jv_inserted_rows}\r\n"
+        updateScalarVariables:
+    t_Stg_Supplier_to_Dim_Supplier_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append 2 2"
+        - "Print Variables 2 2"
+      parameters:
+        componentName: "t_Stg_Supplier_to_Dim_Supplier_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Supplier_to_Dim_Supplier_Scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "STAGE SUPPLLIER TO CUSTOMER DIM SCD1 Is Running Now"
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Log Append 2 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "t_Stg_Supplier_to_Dim_Supplier_Scd1 2"
+      skipped: false
+      parameters:
+        componentName: "Log Append 2 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_dim_fact"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "0"
+          - "0"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 2 2:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 2 2"
+        variablesToPrint:
+        - - "jv_inserted_rows"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Row are Updated: ${jv_updated_rows}\r\nRows are Inseted:\
+          \ ${jv_inserted_rows}\r\n"
+        updateScalarVariables:
+    t_Stg_Nation_to_Dim_Nation_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append 3"
+      parameters:
+        componentName: "t_Stg_Nation_to_Dim_Nation_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Append 3:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "t_Stg_Customer_to_Dim_Customer_Scd1"
+      skipped: false
+      parameters:
+        componentName: "Log Append 3"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_dim_fact"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "0"
+          - "0"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    t_Stg_Region_to_Dim_Region_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append 3 2"
+      parameters:
+        componentName: "t_Stg_Region_to_Dim_Region_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Region_to_Dim_Region_Scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Append 3 2:
+      type: "append-to-grid"
+      skipped: false
+      parameters:
+        componentName: "Log Append 3 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_dim_fact"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${v_current_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${sysvar.thisComponent.startedAt}"
+          - "0"
+          - "0"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    t_Stg_Supplier_to_Dim_Supplier_Scd1 2:
+      type: "run-transformation"
+      parameters:
+        componentName: "t_Stg_Supplier_to_Dim_Supplier_Scd1 2"
+        transformationJob: "Source to Fact/t_Stg_Orders_to_Orders_DIm.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "STAGE SUPPLLIER TO CUSTOMER DIM SCD1 Is Running Now"
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+  variables:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_load_log_dim_fact:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -1970
+        "y": -130
+      tempMetlId: 1
+    Stage Customer to Dim Customer Status:
+      position:
+        x: -1530
+        "y": -360
+      tempMetlId: 4
+    t_Stg_Customer_to_Dim_Customer_Scd1:
+      position:
+        x: -1590
+        "y": -250
+      tempMetlId: 5
+    Log Append:
+      position:
+        x: -1520
+        "y": -140
+      tempMetlId: 6
+    t_Stg_Part_to_Dim_Part_Scd1:
+      position:
+        x: -1440
+        "y": -250
+      tempMetlId: 7
+    Log Append 2:
+      position:
+        x: -1370
+        "y": -140
+      tempMetlId: 8
+    Print Variables 2:
+      position:
+        x: -1370
+        "y": -350
+      tempMetlId: 9
+    t_Stg_Supplier_to_Dim_Supplier_Scd1:
+      position:
+        x: -1300
+        "y": -260
+      tempMetlId: 10
+    Log Append 2 2:
+      position:
+        x: -1230
+        "y": -140
+      tempMetlId: 11
+    Print Variables 2 2:
+      position:
+        x: -1240
+        "y": -350
+      tempMetlId: 12
+    t_Stg_Nation_to_Dim_Nation_Scd1:
+      position:
+        x: -1740
+        "y": -240
+      tempMetlId: 13
+    Log Append 3:
+      position:
+        x: -1660
+        "y": -130
+      tempMetlId: 14
+    t_Stg_Region_to_Dim_Region_Scd1:
+      position:
+        x: -1890
+        "y": -240
+      tempMetlId: 15
+    Log Append 3 2:
+      position:
+        x: -1810
+        "y": -130
+      tempMetlId: 16
+    t_Stg_Supplier_to_Dim_Supplier_Scd1 2:
+      position:
+        x: -1140
+        "y": -270
+      tempMetlId: 17

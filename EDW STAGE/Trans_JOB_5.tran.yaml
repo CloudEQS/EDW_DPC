@@ -2,26 +2,28 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    PARTSUPP:
+    Supplier:
       type: "table-input"
       parameters:
-        componentName: "PARTSUPP"
+        componentName: "Supplier"
         database: "SNOWFLAKE_SAMPLE_DATA"
         schema: "TPCH_SF10"
-        targetTable: "PARTSUPP"
+        targetTable: "SUPPLIER"
         columnNames:
-        - "PS_PARTKEY"
-        - "PS_SUPPKEY"
-        - "PS_AVAILQTY"
-        - "PS_SUPPLYCOST"
-        - "PS_COMMENT"
+        - "S_SUPPKEY"
+        - "S_NAME"
+        - "S_ADDRESS"
+        - "S_NATIONKEY"
+        - "S_PHONE"
+        - "S_ACCTBAL"
+        - "S_COMMENT"
         timeOffset:
-    'PARTSUPP TARGET ':
+    SUPPLIER 5:
       type: "rewrite-table"
       sources:
-      - "PARTSUPP"
+      - "Supplier"
       parameters:
-        componentName: "PARTSUPP TARGET "
+        componentName: "SUPPLIER 5"
         warehouse: "[Environment Default]"
         database: "EDW_LAB"
         schema: "PUBLIC"
@@ -55,15 +57,15 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "abc4"
+      defaultValue: "abc5"
 design:
   components:
-    PARTSUPP:
+    Supplier:
       position:
         x: 0
         "y": 0
       tempMetlId: 1
-    'PARTSUPP TARGET ':
+    SUPPLIER 5:
       position:
         x: 160
         "y": 0

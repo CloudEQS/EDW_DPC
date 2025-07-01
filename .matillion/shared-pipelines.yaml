@@ -9,7 +9,7 @@ pipelines:
   - pipeline: SCD_TYPE2_DETECTCHANGES.tran.yaml
     displayName: SCD_TYPE2_DETECTCHANGES
     id: SCD_TYPE2_DETECTCHANGES
-    enabled: true
+    enabled: false
     parameters: {}
   - pipeline: API FLATTEN.tran.yaml
     displayName: API FLATTEN
@@ -480,7 +480,7 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert_trans1.tran.yaml
+  - pipeline: Ingestion Framework_old/error_log_insert_trans1.tran.yaml
     displayName: error_log_insert_trans1
     id: error_log_insert
     enabled: false
@@ -514,12 +514,12 @@ pipelines:
             columnType: TEXT
           gv_message:
             columnType: TEXT
-  - pipeline: Ingestion Framework/error_log_insert_orc.orch.yaml
+  - pipeline: Ingestion Framework_old/error_log_insert_orc.orch.yaml
     displayName: error_log_insert_orc
     id: error_log_insert-1
     enabled: true
     parameters: {}
-  - pipeline: Ingestion Framework/load_log_insert_orc.orch.yaml
+  - pipeline: Ingestion Framework_old/load_log_insert_orc.orch.yaml
     displayName: load_log_insert_orc
     id: load_log_insert
     enabled: false
@@ -563,7 +563,7 @@ pipelines:
             columnType: TEXT
           gv_comment:
             columnType: TEXT
-  - pipeline: Ingestion Framework/load_log_insert_trans1.tran.yaml
+  - pipeline: Ingestion Framework_old/load_log_insert_trans1.tran.yaml
     displayName: load_log_insert_trans1
     id: load_log_insert-1
     enabled: false
@@ -631,8 +631,6 @@ pipelines:
             columnType: NUMBER
           gv_updated_rows:
             columnType: NUMBER
-          gv_subject_area:
-            columnType: TEXT
           gv_process_date:
             columnType: TEXT
           gv_success_flag:
@@ -643,13 +641,9 @@ pipelines:
             columnType: TEXT
           gv_row_count:
             columnType: NUMBER
-          gv_run_history_id:
-            columnType: TEXT
           gv_status:
             columnType: TEXT
           gv_message:
-            columnType: TEXT
-          gv_comment:
             columnType: TEXT
   - pipeline: load_log_insert_trans1.tran.yaml
     displayName: load_log_insert_trans1

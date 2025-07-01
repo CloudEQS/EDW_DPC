@@ -9,16 +9,16 @@ pipeline:
         - "Append To Grid 2"
       parameters:
         componentName: "Start"
-    Identify Ready Jobs:
+    Identify Ready Jobs run:
       type: "python-pushdown"
       transitions:
         success:
         - "Jobs Ready?"
       parameters:
-        componentName: "Identify Ready Jobs"
+        componentName: "Identify Ready Jobs run"
         warehouse: "[Environment Default]"
         externalAccessIntegrations:
-        pythonVersion: "3.10"
+        pythonVersion: "3.9"
         packagesGrid:
         scriptLocation: "Component"
         pythonScript: "###\n# Variables are directly accessible:\n#   print (myvar)\n\
@@ -27,49 +27,56 @@ pipeline:
           # Running SQL against Snowflake\n#   session.sql('CREATE sample_product_data\
           \ (id INT, name VARCHAR, serial_number VARCHAR)').collect()\n# Using Data\
           \ Frames\n#   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes\n\
-          ###)\ndef get_ready_jobs(session, context=None):\n    # Fetch all job metadata\
-          \ and job status\n    job_metadata_df = session.table(\"JOB_METADATA\")\n\
-          \    job_status_df = session.table(\"JOB_STATUS\")\n    #print(job_metadata_df.to_pandas())\n\
-          \n    # Create sets for quick lookup\n    completed_job_seqs = {row['JOB_SEQ']\
-          \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"COMPLETED\"\
-          ).collect()}\n    failed_job_seqs = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
-          STATUS\"] == \"FAILED\").collect()}\n    running_job_seqs = {row['JOB_SEQ']\
-          \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"RUNNING\"\
-          ).collect()}\n \n    # Get all unique job sequences from metadata\n    all_job_seqs\
-          \ = [row['JOB_SEQ'] for row in job_metadata_df.select(\"JOB_SEQ\").distinct().collect()]\n\
-          \ \n    ready_to_run_jobs = []\n \n    for job_seq in all_job_seqs:\n  \
-          \      # Skip if already completed, failed, or running\n        if job_seq\
-          \ in completed_job_seqs or job_seq in failed_job_seqs or job_seq in running_job_seqs:\n\
-          \            continue\n \n        # Check current status, assume PENDING\
-          \ if missing\n        status_rows = job_status_df.filter(job_status_df[\"\
-          JOB_SEQ\"] == job_seq).collect()\n        current_status = status_rows[0]['STATUS']\
+          ###)\nprint(ready_to_run_jobs)\nprint(\"outside  the function\")\ndef get_ready_jobs(session):\n\
+          \ \n    # Fetch job metadata and status tables from Snowflake\n    job_metadata_df\
+          \ = session.table(\"INTERNAL_TRAINING.EDP_CURATED.JOB_METADATA\")\n    job_status_df\
+          \ = session.table(\"INTERNAL_TRAINING.EDP_CURATED.JOB_STATUS\")\n \n   \
+          \ # Convert job status to sets for efficient lookups\n    completed_job_seqs\
+          \ = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"STATUS\"\
+          ] == \"COMPLETED\").collect()}\n \n    failed_job_seqs = {row['JOB_SEQ']\
+          \ for row in job_status_df.filter(job_status_df[\"STATUS\"] == \"FAILED\"\
+          ).collect()}\n    running_job_seqs = {row['JOB_SEQ'] for row in job_status_df.filter(job_status_df[\"\
+          STATUS\"] == \"RUNNING\").collect()}\n \n    # Get all distinct job sequences\n\
+          \    all_job_seqs = [row['JOB_SEQ'] for row in job_metadata_df.select(\"\
+          JOB_SEQ\").distinct().collect()]\n \n    ready_to_run_jobs = []\n    print(\"\
+          \ before loop\")\n    for job_seq in all_job_seqs:\n        print(\" in\
+          \ loop\")\n        # Skip jobs that are completed, failed, or running\n\
+          \        if job_seq in completed_job_seqs or job_seq in failed_job_seqs\
+          \ or job_seq in running_job_seqs:\n            print(\"check condition\"\
+          )\n            continue\n \n        # Assume 'PENDING' status if no record\
+          \ found\n        status_rows = job_status_df.filter(job_status_df[\"JOB_SEQ\"\
+          ] == job_seq).collect()\n        current_status = status_rows[0]['STATUS']\
           \ if status_rows else 'PENDING'\n \n        if current_status != 'PENDING':\n\
-          \            continue\n \n        # Get job name\n        job_name_row =\
-          \ job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"] == job_seq).select(\"\
-          JOB_NAME\").distinct().collect()\n        table_name_row = job_metadata_df.filter(job_metadata_df[\"\
-          JOB_SEQ\"] == job_seq).select(\"TABLE_NAME\").distinct().collect()\n   \
-          \     if not job_name_row:\n            continue\n        job_name = job_name_row[0]['JOB_NAME']\n\
-          \        table_name = table_name_row[0]['TABLE_NAME']\n        #print(table_name)\n\
-          \ \n        # Get dependencies for this job (may be multiple rows)\n   \
-          \     dependency_rows = job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"\
-          ] == job_seq).collect()\n        dependencies = [row['DEPENDENCY'] for row\
-          \ in dependency_rows if row['DEPENDENCY'] is not None]\n \n        # Check\
-          \ if all dependencies are completed\n        all_dependencies_met = all(dep\
-          \ in completed_job_seqs for dep in dependencies)\n \n        if all_dependencies_met:\n\
-          \            ready_to_run_jobs.append({\"JOB_SEQ\": job_seq, \"JOB_NAME\"\
-          : job_name,\"TABLE_NAME\":table_name})\n        else:\n            print(f\"\
-          DEBUG: Job {job_seq} blocked by: {[d for d in dependencies if d not in completed_job_seqs]}\"\
-          )\n \n    # Format for Matillion grid variable\n    grid_data = [[job[\"\
-          JOB_SEQ\"], job[\"JOB_NAME\"],job[\"TABLE_NAME\"]] for job in ready_to_run_jobs]\n\
-          \ \n    # Update Matillion context if available\n    if context is not None:\n\
-          \        context.updateGridVariable('gv_ready_jobs', grid_data)\n      \
-          \  context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))\n\
-          \    else:\n        print(\"Ready Jobs:\", ready_to_run_jobs)\n    #print('Grid\
-          \ variables',gv_ready_jobs)\n    print(ready_to_run_jobs)\n    print(\"\
-          Number of job are Ready to run:\",v_ready_job_count)\n    return ready_to_run_jobs\n\
-          \ \n \n# Entry point\nget_ready_jobs(session, context if 'context' in globals()\
-          \ else None)\n"
-        scriptTimeout: "360"
+          \            continue\n \n        # Get job name and table name\n     \n\
+          \        job_info_rows = job_metadata_df.filter(job_metadata_df[\"JOB_SEQ\"\
+          ] == job_seq).select(\"JOB_NAME\", \"TABLE_NAME\").distinct().collect()\n\
+          \        print(job_info_rows)\n        if not job_info_rows:\n         \
+          \   print(f\"WARNING: Missing metadata for JOB_SEQ {job_seq}\")\n      \
+          \      continue\n \n        job_name = job_info_rows[0]['JOB_NAME']\n  \
+          \      table_name = job_info_rows[0]['TABLE_NAME']\n \n        if not table_name:\n\
+          \            print(f\"WARNING: Missing TABLE_NAME for JOB_SEQ {job_seq},\
+          \ JOB_NAME: {job_name}\")\n            continue\n       \n        # Get\
+          \ dependencies for this job\n        dependency_rows = job_metadata_df.filter(job_metadata_df[\"\
+          JOB_SEQ\"] == job_seq).collect()\n        dependencies = [row['DEPENDENCY']\
+          \ for row in dependency_rows if row['DEPENDENCY'] is not None]\n \n    \
+          \    # Check if all dependencies are met\n        all_dependencies_met =\
+          \ all(dep in completed_job_seqs for dep in dependencies)\n \n        if\
+          \ all_dependencies_met:\n            print(job_info_rows)\n            ready_to_run_jobs.append({\n\
+          \                \"JOB_SEQ\": job_seq,\n                \"JOB_NAME\": job_name,\n\
+          \                \"TABLE_NAME\": table_name\n            })\n          \
+          \  print(\"ready jobs append\",ready_to_run_jobs)\n           \n       \
+          \ else:\n            print(\"fifth\")\n            print(f\"DEBUG: Job {job_seq}\
+          \ blocked by: {[d for d in dependencies if d not in completed_job_seqs]}\"\
+          )\n            print(\"sixth\")\n    # Create grid format for Matillion\
+          \ variable\n    grid_data = [[job[\"JOB_SEQ\"], job[\"JOB_NAME\"], job[\"\
+          TABLE_NAME\"]] for job in ready_to_run_jobs]\n \n    # Set Matillion grid\
+          \ and scalar variables\n    context.updateGridVariable('gv_ready_jobs',\
+          \ grid_data)\n    context.updateVariable('v_ready_job_count', len(ready_to_run_jobs))\n\
+          \   \n    print(\"Final\")\n    print(\"Ready Jobs:\", grid_data)\n    print(\"\
+          Count of Ready Jobs:\", len(ready_to_run_jobs))\n \n    return grid_data\n\
+          \ \n# Entry point for DPC Python Pushdown\nget_ready_jobs(session)\nprint(\"\
+          end of the program\")"
+        scriptTimeout: "3600"
       postProcessing:
         updateOutputMessage: "\r\n\r\n\r\nReady jobs count:${v_ready_job_count}"
         updateScalarVariables: []
@@ -103,7 +110,7 @@ pipeline:
       type: "if"
       transitions:
         "true":
-        - "Identify Ready Jobs"
+        - "Identify Ready Jobs run"
         "false":
         - "Pipeline status"
       parameters:
@@ -713,14 +720,14 @@ design:
         x: -1420
         "y": -530
       tempMetlId: 1
-    Identify Ready Jobs:
+    Identify Ready Jobs run:
       position:
-        x: -930
+        x: -820
         "y": -530
       tempMetlId: 6
     Jobs Ready?:
       position:
-        x: -810
+        x: -720
         "y": -530
       tempMetlId: 7
     End Success:
@@ -730,7 +737,7 @@ design:
       tempMetlId: 14
     Main Pipeline Loop:
       position:
-        x: -1040
+        x: -990
         "y": -530
       tempMetlId: 29
     Run Orchestration RE RUN:
@@ -745,8 +752,8 @@ design:
       tempMetlId: 35
     Pipeline status:
       position:
-        x: -990
-        "y": -220
+        x: -940
+        "y": -230
       tempMetlId: 36
     Python Pushdown:
       position:
@@ -760,7 +767,7 @@ design:
       tempMetlId: 39
     Print Variables:
       position:
-        x: -700
+        x: -640
         "y": -530
       tempMetlId: 43
     check Pipeline Completion_2:
@@ -770,8 +777,8 @@ design:
       tempMetlId: 45
     Check Completion:
       position:
-        x: -760
-        "y": -220
+        x: -670
+        "y": -240
       tempMetlId: 46
     Grid Iterator 2 2:
       position:
@@ -791,12 +798,12 @@ design:
     ERROR LOG:
       position:
         x: -290
-        "y": -240
+        "y": -230
       tempMetlId: 56
     End Failure:
       position:
         x: -80
-        "y": -240
+        "y": -200
       tempMetlId: 57
     Python Pushdown 2:
       position:
@@ -806,18 +813,18 @@ design:
     Append To Grid 2:
       position:
         x: -1330
-        "y": -540
+        "y": -530
       tempMetlId: 62
     Log start:
       position:
-        x: -1110
+        x: -1090
         "y": -530
       tempMetlId: 63
   notes:
     "1":
       position:
-        x: -1310
-        "y": -620
+        x: -1110
+        "y": -640
       size:
         height: 238
         width: 1620

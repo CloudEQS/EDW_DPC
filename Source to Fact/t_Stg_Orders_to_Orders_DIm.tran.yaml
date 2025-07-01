@@ -1,0 +1,87 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STAGE_ORDERS:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_ORDERS"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_ORDERS"
+        columnNames:
+        - "O_ORDERKEY"
+        - "O_CUSTKEY"
+        - "O_ORDERSTATUS"
+        - "O_TOTALPRICE"
+        - "O_ORDERDATE"
+        - "O_ORDERPRIORITY"
+        - "O_CLERK"
+        - "O_SHIPPRIORITY"
+        - "O_COMMENT"
+        - "LOAD_DATE"
+        timeOffset:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "STAGE_ORDERS"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "v_load_time"
+    DIM_ORDERS:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_ORDERS"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_ORDERS"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "O_ORDERKEY"
+          - "O_ORDERKEY"
+        - - "O_CUSTKEY"
+          - "O_CUSTKEY"
+        - - "O_ORDERSTATUS"
+          - "O_ORDERSTATUS"
+        - - "O_TOTALPRICE"
+          - "O_TOTALPRICE"
+        - - "O_ORDERDATE"
+          - "O_ORDERDATE"
+        - - "O_ORDERPRIORITY"
+          - "O_ORDERPRIORITY"
+        - - "O_CLERK"
+          - "O_CLERK"
+        - - "O_SHIPPRIORITY"
+          - "O_SHIPPRIORITY"
+        - - "O_COMMENT"
+          - "O_COMMENT"
+        - - "v_load_time"
+          - "O_LOAD_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    STAGE_ORDERS:
+      position:
+        x: -40
+        "y": 0
+      tempMetlId: 1
+    Calculator:
+      position:
+        x: 120
+        "y": 0
+      tempMetlId: 2
+    DIM_ORDERS:
+      position:
+        x: 280
+        "y": 0
+      tempMetlId: 3

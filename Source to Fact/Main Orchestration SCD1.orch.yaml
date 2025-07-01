@@ -1,0 +1,268 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Read Table Metadata "
+      parameters:
+        componentName: "Start"
+    'Read Table Metadata ':
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Log Append 3 2"
+      parameters:
+        componentName: "Read Table Metadata "
+        mode: "Advanced"
+        gridVariable: "gv_scd1_job_name"
+        gridVariableMapping:
+        - - "JOB_NAME"
+          - "job_name"
+        - - "TABLE_NAME"
+          - "table_name"
+        query: "SELECT JOB_NAME,TABLE_NAME FROM EDW_LAB.STAGE_SCHEMA.JOB_METADATA_TABLE_SCD1\
+          \ WHERE ACTIVE_FLAG=TRUE"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Orchestration:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run Orchestration"
+        orchestrationJob: "Source to Fact/Load_SCD.orch.yaml"
+        setScalarVariables:
+        - - "jv_job_name"
+          - "${jv_job_name}"
+        - - "jv_table_name"
+          - "${jv_table_name}"
+        - - "jv_scd_type"
+          - "${jv_scd_type}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "End Success"
+        failure:
+        - "End Failure"
+      iterationTarget: "Run Orchestration"
+      skipped: false
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_scd1_job_name"
+        gridIteratorVariableMapping:
+        - - "job_name"
+          - "jv_job_name"
+        - - "table_name"
+          - "jv_table_name"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage: "${jv_job_name} is Running in this Batch"
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Grid Iterator"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_scd1_job_name"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Append 3 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Print Variables 2"
+        - "Run Shared Pipeline"
+      skipped: false
+      parameters:
+        componentName: "Log Append 3 2"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_scd1"
+        valuesGrid:
+        - - " ${sysvar.thisComponent.taskId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${sysvar.rootPipeline.executionId}"
+          - "${jv_table_name}"
+          - "table"
+          - "0"
+          - "0"
+          - "${new Date().toISOString()}"
+          - "Y"
+          - "${sysvar.thisComponent.startedAt}"
+          - ""
+          - "0"
+          - "0"
+          - "Job Started at Main"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "gv_load_log_scd1"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Run Shared Pipeline"
+        pipelineName: "EDW_LAB#load_log_insert_orc"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_scd_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "SCD_Type1"
+    gv_load_log_scd1:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "NUMBER"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "TEXT"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_scd1_job_name:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          job_name:
+            columnType: "TEXT"
+          table_name:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -750
+        "y": 30
+      tempMetlId: 1
+    'Read Table Metadata ':
+      position:
+        x: -640
+        "y": 30
+      tempMetlId: 2
+    Run Orchestration:
+      position:
+        x: -230
+        "y": 10
+      tempMetlId: 3
+    Grid Iterator:
+      position:
+        x: -230
+        "y": 10
+      tempMetlId: 4
+    End Success:
+      position:
+        x: -90
+        "y": 30
+      tempMetlId: 5
+    End Failure:
+      position:
+        x: -150
+        "y": 160
+      tempMetlId: 6
+    Print Variables:
+      position:
+        x: -370
+        "y": 30
+      tempMetlId: 7
+    Log Append 3 2:
+      position:
+        x: -510
+        "y": 30
+      tempMetlId: 8
+    Print Variables 2:
+      position:
+        x: -350
+        "y": -90
+      tempMetlId: 9
+    Run Shared Pipeline:
+      position:
+        x: -350
+        "y": 150
+      tempMetlId: 10

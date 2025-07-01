@@ -1,0 +1,450 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Log Running"
+      parameters:
+        componentName: "Start"
+    Log Running:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "TARGET_TABLE EXISTS"
+      parameters:
+        componentName: "Log Running"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.JOB_RUN_AUDIT(BATCH_ID,run_id,JOB_NAME,Source_system_id,SOURCE_OBJECT_ID,object_name,STATUS,START_TIME)\r\
+          \nvalues('${sysvar.rootPipeline.executionId}','${sysvar.thisPipeline.executionId}','${sysvar.thisPipeline.fullName}','${jv_source_system_id}','${jv_source_object_id}','${jv_object_name}','RUNNING',current_timestamp)\
+          \  "
+      postProcessing:
+        updateOutputMessage: "Marked as Running Jobs : '${jv_source_object_name}'\
+          \ AND '${jv_src_db}'"
+        updateScalarVariables:
+    TARGET_TABLE EXISTS:
+      type: "database-query"
+      transitions:
+        success:
+        - "Checking Target Tables exists or not "
+      parameters:
+        componentName: "TARGET_TABLE EXISTS"
+        basicAdvancedMode: "Advanced"
+        databaseType: "Snowflake"
+        connectionUrl: "jdbc:snowflake://https://kha80474.snowflakecomputing.com"
+        username: "mohanishk@cloudeqs.com"
+        password: "sf_m_password"
+        connectionOptions:
+        sqlQuery: "SELECT TABLE_NAME\r\nFROM ${jv_tar_db}.INFORMATION_SCHEMA.TABLES\r\
+          \nWHERE TABLE_CATALOG = '${jv_tar_db}'\r\n  AND TABLE_SCHEMA = '${jv_tar_schema}'\r\
+          \n  AND TABLE_NAME = '${jv_target_table}'"
+        fetchSize:
+        type: "Standard"
+        primaryKeys:
+        warehouse1: "[Environment Default]"
+        database: "${jv_tar_db}"
+        schema: "${jv_tar_schema}"
+        targetTable: "TABLE_COUNT"
+        stage1: "[Custom]"
+        stagePlatform: "Snowflake Managed"
+        loadOptions:
+        sshTunnel:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_tables_exists"
+          - "${sysvar.thisComponent.rowCount}"
+    Print Variables:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "jv_tables_exists"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Target table Exists : '${jv_target_table} : ${jv_tables_exists}"
+        updateScalarVariables:
+    'Checking Target Tables exists or not ':
+      type: "if"
+      transitions:
+        "true":
+        - "Print Variables"
+        - "Query Result To Grid"
+        "false":
+        - "Print Variables 2"
+      parameters:
+        componentName: "Checking Target Tables exists or not "
+        mode: "Simple"
+        condition:
+        - - "jv_tables_exists"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "jv_tables_exists"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Target table  doesn't Exists : '${jv_target_table} :\
+          \ ${jv_tables_exists}"
+        updateScalarVariables:
+    'check columns & data type ':
+      type: "if"
+      parameters:
+        componentName: "check columns & data type "
+        mode: "Simple"
+        condition:
+        - - "jv_column_datatype_exist"
+          - "Is"
+          - "Equal to"
+          - "Match"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 4:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 4"
+        variablesToPrint:
+        - - "gv_metadata_check"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "NOT MATCHED Source and Target columns and Data Types\
+          \ : ${jv_column_datatype_exist}"
+        updateScalarVariables:
+    Print Variables 5:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 5"
+        variablesToPrint:
+        - - "jv_column_datatype_exist"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "ALL source and Target columns and Data Types Matched\
+          \ : ${jv_column_datatype_exist}"
+        updateScalarVariables:
+    Query Result To Grid:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Grid Iterator"
+        - "Grid Iterator 2"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Advanced"
+        gridVariable: "gv_metadata_check"
+        gridVariableMapping:
+        - - "STATUS"
+          - "jv_status"
+        query: "SELECT \r\n    COALESCE(src.FIELD_NAME, tgt.column_name) AS column_name,\r\
+          \n    src.data_type AS source_data_type,\r\n    tgt.data_type AS target_data_type,\r\
+          \n    CASE\r\n        WHEN src.FIELD_NAME IS NULL THEN 'Missing in Source'\r\
+          \n        WHEN tgt.column_name IS NULL THEN 'Missing in Target'\r\n    \
+          \    WHEN src.data_type != tgt.data_type OR src.data_type NOT like 'VARCH%'\
+          \ OR  src.data_type!='TEXT' OR tgt.data_type NOT like 'VARCH%' OR  tgt.data_type!='TEXT'\
+          \ THEN 'Data Type Mismatch'\r\n        ELSE 'Match'\r\n    END AS status\r\
+          \nFROM\r\n    (SELECT FIELD_NAME,DATA_TYPE\r\n     FROM EDW_LAB.PUBLIC.SOURCE_OBJECT_METADATA\r\
+          \n     WHERE OBJECT_NAME = '${jv_source_object_name}') src\r\nFULL OUTER\
+          \ JOIN\r\n    (SELECT column_name, data_type\r\n     FROM ${jv_tar_db}.INFORMATION_SCHEMA.COLUMNS\r\
+          \n     WHERE TABLE_CATALOG='${jv_tar_db}' and TABLE_SCHEMA='${jv_tar_schema}'\
+          \ and table_name = '${jv_target_table}') tgt\r\nON src.FIELD_NAME = tgt.column_name\r\
+          \nORDER BY tgt.column_name"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "jv_column_datatype_exist"
+          - "Is"
+          - "Equal to"
+          - "Missing in Source"
+        - - "jv_column_datatype_exist"
+          - "Is"
+          - "Equal to"
+          - "Missing in Target"
+        - - "jv_column_datatype_exist"
+          - "Is"
+          - "Equal to"
+          - "Data Type Mismatch"
+        combineConditions: "Or"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Print Variables 4"
+      iterationTarget: "If"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_metadata_check"
+        gridIteratorVariableMapping:
+        - - "jv_status"
+          - "jv_column_datatype_exist"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Print Variables 5"
+      iterationTarget: "check columns & data type "
+      parameters:
+        componentName: "Grid Iterator 2"
+        gridVariable: "gv_metadata_check"
+        gridIteratorVariableMapping:
+        - - "jv_status"
+          - "jv_column_datatype_exist"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_source_connection_url:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_refresh_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_tar_schema:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_SCHEMA"
+    jv_tar_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "EDW_LAB"
+    jv_column_data_type_exists:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_tables_exists:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_active_flage:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_role:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "RL_TRAINING"
+    jv_column_datatype_exist:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "deafult"
+    jv_src_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SOURCE_DB_TEST"
+    jv_src_schema:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SOURCE_SCHEMA"
+    jv_source_object_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_object_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_source_system_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_target_table:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_system_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_metadata_check:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          jv_status:
+            columnType: "TEXT"
+      defaultValue:
+      - - "deafult status"
+    gv_source_object_schema:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_field_name:
+            columnType: "TEXT"
+          gv_data_type:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -1210
+        "y": -30
+      tempMetlId: 1
+    Log Running:
+      position:
+        x: -1070
+        "y": -30
+      tempMetlId: 2
+    TARGET_TABLE EXISTS:
+      position:
+        x: -900
+        "y": -30
+      tempMetlId: 3
+    Print Variables:
+      position:
+        x: -670
+        "y": -130
+      tempMetlId: 4
+    'Checking Target Tables exists or not ':
+      position:
+        x: -750
+        "y": -30
+      tempMetlId: 5
+    Print Variables 2:
+      position:
+        x: -630
+        "y": 80
+      tempMetlId: 6
+    'check columns & data type ':
+      position:
+        x: -480
+        "y": -110
+      tempMetlId: 9
+    Print Variables 4:
+      position:
+        x: -330
+        "y": 60
+      tempMetlId: 10
+    Print Variables 5:
+      position:
+        x: -360
+        "y": -90
+      tempMetlId: 11
+    Query Result To Grid:
+      position:
+        x: -630
+        "y": -20
+      tempMetlId: 12
+    If:
+      position:
+        x: -480
+        "y": 40
+      tempMetlId: 13
+    Grid Iterator:
+      position:
+        x: -480
+        "y": 40
+      tempMetlId: 14
+    Grid Iterator 2:
+      position:
+        x: -480
+        "y": -110
+      tempMetlId: 15

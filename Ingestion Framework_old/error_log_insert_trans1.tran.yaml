@@ -1,0 +1,164 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    grid_var_error_log:
+      type: "fixed-flow"
+      parameters:
+        componentName: "grid_var_error_log"
+        columns:
+        - - "gv_load_id"
+          - "NUMBER"
+          - ""
+          - ""
+        - - "gv_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_job_parent"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_table_type"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_error_rows"
+          - "VARIANT"
+          - ""
+          - ""
+        - - "gv_subject_area"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_run_date"
+          - "DATE"
+          - ""
+          - ""
+        - - "gv_run_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "gv_run_history_id"
+          - "NUMBER"
+          - ""
+          - ""
+        - - "gv_status"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "gv_message"
+          - "VARCHAR"
+          - ""
+          - ""
+        values:
+          fromGrid:
+            variable: "gv_error_log"
+            columns:
+            - "gv_load_id"
+            - "gv_job_name"
+            - "gv_job_parent"
+            - "gv_table_name"
+            - "gv_table_type"
+            - "gv_error_rows"
+            - "gv_subject_area"
+            - "gv_run_date"
+            - "gv_run_time"
+            - "gv_run_history_id"
+            - "gv_status"
+            - "gv_message"
+    Error log insert:
+      type: "table-output"
+      sources:
+      - "grid_var_error_log"
+      parameters:
+        componentName: "Error log insert"
+        warehouse: "[Environment Default]"
+        database: "${ev_db}"
+        schema: "${ev_edp_curated_schema}"
+        targetTable: "${ev_error_log}"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "gv_load_id"
+          - "LOAD_ID"
+        - - "gv_job_name"
+          - "PROCEDURE_NAME"
+        - - "gv_job_parent"
+          - "PROCEDURE_PARENT"
+        - - "gv_table_name"
+          - "TABLE_NAME"
+        - - "gv_table_type"
+          - "TABLE_TYPE"
+        - - "gv_subject_area"
+          - "SUBJECT_AREA"
+        - - "gv_error_rows"
+          - "ERROR_ROWS"
+        - - "gv_message"
+          - "ERROR_MESSAGE"
+        - - "gv_run_date"
+          - "RUN_DATE"
+        - - "gv_run_time"
+          - "RUN_TIME"
+        orderBy:
+        outputMode: "Append"
+  variables:
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "NUMBER"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
+        - "-1"
+design:
+  components:
+    grid_var_error_log:
+      position:
+        x: -384
+        "y": 112
+      tempMetlId: 912872
+    Error log insert:
+      position:
+        x: -30
+        "y": 110
+      tempMetlId: 912875

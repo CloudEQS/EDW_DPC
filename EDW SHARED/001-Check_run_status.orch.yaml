@@ -264,13 +264,13 @@ design:
       tempMetlId: 4169
     Get process Date:
       position:
-        x: 16
-        "y": -48
+        x: 20
+        "y": -80
       tempMetlId: 4170
     Startability check:
       position:
-        x: 112
-        "y": -48
+        x: 150
+        "y": -110
       tempMetlId: 4171
     Get Load Id:
       position:

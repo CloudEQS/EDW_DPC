@@ -95,8 +95,6 @@ pipeline:
             columnType: "NUMBER"
           gv_updated_rows:
             columnType: "NUMBER"
-          gv_subject_area:
-            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
@@ -107,19 +105,12 @@ pipeline:
             columnType: "TEXT"
           gv_row_count:
             columnType: "NUMBER"
-          gv_run_history_id:
-            columnType: "TEXT"
           gv_status:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
-          gv_comment:
-            columnType: "TEXT"
       defaultValue:
       - - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
         - "-1"
         - "-1"
         - "-1"

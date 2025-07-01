@@ -2,43 +2,6 @@ type: "orchestration"
 version: "1.0"
 pipeline:
   components:
-    Get source system data:
-      type: "query-to-grid"
-      transitions:
-        success:
-        - "SQL Script"
-      skipped: false
-      parameters:
-        componentName: "Get source system data"
-        mode: "Advanced"
-        query: "/* Note: this query will be run as a subquery for the purposes of\
-          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
-          \ specified by the current platform. */\n   \n   select ss.Source_system_code,so.*\n\
-          \   from edw_lab.public.Source_Objects so \n   left join edw_lab.public.Source_system\
-          \ ss \n   on ss.Source_system_id = so.Source_system_id\n   where so.active_flag\
-          \ = 1 and ss.active_flag = 1\n   "
-        gridVariable: "gv_source_system"
-        gridVariableMapping:
-        - - "SOURCE_SYSTEM_CODE"
-          - "source_system_code"
-        - - "SOURCE_OBJECT_ID"
-          - "Source_Object_id"
-        - - "SOURCE_SYSTEM_ID"
-          - "Source_System_id"
-        - - "OBJECT_TYPE"
-          - "Object_type"
-        - - "OBJECT_NAME"
-          - "Object_name"
-        - - "REFRESH_FREQUENCY"
-          - "Refresh_frequency"
-        - - "REFRESH_TYPE"
-          - "Refresh_type"
-        - - "SOURCE_CUSTOM_QUERY"
-          - "Source_custom_query"
-        - - "ACTIVE_FLAG"
-          - "Active_flag"
-        - - "TARGET_TABLE"
-          - "Target_table"
     Start 0:
       type: "start"
       transitions:
@@ -57,7 +20,7 @@ pipeline:
       skipped: false
       parameters:
         componentName: "Main_Source_Selector 0"
-        orchestrationJob: "Mohanish/Ingestion Framework/Postgres_Load.orch.yaml"
+        orchestrationJob: "TEST Folder/${jv_source_system_code}_Load"
         setScalarVariables:
         - - "jv_source_system_code"
           - "${jv_source_system_code}"
@@ -67,14 +30,8 @@ pipeline:
           - "${jv_active_flag}"
         - - "jv_object_name"
           - "${jv_object_name}"
-        - - "jv_object_type"
-          - "${jv_object_type}"
-        - - "jv_refresh_frequency"
-          - "${jv_refresh_frequency}"
         - - "jv_refresh_type"
           - "${jv_refresh_type}"
-        - - "jv_source_custom_query"
-          - "${jv_source_custom_query}"
         - - "jv_target_table"
           - "${jv_target_table}"
         - - "jv_source_object_id"
@@ -93,34 +50,34 @@ pipeline:
       type: "grid-iterator"
       transitions:
         success:
-        - "SQL Script 2"
+        - "Update the Last run time"
         failure:
-        - "Python Pushdown"
+        - "SQL Script"
       iterationTarget: "Main_Source_Selector 0"
       skipped: false
       parameters:
         componentName: "Grid Iterator 0"
         gridVariable: "gv_source_system"
         gridIteratorVariableMapping:
-        - - "source_system_code"
+        - - "gv_source_system_code"
           - "jv_source_system_code"
-        - - "Source_System_id"
+        - - "gv_Source_System_id"
           - "jv_source_system_id"
-        - - "Source_Object_id"
+        - - "gv_Source_Object_id"
           - "jv_source_object_id"
-        - - "Object_type"
+        - - "gv_Object_type"
           - "jv_object_type"
-        - - "Object_name"
+        - - "gv_Object_name"
           - "jv_object_name"
-        - - "Refresh_frequency"
+        - - "gv_Refresh_frequency"
           - "jv_refresh_frequency"
-        - - "Refresh_type"
+        - - "gv_Refresh_type"
           - "jv_refresh_type"
-        - - "Source_custom_query"
+        - - "gv_Source_custom_query"
           - "jv_source_custom_query"
-        - - "Active_flag"
+        - - "gv_Active_flag"
           - "jv_active_flag"
-        - - "Target_table"
+        - - "gv_Target_table"
           - "jv_target_table"
         concurrency: "Concurrent"
       postProcessing:
@@ -131,17 +88,38 @@ pipeline:
           - "${sysvar.thisComponent.mainTaskFinishedAt}"
         - - "jv_start_time"
           - "${sysvar.thisComponent.startedAt}"
-    Run Shared Pipeline:
-      type: "run-shared-pipeline"
+    LOG START:
+      type: "sql-executor"
       transitions:
         success:
-        - "End Failure 0"
+        - "Grid Iterator 0"
+      skipped: true
       parameters:
-        componentName: "Run Shared Pipeline"
-        pipelineName: "EDW_LAB#Error_log_o"
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
+        componentName: "LOG START"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.INGESTION_CONTROL_TABLE(BATCH_ID,START_TIME,STATUS,Source_system_id,SOURCE_OBJECT_ID,object_name)\r\
+          \nselect '${sysvar.rootPipeline.executionId}',current_timestamp,'STARTED',s.SOURCE_SYSTEM_ID,so.SOURCE_OBJECT_ID,\
+          \ so.object_name from edw_lab.public.source_system s join edw_lab.public.Source_Objects\
+          \ so\r\non so.source_system_id=s.source_system_id and \r\nso.SOURCE_OBJECT_ID\
+          \ in (1,2)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Update the Last run time:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success 0"
+      skipped: true
+      parameters:
+        componentName: "Update the Last run time"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update edw_lab.public.INGESTION_CONTROL_TABLE set LAST_RUN_TS=current_timestamp,status='SUCCESS'\
+          \ where batch_id='${sysvar.rootPipeline.executionId}' AND OBJECT_ID=${jv_source_object_id}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -149,57 +127,69 @@ pipeline:
       type: "sql-executor"
       transitions:
         success:
-        - "Grid Iterator 0"
+        - "End Failure 0"
+      skipped: true
       parameters:
         componentName: "SQL Script"
         scriptLocation: "Component"
         declareSqlVariables: "Include selected"
         variablesToInclude:
-        sqlScript: "insert into  edw_lab.framework.Source_Object_Ingestion_log\r\n\
-          (Batch_run_id,Source_system_id,Source_object_id,Status,Run_start_time) \r\
-          \nvalues ('${task_id}','${jv_source_system_id}','${jv_source_object_id}','STARTED',current_timestamp);"
+        sqlScript: "select * from edw_lab.public.INGESTION_CONTROL_TABLE where\r\n\
+          status in('PENDING','FAILED') AND retry_count < max_retries"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    SQL Script 2:
-      type: "sql-executor"
+    Print Variables:
+      type: "print-variables"
       transitions:
         success:
-        - "End Success 0"
+        - "LOG START"
       parameters:
-        componentName: "SQL Script 2"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "update edw_lab.framework.Source_Object_Ingestion_log\r\nset Run_end_time\
-          \ = current_timestamp where batch_run_id = '${task_id}'"
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_source_system"
+        prefixText:
+        includeVariableName: "No"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Python Pushdown:
-      type: "python-pushdown"
+    Get source system data:
+      type: "query-to-grid"
       transitions:
         success:
-        - "Run Shared Pipeline"
+        - "Print Variables"
+      skipped: false
       parameters:
-        componentName: "Python Pushdown"
-        warehouse: "[Environment Default]"
-        externalAccessIntegrations:
-        pythonVersion: "3.10"
-        packagesGrid:
-        scriptLocation: "Component"
-        pythonScript: "###\n# Variables are directly accessible: \n#   print (myvar)\n\
-          # Updating a variable:\n#   context.updateVariable('myvar', 'new-value')\n\
-          # Grid Variables are accessible via the context:\n#   print (context.getGridVariable('mygridvar'))\n\
-          # Updating a grid variable:\n#   context.updateGridVariable('mygridvar',\
-          \ [['list','of'],['lists','!']])\n# A database cursor can be accessed from\
-          \ the context (Jython only):\n#   cursor = context.cursor()\n#   cursor.execute('select\
-          \ count(*) from mytable')\n#   rowcount = cursor.fetchone()[0]\n###\n\n\
-          context.updateVariable('jv_error_message' , jv_message)\nprint(jv_error_message)"
-        scriptTimeout: "360"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
+        componentName: "Get source system data"
+        mode: "Advanced"
+        query: "/* Note: this query will be run as a subquery for the purposes of\
+          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
+          \ specified by the current platform. */\n   \n   select ss.Source_system_code,so.*\n\
+          \   from edw_lab.public.Source_Objects so \n   left join edw_lab.public.Source_system\
+          \ ss \n   on ss.Source_system_id = so.Source_system_id\n   where so.active_flag\
+          \ = 1 and ss.active_flag = 1 AND SOURCE_OBJECT_ID IN(1,2)\n   "
+        gridVariable: "gv_source_system"
+        gridVariableMapping:
+        - - "SOURCE_SYSTEM_CODE"
+          - "gv_source_system_code"
+        - - "SOURCE_OBJECT_ID"
+          - "gv_Source_Object_id"
+        - - "SOURCE_SYSTEM_ID"
+          - "gv_Source_System_id"
+        - - "OBJECT_TYPE"
+          - "gv_Object_type"
+        - - "OBJECT_NAME"
+          - "gv_Object_name"
+        - - "REFRESH_FREQUENCY"
+          - "gv_Refresh_frequency"
+        - - "REFRESH_TYPE"
+          - "gv_Refresh_type"
+        - - "SOURCE_CUSTOM_QUERY"
+          - "gv_Source_custom_query"
+        - - "ACTIVE_FLAG"
+          - "gv_Active_flag"
+        - - "TARGET_TABLE"
+          - "gv_Target_table"
   variables:
     jv_object_type:
       metadata:
@@ -468,37 +458,42 @@ pipeline:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
-          source_system_code:
+          gv_source_system_code:
             columnType: "TEXT"
-          Source_Object_id:
+          gv_Source_Object_id:
+            columnType: "NUMBER"
+          gv_Source_System_id:
+            columnType: "NUMBER"
+          gv_Object_type:
             columnType: "TEXT"
-          Source_System_id:
+          gv_Object_name:
             columnType: "TEXT"
-          Object_type:
+          gv_Refresh_frequency:
             columnType: "TEXT"
-          Object_name:
+          gv_Refresh_type:
             columnType: "TEXT"
-          Refresh_frequency:
+          gv_Source_custom_query:
             columnType: "TEXT"
-          Refresh_type:
+          gv_Active_flag:
             columnType: "TEXT"
-          Source_custom_query:
+          gv_Target_table:
             columnType: "TEXT"
-          Active_flag:
-            columnType: "TEXT"
-          Target_table:
-            columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
 design:
   components:
-    Get source system data:
-      position:
-        x: -1872
-        "y": 0
-      tempMetlId: 912674
     Start 0:
       position:
         x: -2032
@@ -524,26 +519,31 @@ design:
         x: -1520
         "y": -20
       tempMetlId: 912700
-    Run Shared Pipeline:
+    LOG START:
       position:
-        x: -1370
-        "y": 150
-      tempMetlId: 913435
-    SQL Script:
-      position:
-        x: -1712
+        x: -1670
         "y": 0
       tempMetlId: 913436
-    SQL Script 2:
+    Update the Last run time:
       position:
         x: -1360
         "y": 0
       tempMetlId: 913437
-    Python Pushdown:
+    SQL Script:
       position:
-        x: -1500
-        "y": 150
+        x: -1510
+        "y": 170
       tempMetlId: 913438
+    Print Variables:
+      position:
+        x: -1800
+        "y": 10
+      tempMetlId: 913439
+    Get source system data:
+      position:
+        x: -1920
+        "y": 10
+      tempMetlId: 913440
   notes:
     "912672":
       position:
@@ -556,7 +556,7 @@ design:
       content: "Success Path"
     "912673":
       position:
-        x: -1600
+        x: -1690
         "y": 100
       size:
         height: 127

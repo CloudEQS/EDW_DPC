@@ -1,0 +1,410 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "STG_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIME"
+        timeOffset:
+    DIM_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        columnNames:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "LOAD_TIME"
+        - "END_TIME"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "Filter"
+      - "Current Data of Target"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "Current Data of Target"
+        matchKeys:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        compareColumns:
+        - "PRODUCT_ID"
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "PRODUCT_SUBCATEGORY"
+        - "BRAND_NAME"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        outputColumnMapping:
+        - - "compare_PRODUCT_ID"
+          - "compare_PRODUCT_ID"
+        - - "compare_PRODUCT_NAME"
+          - "compare_PRODUCT_NAME"
+        - - "compare_PRODUCT_CATEGORY"
+          - "compare_PRODUCT_CATEGORY"
+        - - "compare_PRODUCT_SUBCATEGORY"
+          - "compare_PRODUCT_SUBCATEGORY"
+        - - "compare_BRAND_NAME"
+          - "compare_BRAND_NAME"
+        - - "compare_PRICE"
+          - "compare_PRICE"
+        - - "compare_CURRENCY_CODE"
+          - "compare_CURRENCY_CODE"
+        - - "compare_SOURCE_SYSTEM"
+          - "compare_SOURCE_SYSTEM"
+        indicatorColumn: "Indicator"
+    Rank:
+      type: "rank"
+      sources:
+      - "STG_PRODUCT_SCD2"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "PRODUCT_NAME"
+        - "PRODUCT_CATEGORY"
+        - "BRAND_NAME"
+        - "PRODUCT_SUBCATEGORY"
+        - "PRICE"
+        - "CURRENCY_CODE"
+        - "SOURCE_SYSTEM"
+        - "PRODUCT_ID"
+        orderingWithinPartitions:
+        - - "LOAD_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+    Current Data of Target:
+      type: "sql"
+      sources:
+      - "DIM_PRODUCT_SCD2"
+      parameters:
+        componentName: "Current Data of Target"
+        query: "SELECT * FROM  EDW_LAB.PUBLIC.DIM_PRODUCT_SCD2 WHERE END_TIME IS NULL"
+    New data:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "New data"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "Or"
+    update:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "update"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "And"
+    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+      type: "table-output"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2_HISTORY_UPDATE"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "compare_PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "LOAD_TIME_V"
+          - "LOAD_TIME"
+        - - "END_TIME_UP_V"
+          - "END_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    DIM_PRODUCT_HISTORY_INSERT:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_HISTORY_INSERT"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "PRODUCT_NAME"
+          - "PRODUCT_NAME"
+        - - "PRODUCT_CATEGORY"
+          - "PRODUCT_CATEGORY"
+        - - "PRODUCT_SUBCATEGORY"
+          - "PRODUCT_SUBCATEGORY"
+        - - "BRAND_NAME"
+          - "BRAND_NAME"
+        - - "PRICE"
+          - "PRICE"
+        - - "CURRENCY_CODE"
+          - "CURRENCY_CODE"
+        - - "SOURCE_SYSTEM"
+          - "SOURCE_SYSTEM"
+        - - "END_TIME_IN_V"
+          - "END_TIME"
+        - - "LOAD_TIME_V"
+          - "LOAD_TIME"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "New data"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LOAD_TIME_V"
+        - - "NULL"
+          - "END_TIME_IN_V"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "update"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LOAD_TIME_V"
+        - - "NULL"
+          - "END_TIME_UP_V"
+    Rank 2:
+      type: "rank"
+      sources:
+      - "OLD AND NEW RECORDS"
+      parameters:
+        componentName: "Rank 2"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "PRODUCT_ID"
+        orderingWithinPartitions:
+        - - "LOAD_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "RN"
+    OLD AND NEW RECORDS:
+      type: "unite"
+      sources:
+      - "Current Data of Target"
+      - "update"
+      parameters:
+        componentName: "OLD AND NEW RECORDS"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    Filter 2:
+      type: "filter"
+      sources:
+      - "Rank 2"
+      parameters:
+        componentName: "Filter 2"
+        filterConditions:
+        - - "RN"
+          - "Is"
+          - "Greater than"
+          - "1"
+        combineCondition: "And"
+    DIM_PRODUCT_SCD2 2:
+      type: "table-update"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2 2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "PUBLIC"
+        targetTable: "DIM_PRODUCT_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\"and\"target\".\"END_TIME\"\
+            \ IS NULL AND\r\n\"input\".\"LOAD_TIME\"<=\"target\".\"LOAD_TIME\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"PRODUCT_ID\"=\"target\".\"PRODUCT_ID\"and\"target\".\"END_TIME\"\
+            \ IS NULL AND\r\n\"input\".\"LOAD_TIME\"<=\"target\".\"LOAD_TIME\""
+          - "Update"
+        updateMapping:
+        - - "END_TIME_OLD"
+          - "END_TIME"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "Filter 2"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "END_TIME_OLD"
+design:
+  components:
+    STG_PRODUCT_SCD2:
+      position:
+        x: -820
+        "y": -200
+      tempMetlId: 1
+    DIM_PRODUCT_SCD2:
+      position:
+        x: -830
+        "y": -10
+      tempMetlId: 2
+    Detect Changes:
+      position:
+        x: -350
+        "y": -100
+      tempMetlId: 3
+    Rank:
+      position:
+        x: -630
+        "y": -200
+      tempMetlId: 4
+    Filter:
+      position:
+        x: -500
+        "y": -200
+      tempMetlId: 5
+    Current Data of Target:
+      position:
+        x: -560
+        "y": -10
+      tempMetlId: 6
+    New data:
+      position:
+        x: -200
+        "y": -180
+      tempMetlId: 7
+    update:
+      position:
+        x: -210
+        "y": -50
+      tempMetlId: 8
+    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+      position:
+        x: 210
+        "y": -50
+      tempMetlId: 9
+    DIM_PRODUCT_HISTORY_INSERT:
+      position:
+        x: 170
+        "y": -180
+      tempMetlId: 10
+    Calculator:
+      position:
+        x: 10
+        "y": -180
+      tempMetlId: 11
+    Calculator 2:
+      position:
+        x: 10
+        "y": -50
+      tempMetlId: 12
+    Rank 2:
+      position:
+        x: -30
+        "y": 90
+      tempMetlId: 14
+    OLD AND NEW RECORDS:
+      position:
+        x: -170
+        "y": 90
+      tempMetlId: 15
+    Filter 2:
+      position:
+        x: 90
+        "y": 90
+      tempMetlId: 16
+    DIM_PRODUCT_SCD2 2:
+      position:
+        x: 300
+        "y": 90
+      tempMetlId: 19
+    Calculator 3:
+      position:
+        x: 200
+        "y": 90
+      tempMetlId: 20

@@ -1,0 +1,102 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STAGE_REGION:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_REGION"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_REGION"
+        columnNames:
+        - "R_REGIONKEY"
+        - "R_NAME"
+        - "R_COMMENT"
+        - "R_LOAD_DATE"
+        timeOffset:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "STAGE_REGION"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_DATE()"
+          - "load_date"
+    DIM_REGION_SCD1:
+      type: "table-update"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_REGION_SCD1"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_REGION_SCD1"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"R_REGIONKEY\"=\"target\".\"R_REGIONKEY\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"R_REGIONKEY\"=\"target\".\"R_REGIONKEY\""
+          - "Update"
+        updateMapping:
+        - - "R_NAME"
+          - "R_NAME"
+        - - "R_COMMENT"
+          - "R_COMMENT"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "R_REGIONKEY"
+          - "R_REGIONKEY"
+        - - "R_NAME"
+          - "R_NAME"
+        - - "R_COMMENT"
+          - "R_COMMENT"
+        - - "R_LOAD_DATE"
+          - "R_LOAD_DATE"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+design:
+  components:
+    STAGE_REGION:
+      position:
+        x: -330
+        "y": -50
+      tempMetlId: 1
+    Calculator:
+      position:
+        x: -150
+        "y": -50
+      tempMetlId: 4
+    DIM_REGION_SCD1:
+      position:
+        x: 10
+        "y": -50
+      tempMetlId: 5

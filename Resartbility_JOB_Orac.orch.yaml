@@ -1,0 +1,35 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "SQL Script"
+      parameters:
+        componentName: "Start"
+    SQL Script:
+      type: "sql-executor"
+      parameters:
+        componentName: "SQL Script"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "SELECT * FROM edw_lab.public.ingestion_control_table\r\nWHERE\
+          \ load_status IN ('PENDING', 'FAILED')\r\n  AND retry_count < max_retries"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: -250
+        "y": 10
+      tempMetlId: 1
+    SQL Script:
+      position:
+        x: -140
+        "y": 10
+      tempMetlId: 2

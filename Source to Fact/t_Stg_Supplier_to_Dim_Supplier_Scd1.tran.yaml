@@ -1,0 +1,221 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_SUPPLIER_SCD1:
+      type: "table-input"
+      parameters:
+        componentName: "STG_SUPPLIER_SCD1"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_SUPPLIER_SCD1"
+        columnNames:
+        - "S_SUPPKEY"
+        - "S_NAME"
+        - "S_ADDRESS"
+        - "S_NATIONKEY"
+        - "S_PHONE"
+        - "S_ACCTBAL"
+        - "S_COMMENT"
+        - "START_TIME"
+        timeOffset:
+    DIM_SUPPLIER_SCD1:
+      type: "table-update"
+      sources:
+      - "Updated date"
+      parameters:
+        componentName: "DIM_SUPPLIER_SCD1"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_SUPPLIER_SCD1"
+        targetAlias: "target"
+        sourceAlias: "source"
+        joinExpression:
+        - - "\"source\".\"S_SUPPKEY\"=\"target\".\"S_SUPPKEY\""
+          - "Case"
+        whenMatched:
+        - - "\"source\".\"S_SUPPKEY\"=\"target\".\"S_SUPPKEY\""
+          - "Update"
+        updateMapping:
+        - - "S_SUPPKEY"
+          - "S_SUPPKEY"
+        - - "S_NAME"
+          - "S_NAME"
+        - - "S_ADDRESS"
+          - "S_ADDRESS"
+        - - "S_NATIONKEY"
+          - "S_NATIONKEY"
+        - - "S_PHONE"
+          - "S_PHONE"
+        - - "S_ACCTBAL"
+          - "S_ACCTBAL"
+        - - "S_COMMENT"
+          - "S_COMMENT"
+        - - "START_TIME"
+          - "S_CREATED_TIME"
+        - - "v_updated"
+          - "S_UPDATE_AT"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "S_SUPPKEY"
+          - "S_SUPPKEY"
+        - - "S_NAME"
+          - "S_NAME"
+        - - "S_ADDRESS"
+          - "S_ADDRESS"
+        - - "S_NATIONKEY"
+          - "S_NATIONKEY"
+        - - "S_PHONE"
+          - "S_PHONE"
+        - - "S_ACCTBAL"
+          - "S_ACCTBAL"
+        - - "S_COMMENT"
+          - "S_COMMENT"
+        - - "START_TIME"
+          - "S_CREATED_TIME"
+        - - "v_updated"
+          - "S_UPDATE_AT"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.thisComponent.rowsInserted}"
+        - - "jv_updated_rows"
+          - "${sysvar.thisComponent.rowsUpdated}"
+    Find Unique:
+      type: "rank"
+      sources:
+      - "STG_SUPPLIER_SCD1"
+      parameters:
+        componentName: "Find Unique"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "S_SUPPKEY"
+        - "S_NAME"
+        - "S_ADDRESS"
+        - "S_NATIONKEY"
+        - "S_PHONE"
+        - "S_ACCTBAL"
+        - "S_COMMENT"
+        orderingWithinPartitions:
+        - - "S_SUPPKEY"
+          - "Ascending"
+        - - "START_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    'Supplier ':
+      type: "filter"
+      sources:
+      - "Find Unique"
+      parameters:
+        componentName: "Supplier "
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+    Updated date:
+      type: "calculator"
+      sources:
+      - "Supplier "
+      parameters:
+        componentName: "Updated date"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "v_updated"
+  variables:
+    jv_src_schema:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    JV_Source_object_id_NEW:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_tar_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_tar_scheam:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_target_table:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_src_db:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    STG_SUPPLIER_SCD1:
+      position:
+        x: -1140
+        "y": -150
+      tempMetlId: 1
+    DIM_SUPPLIER_SCD1:
+      position:
+        x: -410
+        "y": -150
+      tempMetlId: 2
+    Find Unique:
+      position:
+        x: -990
+        "y": -150
+      tempMetlId: 3
+    'Supplier ':
+      position:
+        x: -870
+        "y": -150
+      tempMetlId: 4
+    Updated date:
+      position:
+        x: -660
+        "y": -150
+      tempMetlId: 5

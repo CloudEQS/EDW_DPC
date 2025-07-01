@@ -1,0 +1,383 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Python Pushdown 2"
+      parameters:
+        componentName: "Start"
+    get last failed jobs:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Grid Iterator"
+      parameters:
+        componentName: "get last failed jobs"
+        mode: "Advanced"
+        gridVariable: "gv_failed_jobs"
+        gridVariableMapping:
+        - - "FAILED_JOB"
+          - "failed_job_name"
+        query: "select JOB_NAME as failed_job\r\nfrom EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\
+          \nwhere last_run_time = '${jv_last_run_time}' and status IN ('FAILED', 'PENDING')"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    get last run time:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "get last BATCH_ID"
+      parameters:
+        componentName: "get last run time"
+        mode: "Advanced"
+        query: "select coalesce(max(last_run_time),'1900-06-24 08:18:05.524 -0700')\
+          \ as latest_run_time\r\nfrom EDW_LAB.PUBLIC.JOB_RUN_AUDIT"
+        scalarVariableMapping:
+        - - "jv_last_run_time"
+          - "LATEST_RUN_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    get last BATCH_ID:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "get last failed jobs"
+      parameters:
+        componentName: "get last BATCH_ID"
+        mode: "Advanced"
+        query: "select batch_id as last_batch_id\r\nfrom EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\
+          \nwhere last_run_time = '${jv_last_run_time}'"
+        scalarVariableMapping:
+        - - "jv_last_batch_id"
+          - "LAST_BATCH_ID"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run last failed jobs:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run last failed jobs"
+        orchestrationJob: "Re-startibility-framework/run_failed_jobs.orch.yaml"
+        setScalarVariables:
+        - - "jv_failed_job_name1"
+          - "${jv_failed_job_name}"
+        - - "jv_last_batch_id1"
+          - "${jv_last_batch_id}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Or"
+      iterationTarget: "Run last failed jobs"
+      parameters:
+        componentName: "Grid Iterator"
+        gridVariable: "gv_failed_jobs"
+        gridIteratorVariableMapping:
+        - - "failed_job_name"
+          - "jv_failed_job_name"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Ingestion_Framework:
+      type: "run-orchestration"
+      transitions:
+        success:
+        - "get current run_time"
+      parameters:
+        componentName: "Run Ingestion_Framework"
+        orchestrationJob: "TEST Folder/Main_Job.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    set last_run_time for failed jobs in previous batch:
+      type: "sql-executor"
+      parameters:
+        componentName: "set last_run_time for failed jobs in previous batch"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\nset \r\n    last_run_time\
+          \ = '${jv_current_run_time}'\r\nwhere batch_id = '${jv_last_batch_id}' and\
+          \ JOB_NAME = '${jv_failed_job_name}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Grid Iterator 2:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "set last_run_time for jobs in current batch"
+      iterationTarget: "set last_run_time for failed jobs in previous batch"
+      parameters:
+        componentName: "Grid Iterator 2"
+        gridVariable: "gv_failed_jobs"
+        gridIteratorVariableMapping:
+        - - "failed_job_name"
+          - "jv_failed_job_name"
+        breakOnFailure: "No"
+        concurrency: "Sequential"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    set last_run_time for jobs in current batch:
+      type: "sql-executor"
+      parameters:
+        componentName: "set last_run_time for jobs in current batch"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\nset \r\n    last_run_time\
+          \ = '${jv_current_run_time}'\r\nwhere batch_id = '${sysvar.rootPipeline.executionId}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    get current run_time:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Grid Iterator 2"
+      parameters:
+        componentName: "get current run_time"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |+
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+
+          result = session.sql('select current_timestamp() as current_run_time').collect()
+          current_run_time = result[0]['CURRENT_RUN_TIME']
+          print('current run_time=', current_run_time)
+
+          context.updateVariable('jv_current_run_time', current_run_time)
+
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown 2:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "If"
+      parameters:
+        componentName: "Python Pushdown 2"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.12"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+
+          query = f"""
+          SELECT COUNT(*) AS job_count
+          FROM EDW_LAB.PUBLIC.JOB_RUN_AUDIT
+          WHERE LAST_RUN_TIME = '{jv_last_run_time}' AND STATUS IN ('FAILED', 'PENDING')
+          """
+
+          result=session.sql(query).collect()
+          print(result)
+
+          # Execute the SQL and fetch result
+
+
+          # Check if any jobs matched
+          if result[0]['JOB_COUNT']>0:
+              value_to_set = 'TRUE'
+          else:
+              value_to_set = 'FALSE'
+
+          # Set a Matillion variable (must be declared at project/environment level)
+          context.updateVariable('v_failed_jobs_exist', value_to_set)
+
+          print(v_failed_jobs_exist)
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      transitions:
+        "true":
+        - "get last run time"
+        "false":
+        - "Or"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "v_failed_jobs_exist"
+          - "Is"
+          - "Equal to"
+          - "TRUE"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Or:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Run Ingestion_Framework"
+      parameters:
+        componentName: "Or"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_current_run_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "2025-06-24 04:03:51.113 -0700"
+    v_failed_jobs_exist:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_last_run_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "2025-06-24 02:20:34.237 -0700"
+    jv_last_batch_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "xxxxxxxxx"
+    jv_failed_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "A"
+    gv_failed_jobs:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          failed_job_name:
+            columnType: "TEXT"
+      defaultValue:
+      - - "A"
+design:
+  components:
+    Start:
+      position:
+        x: -30
+        "y": 0
+      tempMetlId: 1
+    get last failed jobs:
+      position:
+        x: 470
+        "y": 0
+      tempMetlId: 2
+    get last run time:
+      position:
+        x: 180
+        "y": 0
+      tempMetlId: 3
+    get last BATCH_ID:
+      position:
+        x: 300
+        "y": 0
+      tempMetlId: 4
+    Run last failed jobs:
+      position:
+        x: 580
+        "y": -20
+      tempMetlId: 5
+    Grid Iterator:
+      position:
+        x: 580
+        "y": -20
+      tempMetlId: 6
+    Run Ingestion_Framework:
+      position:
+        x: 740
+        "y": 0
+      tempMetlId: 7
+    set last_run_time for failed jobs in previous batch:
+      position:
+        x: 960
+        "y": -20
+      tempMetlId: 8
+    Grid Iterator 2:
+      position:
+        x: 960
+        "y": -20
+      tempMetlId: 9
+    set last_run_time for jobs in current batch:
+      position:
+        x: 1130
+        "y": 0
+      tempMetlId: 10
+    get current run_time:
+      position:
+        x: 830
+        "y": 0
+      tempMetlId: 11
+    Python Pushdown 2:
+      position:
+        x: 50
+        "y": 0
+      tempMetlId: 13
+    If:
+      position:
+        x: 110
+        "y": 260
+      tempMetlId: 14
+    Or:
+      position:
+        x: 680
+        "y": 260
+      tempMetlId: 15

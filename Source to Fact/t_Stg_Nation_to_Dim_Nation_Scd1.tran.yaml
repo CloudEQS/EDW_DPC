@@ -1,0 +1,179 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STAGE_NATION:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_NATION"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_NATION"
+        columnNames:
+        - "N_NATIONKEY"
+        - "N_NAME"
+        - "N_REGIONKEY"
+        - "N_COMMENT"
+        - "N_START_TIME"
+        timeOffset:
+    DIM_REGION:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_REGION"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_REGION"
+        columnNames:
+        - "R_NAME"
+        - "R_REGIONKEY"
+        timeOffset:
+    Load Date:
+      type: "calculator"
+      sources:
+      - "Join"
+      parameters:
+        componentName: "Load Date"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_DATE()"
+          - "v_load_date"
+    DIM_NATION:
+      type: "table-output"
+      sources:
+      - "Load Date"
+      parameters:
+        componentName: "DIM_NATION"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_NATION"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "N_NATIONKEY"
+          - "N_NATIONKEY"
+        - - "N_NAME"
+          - "N_NAME"
+        - - "N_REGIONKEY"
+          - "N_REGIONKEY"
+        - - "N_COMMENT"
+          - "N_COMMENT"
+        - - "v_load_date"
+          - "N_LOAD_DATE"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_updated_rows"
+          - "${sysvar.thisComponent.rowCount}"
+    Join:
+      type: "join"
+      sources:
+      - "DIM_REGION"
+      - "Filter"
+      parameters:
+        componentName: "Join"
+        mainTable: "Filter"
+        mainTableAlias: "nation"
+        joins:
+        - - "DIM_REGION"
+          - "region"
+          - "Left"
+        joinExpressions:
+        - - "\"nation\".\"N_REGIONKEY\"=\"region\".\"R_REGIONKEY\""
+          - "nation_Left_region"
+        columnMappings:
+        - - "nation.N_NATIONKEY"
+          - "N_NATIONKEY"
+        - - "nation.N_NAME"
+          - "N_NAME"
+        - - "nation.N_REGIONKEY"
+          - "N_REGIONKEY"
+        - - "nation.N_COMMENT"
+          - "N_COMMENT"
+        - - "nation.N_START_TIME"
+          - "N_START_TIME"
+    Rank:
+      type: "rank"
+      sources:
+      - "STAGE_NATION"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "N_NATIONKEY"
+        - "N_NAME"
+        - "N_REGIONKEY"
+        - "N_COMMENT"
+        orderingWithinPartitions:
+        - - "N_NATIONKEY"
+          - "Ascending"
+        - - "N_START_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+  variables:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+design:
+  components:
+    STAGE_NATION:
+      position:
+        x: -620
+        "y": -40
+      tempMetlId: 1
+    DIM_REGION:
+      position:
+        x: -620
+        "y": 90
+      tempMetlId: 2
+    Load Date:
+      position:
+        x: -70
+        "y": 70
+      tempMetlId: 3
+    DIM_NATION:
+      position:
+        x: 100
+        "y": 70
+      tempMetlId: 4
+    Join:
+      position:
+        x: -240
+        "y": 70
+      tempMetlId: 5
+    Rank:
+      position:
+        x: -480
+        "y": -40
+      tempMetlId: 8
+    Filter:
+      position:
+        x: -360
+        "y": -40
+      tempMetlId: 9

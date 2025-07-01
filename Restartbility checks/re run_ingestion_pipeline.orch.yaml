@@ -1,0 +1,84 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Query Result To Grid"
+      parameters:
+        componentName: "Start"
+    Query Result To Grid:
+      type: "query-to-grid"
+      parameters:
+        componentName: "Query Result To Grid"
+        mode: "Advanced"
+        gridVariable: "gv_control_error_data"
+        gridVariableMapping:
+        - - "BATCH_ID"
+          - "JV_BATCH_ID"
+        - - "SOURCE_SYSTEM_ID"
+          - "JV_SOURCE_SYSTEM_ID"
+        - - "SOURCE_OBJECT_ID"
+          - "JVSOURCE_OBJECT_ID"
+        - - "OBJECT_NAME"
+          - "JV_OBJECT_NAME"
+        - - "LAST_UPDATED"
+          - "JV_LAST_UPDATED"
+        - - "STATUS"
+          - "JV_STATUS"
+        - - "RETRY_COUNT"
+          - "JV_RETRY_COUNT"
+        - - "MAX_RETRIES"
+          - "JV_MAX_RETRIES"
+        - - "LAST_RUN_TS"
+          - "JV_LAST_RUN_TS"
+        - - "ERROR_MESSAGE"
+          - "JV_ERROR_MESSAGE"
+        query: "SELECT *\r\nFROM edw_lab.public.ingestion_control_table\r\nWHERE status\
+          \ IN ('PENDING', 'FAILED')\r\n  AND retry_count < max_retries"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_control_error_data:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          JV_BATCH_ID:
+            columnType: "TEXT"
+          JV_SOURCE_SYSTEM_ID:
+            columnType: "NUMBER"
+          JVSOURCE_OBJECT_ID:
+            columnType: "NUMBER"
+          JV_OBJECT_NAME:
+            columnType: "TEXT"
+          JV_LAST_UPDATED:
+            columnType: "TEXT"
+          JV_STATUS:
+            columnType: "TEXT"
+          JV_RETRY_COUNT:
+            columnType: "NUMBER"
+          JV_MAX_RETRIES:
+            columnType: "NUMBER"
+          JV_LAST_RUN_TS:
+            columnType: "TEXT"
+          JV_ERROR_MESSAGE:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -350
+        "y": -30
+      tempMetlId: 1
+    Query Result To Grid:
+      position:
+        x: -220
+        "y": -30
+      tempMetlId: 2

@@ -27,24 +27,24 @@ pipeline:
         - "LOAD_TIME"
         - "END_TIME"
         timeOffset:
-    LATE DIMENTION:
+    Not Exists:
       type: "filter"
       sources:
-      - "Calculator"
+      - "Check the dim key in Dimention table"
       parameters:
-        componentName: "LATE DIMENTION"
+        componentName: "Not Exists"
         filterConditions:
         - - "IS_EARLY"
           - "Is"
           - "Equal to"
           - "TRUE"
         combineCondition: "And"
-    ON_TIME:
+    Exists:
       type: "filter"
       sources:
-      - "Calculator"
+      - "Check the dim key in Dimention table"
       parameters:
-        componentName: "ON_TIME"
+        componentName: "Exists"
         filterConditions:
         - - "IS_EARLY"
           - "Is"
@@ -133,23 +133,23 @@ pipeline:
           - "LOAD_TIME"
         - - "dim.END_TIME"
           - "END_TIME"
-    Calculator:
+    Check the dim key in Dimention table:
       type: "calculator"
       sources:
       - "Join"
       parameters:
-        componentName: "Calculator"
+        componentName: "Check the dim key in Dimention table"
         includeInputColumns: "Yes"
         calculations:
         - - "CASE \r\nWHEN \"dim_PRODUCT_ID\" IS NULL THEN 'TRUE'\r\nELSE\r\n'FALSE'\r\
             \nEND"
           - "IS_EARLY"
-    Calculator 3:
+    Check EARLY FACT:
       type: "calculator"
       sources:
-      - "Join 2"
+      - "Join the Dimenstion and Fact if Dimenstion exists"
       parameters:
-        componentName: "Calculator 3"
+        componentName: "Check EARLY FACT"
         includeInputColumns: "Yes"
         calculations:
         - - "CASE WHEN \"SALES_TIME\"> \"Last_processed_time\" THEN \r\n   'TRUE'\r\
@@ -158,14 +158,14 @@ pipeline:
     LAST_PROCESSED_TIME:
       type: "sql"
       sources:
-      - "ON_TIME"
+      - "Exists"
       parameters:
         componentName: "LAST_PROCESSED_TIME"
         query: "SELECT MAX(SALES_TIME_V) AS MAX_TME FROM EDW_LAB.PUBLIC.FACT_SALES "
     ON TIME PROCESS DATA:
       type: "filter"
       sources:
-      - "Calculator 3"
+      - "Check EARLY FACT"
       parameters:
         componentName: "ON TIME PROCESS DATA"
         filterConditions:
@@ -174,14 +174,14 @@ pipeline:
           - "Equal to"
           - "TRUE"
         combineCondition: "And"
-    Join 2:
+    Join the Dimenstion and Fact if Dimenstion exists:
       type: "join"
       sources:
-      - "ON_TIME"
+      - "Exists"
       - "LAST_PROCESSED_TIME"
       parameters:
-        componentName: "Join 2"
-        mainTable: "ON_TIME"
+        componentName: "Join the Dimenstion and Fact if Dimenstion exists"
+        mainTable: "Exists"
         mainTableAlias: "on"
         joins:
         - - "LAST_PROCESSED_TIME"
@@ -212,7 +212,7 @@ pipeline:
     AUDIT_LATE_SALES 2:
       type: "table-output"
       sources:
-      - "LATE DIMENTION"
+      - "Not Exists"
       parameters:
         componentName: "AUDIT_LATE_SALES 2"
         warehouse: "[Environment Default]"
@@ -237,7 +237,7 @@ pipeline:
     Late arrived:
       type: "filter"
       sources:
-      - "Calculator 3"
+      - "Check EARLY FACT"
       parameters:
         componentName: "Late arrived"
         filterConditions:
@@ -258,37 +258,37 @@ design:
         x: -1510
         "y": -180
       tempMetlId: 2
-    LATE DIMENTION:
+    Not Exists:
       position:
         x: -1000
         "y": -160
       tempMetlId: 4
-    ON_TIME:
+    Exists:
       position:
         x: -990
         "y": -290
       tempMetlId: 10
     FACT_SALES:
       position:
-        x: 40
-        "y": -320
+        x: 20
+        "y": -330
       tempMetlId: 12
     AUDIT_LATE_SALES:
       position:
-        x: 50
-        "y": -220
+        x: 30
+        "y": -200
       tempMetlId: 14
     Join:
       position:
         x: -1310
         "y": -260
       tempMetlId: 18
-    Calculator:
+    Check the dim key in Dimention table:
       position:
         x: -1160
         "y": -260
       tempMetlId: 19
-    Calculator 3:
+    Check EARLY FACT:
       position:
         x: -540
         "y": -280
@@ -303,41 +303,44 @@ design:
         x: -360
         "y": -320
       tempMetlId: 24
-    Join 2:
+    Join the Dimenstion and Fact if Dimenstion exists:
       position:
         x: -710
         "y": -290
       tempMetlId: 26
     AUDIT_LATE_SALES 2:
       position:
-        x: -620
-        "y": -150
+        x: -700
+        "y": -160
       tempMetlId: 27
     Late arrived:
       position:
-        x: -370
-        "y": -220
+        x: -360
+        "y": -200
       tempMetlId: 28
   notes:
     "1":
       position:
-        x: -1250
-        "y": -400
+        x: -1290
+        "y": -460
       size:
-        height: 288
-        width: 340
+        height: 348
+        width: 380
       theme: "white"
-      content: "customer_id  is exsting in ]the dim or not.if yes then redirect to\
-        \ success path other wise it will store those recored into temp or audit table\
-        \ further analyse."
+      content: |-
+        ALate Arriving Dimension refers to a scenario where a dimension record is received after the corresponding "
+            "fact record has already been loaded into the data warehouse
+
+        customer_id  is exsting in ]the dim or not.if yes then redirect to success path other wise it will store those recored into temp or audit table further analyse.
     "2":
       position:
         x: -600
-        "y": -410
+        "y": -490
       size:
-        height: 278
-        width: 400
+        height: 388
+        width: 430
       theme: "white"
-      content: "WHEN \"STG_SALES_TIME\"> \"FACT_Last_processed_time\" THEN DIRECTLY\
-        \ MOVE INTO THE TARGET TABLE, OTHERWISE FAILES AND STORING ISSUE RECORD STORING\
-        \ TO AUIT OR TEMPP TABLE FOR FURTHER WE ANALYSE"
+      content: |-
+        A late fact is a transaction or event that happened in the past but was delayed in getting processed or delivered into the data warehouse.
+
+        WHEN "STG_SALES_TIME"> "FACT_Last_processed_time" THEN DIRECTLY MOVE INTO THE TARGET TABLE, OTHERWISE FAILES AND STORING ISSUE RECORD STORING TO AUIT OR TEMPP TABLE FOR FURTHER WE ANALYSE

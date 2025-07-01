@@ -707,8 +707,8 @@ design:
       tempMetlId: 9978
     Or 0:
       position:
-        x: -290
-        "y": 240
+        x: -260
+        "y": 250
       tempMetlId: 9979
     Check current run dt:
       position:

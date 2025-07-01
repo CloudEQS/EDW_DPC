@@ -1,0 +1,166 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Print Variables"
+      parameters:
+        componentName: "Start"
+    set status=RUNNING:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Retry"
+      skipped: true
+      parameters:
+        componentName: "set status=RUNNING"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\nset \r\n    run_id = '${sysvar.thisPipeline.executionId}',\r\
+          \n    STATUS = 'RUNNING',\r\n    START_TIME = current_timestamp()\r\nwhere\
+          \ batch_id = '${jv_last_batch_id1}' and JOB_NAME = '${jv_failed_job_name1}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run a failed job:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Run a failed job"
+        orchestrationJob: "${jv_failed_job_name1.replace(/\\.orch\\.yaml$/, '')}"
+        setScalarVariables:
+        - - "jv_object_name"
+          - "${jv_failed_object_name1}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage: "Currently Run the Failed Job: ${jv_failed_job_name1}"
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Retry:
+      type: "retry"
+      transitions:
+        success:
+        - "set status=SUCCESS"
+        failure:
+        - "set status=FAILED"
+      iterationTarget: "Run a failed job"
+      parameters:
+        componentName: "Retry"
+        numberOfRetries: "3"
+        retryDelay: "Short delay"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    set status=SUCCESS:
+      type: "sql-executor"
+      skipped: true
+      parameters:
+        componentName: "set status=SUCCESS"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\nset \r\n    STATUS = 'SUCCESS',\r\
+          \n    END_TIME = current_timestamp()\r\nwhere batch_id = '${jv_last_batch_id1}'\
+          \ and JOB_NAME = '${jv_failed_job_name1}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    set status=FAILED:
+      type: "sql-executor"
+      skipped: true
+      parameters:
+        componentName: "set status=FAILED"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.PUBLIC.JOB_RUN_AUDIT\r\nset \r\n    STATUS = 'FAILED',\r\
+          \n    END_TIME = current_timestamp(),\r\n    ERROR_MESSAGE = $$${jv_error_message}$$\r\
+          \nwhere batch_id = '${jv_last_batch_id1}' and JOB_NAME = '${jv_failed_job_name1}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "set status=RUNNING"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "jv_failed_job_name1"
+        - - "jv_failed_object_name1"
+        prefixText: "failed jobs to re-run"
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_failed_job_name1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Re-startibility-framework_NEW/SNOWFLAKE_Load.orch.yaml"
+    jv_failed_object_name1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "ABC"
+    jv_last_batch_id1:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "yyyyyyy"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "No Error for now"
+design:
+  components:
+    Start:
+      position:
+        x: -140
+        "y": 0
+      tempMetlId: 1
+    set status=RUNNING:
+      position:
+        x: 140
+        "y": 0
+      tempMetlId: 2
+    Run a failed job:
+      position:
+        x: 300
+        "y": 0
+      tempMetlId: 3
+    Retry:
+      position:
+        x: 300
+        "y": -20
+      tempMetlId: 4
+    set status=SUCCESS:
+      position:
+        x: 460
+        "y": 0
+      tempMetlId: 5
+    set status=FAILED:
+      position:
+        x: 370
+        "y": 140
+      tempMetlId: 6
+    Print Variables:
+      position:
+        x: -20
+        "y": 0
+      tempMetlId: 7

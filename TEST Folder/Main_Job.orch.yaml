@@ -1,0 +1,565 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Get source system data"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    End Failure 0:
+      type: "end-failure"
+      skipped: false
+      parameters:
+        componentName: "End Failure 0"
+    Main_Source_Selector 0:
+      type: "run-orchestration"
+      skipped: false
+      parameters:
+        componentName: "Main_Source_Selector 0"
+        orchestrationJob: "TEST Folder/${jv_source_system_code}_Load"
+        setScalarVariables:
+        - - "jv_source_system_code"
+          - "${jv_source_system_code}"
+        - - "jv_source_system_id"
+          - "${jv_source_system_id}"
+        - - "jv_active_flag"
+          - "${jv_active_flag}"
+        - - "jv_object_name"
+          - "${jv_object_name}"
+        - - "jv_refresh_type"
+          - "${jv_refresh_type}"
+        - - "jv_target_table"
+          - "${jv_target_table}"
+        - - "jv_source_object_id"
+          - "${jv_source_object_id}"
+        setGridVariables:
+      postProcessing:
+        updateScalarVariables:
+        - - "jv_message"
+          - "${sysvar.thisComponent.message}"
+    End Success 0:
+      type: "end-success"
+      skipped: false
+      parameters:
+        componentName: "End Success 0"
+    Grid Iterator 0:
+      type: "grid-iterator"
+      transitions:
+        success:
+        - "Update the Last run time"
+        failure:
+        - "SQL Script"
+      iterationTarget: "Main_Source_Selector 0"
+      skipped: false
+      parameters:
+        componentName: "Grid Iterator 0"
+        gridVariable: "gv_source_system"
+        gridIteratorVariableMapping:
+        - - "gv_source_system_code"
+          - "jv_source_system_code"
+        - - "gv_Source_System_id"
+          - "jv_source_system_id"
+        - - "gv_Source_Object_id"
+          - "jv_source_object_id"
+        - - "gv_Object_type"
+          - "jv_object_type"
+        - - "gv_Object_name"
+          - "jv_object_name"
+        - - "gv_Refresh_frequency"
+          - "jv_refresh_frequency"
+        - - "gv_Refresh_type"
+          - "jv_refresh_type"
+        - - "gv_Source_custom_query"
+          - "jv_source_custom_query"
+        - - "gv_Active_flag"
+          - "jv_active_flag"
+        - - "gv_Target_table"
+          - "jv_target_table"
+        concurrency: "Concurrent"
+      postProcessing:
+        updateScalarVariables:
+        - - "jv_status"
+          - "${sysvar.thisComponent.status}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+    LOG START:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Grid Iterator 0"
+      skipped: true
+      parameters:
+        componentName: "LOG START"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into edw_lab.public.INGESTION_CONTROL_TABLE(BATCH_ID,START_TIME,STATUS,Source_system_id,SOURCE_OBJECT_ID,object_name)\r\
+          \nselect '${sysvar.rootPipeline.executionId}',current_timestamp,'STARTED',s.SOURCE_SYSTEM_ID,so.SOURCE_OBJECT_ID,\
+          \ so.object_name from edw_lab.public.source_system s join edw_lab.public.Source_Objects\
+          \ so\r\non so.source_system_id=s.source_system_id and \r\nso.SOURCE_OBJECT_ID\
+          \ in (1,2)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Update the Last run time:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success 0"
+      skipped: true
+      parameters:
+        componentName: "Update the Last run time"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update edw_lab.public.INGESTION_CONTROL_TABLE set LAST_RUN_TS=current_timestamp,status='SUCCESS'\
+          \ where batch_id='${sysvar.rootPipeline.executionId}' AND OBJECT_ID=${jv_source_object_id}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    SQL Script:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Failure 0"
+      skipped: true
+      parameters:
+        componentName: "SQL Script"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "select * from edw_lab.public.INGESTION_CONTROL_TABLE where\r\n\
+          status in('PENDING','FAILED') AND retry_count < max_retries"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "LOG START"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_source_system"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Get source system data:
+      type: "query-to-grid"
+      transitions:
+        success:
+        - "Print Variables"
+      skipped: false
+      parameters:
+        componentName: "Get source system data"
+        mode: "Advanced"
+        query: "/* Note: this query will be run as a subquery for the purposes of\
+          \ sampling the data.\n   As such it will be restricted by any subquery limitations\
+          \ specified by the current platform. */\n   \n   select ss.Source_system_code,so.*\n\
+          \   from edw_lab.public.Source_Objects so \n   left join edw_lab.public.Source_system\
+          \ ss \n   on ss.Source_system_id = so.Source_system_id\n   where so.active_flag\
+          \ = 1 and ss.active_flag = 1 AND SOURCE_OBJECT_ID IN(1,2)\n   "
+        gridVariable: "gv_source_system"
+        gridVariableMapping:
+        - - "SOURCE_SYSTEM_CODE"
+          - "gv_source_system_code"
+        - - "SOURCE_OBJECT_ID"
+          - "gv_Source_Object_id"
+        - - "SOURCE_SYSTEM_ID"
+          - "gv_Source_System_id"
+        - - "OBJECT_TYPE"
+          - "gv_Object_type"
+        - - "OBJECT_NAME"
+          - "gv_Object_name"
+        - - "REFRESH_FREQUENCY"
+          - "gv_Refresh_frequency"
+        - - "REFRESH_TYPE"
+          - "gv_Refresh_type"
+        - - "SOURCE_CUSTOM_QUERY"
+          - "gv_Source_custom_query"
+        - - "ACTIVE_FLAG"
+          - "gv_Active_flag"
+        - - "TARGET_TABLE"
+          - "gv_Target_table"
+  variables:
+    jv_object_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_last_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-02-01"
+    jv_refresh_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_comment:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_refresh_frequency:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_table_type:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "DEFAULT"
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_run_history_id:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_custom_query:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "NA"
+    jv_source_object_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "9"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_status:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_job_parent:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "Ingestion/test.csv"
+    jv_target_table:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "COL_DATA"
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1970-01-01"
+    jv_error_number:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_active_flag:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "Y"
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_subject_area:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Fact Sales"
+    jv_row_count:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_success_flag:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_process_date:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2021-01-01"
+    jv_updated_rows:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_load_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "-1"
+    jv_source_system_id:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "1"
+    jv_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "None"
+    jv_curr_run_dt:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2022-06-01"
+    jv_table_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "DEFAULT"
+    jv_source_system_code:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "Postgres"
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_inserted_rows:
+            columnType: "NUMBER"
+          gv_updated_rows:
+            columnType: "TEXT"
+          gv_subject_area:
+            columnType: "TEXT"
+          gv_process_date:
+            columnType: "TEXT"
+          gv_success_flag:
+            columnType: "NUMBER"
+          gv_start_time:
+            columnType: "TEXT"
+          gv_end_time:
+            columnType: "TEXT"
+          gv_row_count:
+            columnType: "NUMBER"
+          gv_run_history_id:
+            columnType: "NUMBER"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "NUMBER"
+          gv_error_number:
+            columnType: "NUMBER"
+          gv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_source_system:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          gv_source_system_code:
+            columnType: "TEXT"
+          gv_Source_Object_id:
+            columnType: "NUMBER"
+          gv_Source_System_id:
+            columnType: "NUMBER"
+          gv_Object_type:
+            columnType: "TEXT"
+          gv_Object_name:
+            columnType: "TEXT"
+          gv_Refresh_frequency:
+            columnType: "TEXT"
+          gv_Refresh_type:
+            columnType: "TEXT"
+          gv_Source_custom_query:
+            columnType: "TEXT"
+          gv_Active_flag:
+            columnType: "TEXT"
+          gv_Target_table:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+design:
+  components:
+    Start 0:
+      position:
+        x: -2032
+        "y": 0
+      tempMetlId: 912675
+    End Failure 0:
+      position:
+        x: -1210
+        "y": 150
+      tempMetlId: 912692
+    Main_Source_Selector 0:
+      position:
+        x: -1520
+        "y": -20
+      tempMetlId: 912697
+    End Success 0:
+      position:
+        x: -1216
+        "y": 0
+      tempMetlId: 912698
+    Grid Iterator 0:
+      position:
+        x: -1520
+        "y": -20
+      tempMetlId: 912700
+    LOG START:
+      position:
+        x: -1670
+        "y": 0
+      tempMetlId: 913436
+    Update the Last run time:
+      position:
+        x: -1360
+        "y": 0
+      tempMetlId: 913437
+    SQL Script:
+      position:
+        x: -1510
+        "y": 170
+      tempMetlId: 913438
+    Print Variables:
+      position:
+        x: -1800
+        "y": 0
+      tempMetlId: 913439
+    Get source system data:
+      position:
+        x: -1920
+        "y": 0
+      tempMetlId: 913440
+  notes:
+    "912672":
+      position:
+        x: -1937
+        "y": -43
+      size:
+        height: 119
+        width: 782
+      theme: "green"
+      content: "Success Path"
+    "912673":
+      position:
+        x: -1690
+        "y": 100
+      size:
+        height: 127
+        width: 472
+      theme: "red"
+      content: "Failure Path"

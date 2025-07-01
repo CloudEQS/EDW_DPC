@@ -1,0 +1,342 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_PRODUCT_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_PRODUCT_SCD2"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_ORDERS"
+        columnNames:
+        - "O_ORDERKEY"
+        - "O_CUSTKEY"
+        - "O_ORDERSTATUS"
+        - "O_TOTALPRICE"
+        - "O_ORDERDATE"
+        - "O_ORDERPRIORITY"
+        - "O_CLERK"
+        - "O_SHIPPRIORITY"
+        - "O_COMMENT"
+        - "O_LOAD_TIME"
+        timeOffset:
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "Filter"
+      - "Current Data of Target"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "Filter"
+        matchKeys:
+        - "C_CUSTKEY"
+        compareColumns:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        outputColumnMapping:
+        - - "compare_C_CUSTKEY"
+          - "compare_C_CUSTKEY"
+        - - "compare_C_NAME"
+          - "compare_C_NAME"
+        - - "compare_C_ADDRESS"
+          - "compare_C_ADDRESS"
+        - - "compare_C_NATIONKEY"
+          - "compare_C_NATIONKEY"
+        - - "compare_C_PHONE"
+          - "compare_C_PHONE"
+        - - "compare_C_ACCTBAL"
+          - "compare_C_ACCTBAL"
+        - - "compare_C_MKTSEGMENT"
+          - "compare_C_MKTSEGMENT"
+        - - "compare_C_COMMENT"
+          - "compare_C_COMMENT"
+        - - "compare_START_TIME"
+          - "NEW_LOAD"
+        indicatorColumn: "Indicator"
+    Rank:
+      type: "rank"
+      sources:
+      - "STG_PRODUCT_SCD2"
+      parameters:
+        componentName: "Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "O_ORDERKEY"
+        - "O_CUSTKEY"
+        - "O_ORDERSTATUS"
+        - "O_TOTALPRICE"
+        - "O_ORDERDATE"
+        - "O_ORDERPRIORITY"
+        - "O_CLERK"
+        - "O_SHIPPRIORITY"
+        - "O_COMMENT"
+        - "O_LOAD_TIME"
+        orderingWithinPartitions:
+        - - "O_LOAD_TIME"
+          - "Descending"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Filter:
+      type: "filter"
+      sources:
+      - "Rank"
+      parameters:
+        componentName: "Filter"
+        filterConditions:
+        - - "rn"
+          - "Is"
+          - "Equal to"
+          - "1"
+        combineCondition: "And"
+    Current Data of Target:
+      type: "sql"
+      parameters:
+        componentName: "Current Data of Target"
+        query: "SELECT * FROM ANALYTICS_DB.ANALYTICS_SCHEMA.DIM_ORDERS_SCD2 WHERE\
+          \ C_END_TIME IS NULL"
+    New data:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "New data"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "Or"
+    update:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "update"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "And"
+    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+      type: "table-output"
+      sources:
+      - "Calculator 2"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2_HISTORY_UPDATE"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "compare_C_CUSTKEY"
+          - "C_CUSTKEY"
+        - - "compare_C_NAME"
+          - "C_NAME"
+        - - "compare_C_ADDRESS"
+          - "C_ADDRESS"
+        - - "compare_C_NATIONKEY"
+          - "C_NATIONKEY"
+        - - "compare_C_PHONE"
+          - "C_PHONE"
+        - - "compare_C_ACCTBAL"
+          - "C_ACCTBAL"
+        - - "compare_C_MKTSEGMENT"
+          - "C_MKTSEGMENT"
+        - - "compare_C_COMMENT"
+          - "C_COMMENT"
+        - - "LOAD_TIME_V"
+          - "C_LOAD_TIME"
+        - - "END_TIME_UP_V"
+          - "C_END_TIME"
+        - - "ACTIVE_FLAG"
+          - "C_ACTIVE_FLAG"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    DIM_PRODUCT_HISTORY_INSERT:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "DIM_PRODUCT_HISTORY_INSERT"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "compare_C_CUSTKEY"
+          - "C_CUSTKEY"
+        - - "compare_C_NAME"
+          - "C_NAME"
+        - - "compare_C_ADDRESS"
+          - "C_ADDRESS"
+        - - "compare_C_NATIONKEY"
+          - "C_NATIONKEY"
+        - - "compare_C_PHONE"
+          - "C_PHONE"
+        - - "compare_C_ACCTBAL"
+          - "C_ACCTBAL"
+        - - "compare_C_MKTSEGMENT"
+          - "C_MKTSEGMENT"
+        - - "compare_C_COMMENT"
+          - "C_COMMENT"
+        - - "LOAD_TIME_V"
+          - "C_LOAD_TIME"
+        - - "END_TIME_IN_V"
+          - "C_END_TIME"
+        - - "ACTIVE_FLAG"
+          - "C_ACTIVE_FLAG"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator:
+      type: "calculator"
+      sources:
+      - "New data"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LOAD_TIME_V"
+        - - "NULL"
+          - "END_TIME_IN_V"
+        - - "'Y'"
+          - "ACTIVE_FLAG"
+    Calculator 2:
+      type: "calculator"
+      sources:
+      - "update"
+      parameters:
+        componentName: "Calculator 2"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LOAD_TIME_V"
+        - - "NULL"
+          - "END_TIME_UP_V"
+        - - "'Y'"
+          - "ACTIVE_FLAG"
+    DIM_PRODUCT_SCD2 2:
+      type: "table-update"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "DIM_PRODUCT_SCD2 2"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"C_CUSTKEY\"=\"target\".\"C_CUSTKEY\" AND \"target\".\"C_END_TIME\"\
+            \ IS NULL AND \"input\".\"NEW_LOAD\">\"target\".\"C_LOAD_TIME\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"C_CUSTKEY\"=\"target\".\"C_CUSTKEY\" AND \"target\".\"C_END_TIME\"\
+            \ IS NULL AND \"input\".\"NEW_LOAD\">\"target\".\"C_LOAD_TIME\""
+          - "Update"
+        updateMapping:
+        - - "END_TIME_OLD"
+          - "C_END_TIME"
+        - - "AVTIVE_FLAG"
+          - "C_ACTIVE_FLAG"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "update"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "END_TIME_OLD"
+        - - "'N'"
+          - "AVTIVE_FLAG"
+design:
+  components:
+    STG_PRODUCT_SCD2:
+      position:
+        x: -820
+        "y": -200
+      tempMetlId: 1
+    Detect Changes:
+      position:
+        x: -350
+        "y": -100
+      tempMetlId: 3
+    Rank:
+      position:
+        x: -630
+        "y": -200
+      tempMetlId: 4
+    Filter:
+      position:
+        x: -500
+        "y": -200
+      tempMetlId: 5
+    Current Data of Target:
+      position:
+        x: -840
+        "y": 30
+      tempMetlId: 6
+    New data:
+      position:
+        x: -200
+        "y": -180
+      tempMetlId: 7
+    update:
+      position:
+        x: -210
+        "y": -50
+      tempMetlId: 8
+    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+      position:
+        x: 210
+        "y": -50
+      tempMetlId: 9
+    DIM_PRODUCT_HISTORY_INSERT:
+      position:
+        x: 170
+        "y": -180
+      tempMetlId: 10
+    Calculator:
+      position:
+        x: 10
+        "y": -180
+      tempMetlId: 11
+    Calculator 2:
+      position:
+        x: 10
+        "y": -50
+      tempMetlId: 12
+    DIM_PRODUCT_SCD2 2:
+      position:
+        x: 300
+        "y": 90
+      tempMetlId: 19
+    Calculator 3:
+      position:
+        x: 200
+        "y": 90
+      tempMetlId: 20
