@@ -143,7 +143,7 @@ pipeline:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
           gv_load_id:
@@ -160,8 +160,6 @@ pipeline:
             columnType: "NUMBER"
           gv_updated_rows:
             columnType: "NUMBER"
-          gv_subject_area:
-            columnType: "TEXT"
           gv_process_date:
             columnType: "TEXT"
           gv_success_flag:
@@ -172,32 +170,25 @@ pipeline:
             columnType: "TEXT"
           gv_row_count:
             columnType: "NUMBER"
-          gv_run_history_id:
-            columnType: "TEXT"
           gv_status:
             columnType: "TEXT"
           gv_message:
             columnType: "TEXT"
-          gv_comment:
-            columnType: "TEXT"
       defaultValue:
-      - - "a"
-        - "b"
-        - "c"
-        - "d"
-        - "f"
-        - "0"
-        - "-0"
+      - - "-1"
         - "-1"
-        - "1970-01-01"
-        - "y"
-        - "acb"
-        - "abh"
-        - "0"
-        - "hj"
-        - "whj"
-        - "mes"
-        - "kk"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
 design:
   components:
     grid_var_load_log:
