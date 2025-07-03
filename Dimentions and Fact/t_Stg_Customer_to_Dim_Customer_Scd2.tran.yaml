@@ -172,7 +172,7 @@ pipeline:
         warehouse: "[Environment Default]"
         database: "ANALYTICS_DB"
         schema: "ANALYTICS_SCHEMA"
-        targetTable: "DIM_CUSTO"
+        targetTable: "DIM_CUSTOMER_SCD2"
         targetAlias: "target"
         sourceAlias: "input"
         joinExpression:
@@ -267,7 +267,7 @@ design:
     update:
       position:
         x: -350
-        "y": 80
+        "y": 90
       tempMetlId: 8
     DIM_CUSTOMER_INSERT_SCD TYP2:
       position:
@@ -281,8 +281,8 @@ design:
       tempMetlId: 11
     Calculator 3:
       position:
-        x: -130
-        "y": 80
+        x: -120
+        "y": 90
       tempMetlId: 20
     DIM_CUSTOMER_SCD2:
       position:
@@ -301,8 +301,8 @@ design:
       tempMetlId: 23
     DIM_CUSTOMER_SCD2 2:
       position:
-        x: 120
-        "y": 80
+        x: 90
+        "y": 90
       tempMetlId: 24
     Detect Changes:
       position:

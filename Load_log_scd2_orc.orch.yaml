@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Run Transformation"
+        - "Print Variables"
       parameters:
         componentName: "Start"
     Run Transformation:
@@ -21,6 +21,21 @@ pipeline:
         transformationJob: "Dimentions and Fact/Load_log_scd2_trans.tran.yaml"
         setScalarVariables:
         setGridVariables:
+        - variable: "gv_load_log_scd"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_parent_load_log_scd2"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_table_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_status"
+              - "jv_end_time"
+              - "jv_error_message"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -38,12 +53,26 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Run Transformation"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_parent_load_log_scd2"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     gv_parent_load_log_scd2:
       metadata:
         type: "GRID"
         description: ""
-        scope: "COPIED"
+        scope: "SHARED"
         visibility: "PUBLIC"
         columns:
           jv_load_id:
@@ -64,12 +93,21 @@ pipeline:
             columnType: "TEXT"
           jv_error_message:
             columnType: "TEXT"
-      defaultValue: []
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
 design:
   components:
     Start:
       position:
-        x: 0
+        x: -150
         "y": 0
       tempMetlId: 1
     Run Transformation:
@@ -87,3 +125,8 @@ design:
         x: 320
         "y": -120
       tempMetlId: 4
+    Print Variables:
+      position:
+        x: -20
+        "y": 0
+      tempMetlId: 5

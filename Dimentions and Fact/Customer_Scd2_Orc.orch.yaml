@@ -14,7 +14,8 @@ pipeline:
       transitions:
         success:
         - "Append To Grid 2"
-        - "Print Variables"
+        failure:
+        - "Append To Grid 2 2"
       parameters:
         componentName: "t_Stg_Customer_to_Dim_Customer_Scd2"
         transformationJob: "Dimentions and Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
@@ -24,40 +25,11 @@ pipeline:
         updateOutputMessage:
         updateScalarVariables:
         - - "v_error_message"
-          - "${sysvar.detailed_error}"
+          - "${sysvar.thisComponent.message}"
         - - "v_inserted_rows"
           - "${sysvar.childPipeline.vars.jv_inserted_rows}"
         - - "v_updated_rows"
           - "${sysvar.childPipeline.vars.jv_updated_rows}"
-    Log Started:
-      type: "sql-executor"
-      parameters:
-        componentName: "Log Started"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include selected"
-        variablesToInclude:
-        sqlScript: "INSERT INTO EDW_LAB.STAGE_SCHEMA.LOAD_LOG_SCD2(LOAD_ID,JOB_NAME,TABLE_NAME,STATUS,START_TIME)\r\
-          \nVALUES('${sysvar.thisPipeline.executionId}','t_Stg_Customer_to_Dim_Customer_Scd2','DIM_CUSTOMER_SCD2','Job\
-          \ is Started',CURRENT_TIMESTAMP)"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Log Failed:
-      type: "sql-executor"
-      transitions:
-        success:
-        - "End Failure"
-      parameters:
-        componentName: "Log Failed"
-        scriptLocation: "Component"
-        declareSqlVariables: "Include all"
-        sqlScript: "update EDW_LAB.STAGE_SCHEMA.LOAD_LOG_SCD2\r\nSET\r\n    INSERTED_ROWS=${v_inserted_rows},\r\
-          \n    UPDATED_ROWS=${v_updated_rows},\r\n    STATUS='Failed',\r\n    END_TIME=CURRENT_TIMESTAMP,\r\
-          \n    ERROR_MESSAGE='${v_error_message}'\r\n    where LOAD_ID='${sysvar.thisPipeline.executionId}'\r\
-          \n    \r\n"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     End Success:
       type: "end-success"
       parameters:
@@ -74,6 +46,9 @@ pipeline:
         updateScalarVariables:
     Print Variables:
       type: "print-variables"
+      transitions:
+        success:
+        - "Run Shared Pipeline 2"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
@@ -100,7 +75,7 @@ pipeline:
           - "0"
           - "Job Started"
           - " ${sysvar.thisComponent.startedAt}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - ""
           - ""
       postProcessing:
         updateOutputMessage:
@@ -123,7 +98,7 @@ pipeline:
       type: "append-to-grid"
       transitions:
         success:
-        - "Run Shared Pipeline"
+        - "Print Variables 3"
       parameters:
         componentName: "Append To Grid 2"
         operation: "Append"
@@ -132,23 +107,106 @@ pipeline:
         - - "${sysvar.thisPipeline.executionId}"
           - "${sysvar.thisPipeline.fullName}"
           - "stage customer to dim_cust"
-          - "0"
-          - "0"
-          - "Job Started"
+          - "${v_inserted_rows}"
+          - "${v_updated_rows}"
+          - "Job is Completed Succesfully"
           - " ${sysvar.thisComponent.startedAt}"
           - "${sysvar.thisComponent.mainTaskFinishedAt}"
-          - ""
+          - "${v_error_message}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
     Run Shared Pipeline:
       type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Success"
       parameters:
         componentName: "Run Shared Pipeline"
-        pipelineName: "Dimentions and Fact/Load"
+        pipelineName: "EDW_LAB#Load_log_scd2_orc-1"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
+        - variable: "gv_parent_load_log_scd2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_main_job_load_log_scd2"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_table_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_start_time"
+              - "jv_end_time"
+              - "jv_error_message"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 3:
+      type: "print-variables"
+      transitions:
+        success:
+        - "Run Shared Pipeline"
+      parameters:
+        componentName: "Print Variables 3"
+        variablesToPrint:
+        - - "gv_main_job_load_log_scd2"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Append To Grid 2 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Print Variables"
+      parameters:
+        componentName: "Append To Grid 2 2"
+        operation: "Append"
+        targetGridVariable: "gv_main_job_load_log_scd2"
+        valuesGrid:
+        - - "${sysvar.thisPipeline.executionId}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "stage customer to dim_cust"
+          - "${v_inserted_rows}"
+          - "${v_updated_rows}"
+          - "Failed"
+          - " ${sysvar.thisComponent.startedAt}"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "${v_error_message}"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Shared Pipeline 2:
+      type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Failure"
+      parameters:
+        componentName: "Run Shared Pipeline 2"
+        pipelineName: "EDW_LAB#Load_log_scd2_orc-1"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_parent_load_log_scd2"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_main_job_load_log_scd2"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_table_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_start_time"
+              - "jv_end_time"
+              - "jv_error_message"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -219,39 +277,29 @@ design:
         x: 40
         "y": 30
       tempMetlId: 2
-    Log Started:
-      position:
-        x: -200
-        "y": 220
-      tempMetlId: 3
-    Log Failed:
-      position:
-        x: 450
-        "y": 120
-      tempMetlId: 5
     End Success:
       position:
-        x: 490
-        "y": -70
+        x: 670
+        "y": -50
       tempMetlId: 6
     End Failure:
       position:
-        x: 590
+        x: 600
         "y": 120
       tempMetlId: 7
     Print Variables:
       position:
-        x: 170
-        "y": 60
+        x: 330
+        "y": 120
       tempMetlId: 9
     Append To Grid:
       position:
-        x: -220
+        x: -240
         "y": 30
       tempMetlId: 10
     Print Variables 2:
       position:
-        x: -60
+        x: -110
         "y": 30
       tempMetlId: 11
     Append To Grid 2:
@@ -261,6 +309,21 @@ design:
       tempMetlId: 12
     Run Shared Pipeline:
       position:
-        x: 350
+        x: 520
         "y": -50
       tempMetlId: 13
+    Print Variables 3:
+      position:
+        x: 360
+        "y": -50
+      tempMetlId: 14
+    Append To Grid 2 2:
+      position:
+        x: 200
+        "y": 120
+      tempMetlId: 15
+    Run Shared Pipeline 2:
+      position:
+        x: 460
+        "y": 120
+      tempMetlId: 16
