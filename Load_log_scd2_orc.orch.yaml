@@ -1,0 +1,89 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Run Transformation"
+      parameters:
+        componentName: "Start"
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "End Success"
+        failure:
+        - "End Failure"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "Dimentions and Fact/Load_log_scd2_trans.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_parent_load_log_scd2:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_table_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    Run Transformation:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2
+    End Failure:
+      position:
+        x: 290
+        "y": 120
+      tempMetlId: 3
+    End Success:
+      position:
+        x: 320
+        "y": -120
+      tempMetlId: 4

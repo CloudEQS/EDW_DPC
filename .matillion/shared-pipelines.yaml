@@ -777,3 +777,59 @@ pipelines:
             columnType: TEXT
           jv_error_message:
             columnType: TEXT
+  - pipeline: Dimentions and Fact/Load_log_scd2_trans.tran.yaml
+    displayName: Load_log_scd2_trans
+    id: Load_log_scd2_trans
+    enabled: true
+    parameters:
+      gv_load_log_scd:
+        type: GRID
+        exportAllowed: true
+        description: ""
+        columns:
+          jv_load_id:
+            columnType: TEXT
+          jv_job_name:
+            columnType: TEXT
+          jv_table_name:
+            columnType: TEXT
+          jv_inserted_rows:
+            columnType: NUMBER
+          jv_updated_rows:
+            columnType: NUMBER
+          jv_status:
+            columnType: TEXT
+          jv_start_time:
+            columnType: TEXT
+          jv_end_time:
+            columnType: TEXT
+          jv_error_message:
+            columnType: TEXT
+  - pipeline: Load_log_scd2_orc.orch.yaml
+    displayName: Load_log_scd2_orc
+    id: Load_log_scd2_orc-1
+    enabled: true
+    parameters:
+      gv_parent_load_log_scd2:
+        type: GRID
+        exportAllowed: false
+        description: ""
+        columns:
+          jv_load_id:
+            columnType: TEXT
+          jv_job_name:
+            columnType: TEXT
+          jv_table_name:
+            columnType: TEXT
+          jv_inserted_rows:
+            columnType: NUMBER
+          jv_updated_rows:
+            columnType: NUMBER
+          jv_status:
+            columnType: TEXT
+          jv_start_time:
+            columnType: TEXT
+          jv_end_time:
+            columnType: TEXT
+          jv_error_message:
+            columnType: TEXT
