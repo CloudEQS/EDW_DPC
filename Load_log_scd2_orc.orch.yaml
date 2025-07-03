@@ -33,11 +33,11 @@ pipeline:
               - "jv_inserted_rows"
               - "jv_updated_rows"
               - "jv_status"
-              - "jv_status"
+              - "jv_start_time"
               - "jv_end_time"
               - "jv_error_message"
       postProcessing:
-        updateOutputMessage: "gv_parent_load_log_scd2"
+        updateOutputMessage: ""
         updateScalarVariables:
     End Failure:
       type: "end-failure"
@@ -83,6 +83,32 @@ pipeline:
         updateScalarVariables:
   variables:
     gv_parent_load_log_scd2:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_table_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_main_job_load_log_scd2:
       metadata:
         type: "GRID"
         description: ""

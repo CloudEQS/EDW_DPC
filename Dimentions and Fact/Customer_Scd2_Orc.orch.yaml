@@ -70,13 +70,13 @@ pipeline:
         valuesGrid:
         - - "${sysvar.thisPipeline.executionId}"
           - "${sysvar.thisPipeline.fullName}"
-          - "stage customer to dim_cust"
+          - "Stage customer to Dim Customer"
           - "0"
           - "0"
-          - "Job Started"
-          - " ${sysvar.thisComponent.startedAt}"
+          - "2025-07-03 09:51"
+          - "${sysvar.thisComponent.startedAt}"
           - ""
-          - ""
+          - "meesage"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -109,7 +109,7 @@ pipeline:
           - "stage customer to dim_cust"
           - "${v_inserted_rows}"
           - "${v_updated_rows}"
-          - "Job is Completed Succesfully"
+          - "2025-07-03 09:51"
           - " ${sysvar.thisComponent.startedAt}"
           - "${sysvar.thisComponent.mainTaskFinishedAt}"
           - "${v_error_message}"
@@ -239,6 +239,32 @@ pipeline:
         scope: "COPIED"
         visibility: "PUBLIC"
       defaultValue: ""
+    gv_parent_load_log_scd2:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_table_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
     gv_main_job_load_log_scd2:
       metadata:
         type: "GRID"

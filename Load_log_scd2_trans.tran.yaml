@@ -27,10 +27,6 @@ pipeline:
           - "Number"
           - ""
           - ""
-        - - "jv_status"
-          - "VARCHAR"
-          - ""
-          - ""
         - - "jv_start_time"
           - "TIMESTAMP"
           - ""
@@ -220,8 +216,6 @@ pipeline:
             columnType: "NUMBER"
           jv_updated_rows:
             columnType: "NUMBER"
-          jv_status:
-            columnType: "TEXT"
           jv_start_time:
             columnType: "TEXT"
           jv_end_time:
@@ -230,7 +224,6 @@ pipeline:
             columnType: "TEXT"
       defaultValue:
       - - "-1"
-        - "-1"
         - "-1"
         - "-1"
         - "-1"
