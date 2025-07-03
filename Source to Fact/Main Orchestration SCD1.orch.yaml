@@ -44,13 +44,15 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.childPipeline.vars.v_error_message}"
     Grid Iterator:
       type: "grid-iterator"
       transitions:
         success:
         - "Log Append 3 2 2"
         failure:
-        - "End Failure"
+        - "Append To Grid"
       iterationTarget: "Run Orchestration"
       skipped: false
       parameters:
@@ -119,13 +121,13 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Run Shared Pipeline:
+    Load Inserted:
       type: "run-shared-pipeline"
       transitions:
         success:
         - "End Success"
       parameters:
-        componentName: "Run Shared Pipeline"
+        componentName: "Load Inserted"
         pipelineName: "EDW_LAB#load_log_insert_orc"
         version: "[Latest]"
         setScalarVariables:
@@ -157,7 +159,7 @@ pipeline:
       type: "append-to-grid"
       transitions:
         success:
-        - "Run Shared Pipeline"
+        - "Load Inserted"
       skipped: false
       parameters:
         componentName: "Log Append 3 2 2"
@@ -181,12 +183,43 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Append To Grid:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "End Failure"
+      skipped: true
+      parameters:
+        componentName: "Append To Grid"
+        operation: "Append"
+        targetGridVariable: "gv_error_log"
+        valuesGrid:
+        - - "${sysvar.rootPipeline.executionId}"
+          - "${jv_job_name}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "${jv_table_name}"
+          - "Dimensions SCD1"
+          - "${jv_error_message}"
+          - "${new Date().toISOString()}"
+          - "${sysvar..thisComponent.mainTaskFinishedAt}"
+          - "Failed"
+          - "Error occurred execution during "
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     jv_job_name:
       metadata:
         type: "TEXT"
         description: ""
         scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
     jv_table_name:
@@ -239,6 +272,44 @@ pipeline:
           gv_message:
             columnType: "TEXT"
       defaultValue: []
+    gv_error_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          gv_load_id:
+            columnType: "TEXT"
+          gv_job_name:
+            columnType: "TEXT"
+          gv_job_parent:
+            columnType: "TEXT"
+          gv_table_name:
+            columnType: "TEXT"
+          gv_table_type:
+            columnType: "TEXT"
+          gv_error_rows:
+            columnType: "TEXT"
+          gv_run_date:
+            columnType: "TEXT"
+          gv_run_time:
+            columnType: "TEXT"
+          gv_status:
+            columnType: "TEXT"
+          gv_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "1970-01-01"
+        - "1970-01-01"
+        - "-1"
+        - "-1"
     gv_scd1_job_name:
       metadata:
         type: "GRID"
@@ -280,8 +351,8 @@ design:
       tempMetlId: 5
     End Failure:
       position:
-        x: -320
-        "y": 240
+        x: -70
+        "y": 260
       tempMetlId: 6
     Log Append 3 2:
       position:
@@ -290,10 +361,10 @@ design:
       tempMetlId: 8
     Print Variables 2:
       position:
-        x: -350
-        "y": -90
+        x: -510
+        "y": -100
       tempMetlId: 9
-    Run Shared Pipeline:
+    Load Inserted:
       position:
         x: -20
         "y": 30
@@ -303,3 +374,8 @@ design:
         x: -200
         "y": 30
       tempMetlId: 11
+    Append To Grid:
+      position:
+        x: -320
+        "y": 260
+      tempMetlId: 12

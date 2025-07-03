@@ -151,9 +151,6 @@ pipeline:
           - "${sysvar.thisComponent.message}"
     Log Append 2 2:
       type: "append-to-grid"
-      transitions:
-        success:
-        - "t_Stg_Supplier_to_Dim_Supplier_Scd1 2"
       skipped: false
       parameters:
         componentName: "Log Append 2 2"
@@ -194,6 +191,7 @@ pipeline:
       transitions:
         success:
         - "Log Append 3"
+        - "Append To Grid 2"
       parameters:
         componentName: "t_Stg_Nation_to_Dim_Nation_Scd1"
         transformationJob: "Source to Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
@@ -235,6 +233,8 @@ pipeline:
       transitions:
         success:
         - "Log Append 3 2"
+        failure:
+        - "Append To Grid"
       parameters:
         componentName: "t_Stg_Region_to_Dim_Region_Scd1"
         transformationJob: "Source to Fact/t_Stg_Region_to_Dim_Region_Scd1.tran.yaml"
@@ -245,6 +245,9 @@ pipeline:
         updateScalarVariables:
     Log Append 3 2:
       type: "append-to-grid"
+      transitions:
+        success:
+        - "t_Stg_Nation_to_Dim_Nation_Scd1"
       skipped: false
       parameters:
         componentName: "Log Append 3 2"
@@ -268,22 +271,26 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    t_Stg_Supplier_to_Dim_Supplier_Scd1 2:
-      type: "run-transformation"
+    Append To Grid:
+      type: "append-to-grid"
       parameters:
-        componentName: "t_Stg_Supplier_to_Dim_Supplier_Scd1 2"
-        transformationJob: "Source to Fact/t_Stg_Orders_to_Orders_DIm.tran.yaml"
-        setScalarVariables:
-        setGridVariables:
+        componentName: "Append To Grid"
+        operation: "Append"
+        targetGridVariable:
+        valuesGrid:
       postProcessing:
-        updateOutputMessage: "STAGE SUPPLLIER TO CUSTOMER DIM SCD1 Is Running Now"
+        updateOutputMessage:
         updateScalarVariables:
-        - - "jv_inserted_rows"
-          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
-        - - "jv_updated_rows"
-          - "${sysvar.childPipeline.vars.jv_updated_rows}"
-        - - "jv_error_message"
-          - "${sysvar.thisComponent.message}"
+    Append To Grid 2:
+      type: "append-to-grid"
+      parameters:
+        componentName: "Append To Grid 2"
+        operation: "Append"
+        targetGridVariable:
+        valuesGrid:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     jv_updated_rows:
       metadata:
@@ -360,76 +367,81 @@ design:
   components:
     Start:
       position:
-        x: -1970
-        "y": -130
+        x: -2200
+        "y": -280
       tempMetlId: 1
     Stage Customer to Dim Customer Status:
       position:
         x: -1530
-        "y": -360
+        "y": -410
       tempMetlId: 4
     t_Stg_Customer_to_Dim_Customer_Scd1:
       position:
-        x: -1590
-        "y": -250
+        x: -1620
+        "y": -260
       tempMetlId: 5
     Log Append:
       position:
-        x: -1520
-        "y": -140
+        x: -1510
+        "y": -180
       tempMetlId: 6
     t_Stg_Part_to_Dim_Part_Scd1:
       position:
-        x: -1440
-        "y": -250
+        x: -1400
+        "y": -270
       tempMetlId: 7
     Log Append 2:
       position:
-        x: -1370
-        "y": -140
+        x: -1290
+        "y": -170
       tempMetlId: 8
     Print Variables 2:
       position:
-        x: -1370
-        "y": -350
+        x: -1350
+        "y": -410
       tempMetlId: 9
     t_Stg_Supplier_to_Dim_Supplier_Scd1:
       position:
-        x: -1300
-        "y": -260
+        x: -1180
+        "y": -290
       tempMetlId: 10
     Log Append 2 2:
       position:
-        x: -1230
-        "y": -140
+        x: -1090
+        "y": -170
       tempMetlId: 11
     Print Variables 2 2:
       position:
-        x: -1240
-        "y": -350
+        x: -1130
+        "y": -400
       tempMetlId: 12
     t_Stg_Nation_to_Dim_Nation_Scd1:
       position:
-        x: -1740
-        "y": -240
+        x: -1860
+        "y": -280
       tempMetlId: 13
     Log Append 3:
       position:
-        x: -1660
-        "y": -130
+        x: -1740
+        "y": -280
       tempMetlId: 14
     t_Stg_Region_to_Dim_Region_Scd1:
       position:
-        x: -1890
-        "y": -240
+        x: -2050
+        "y": -280
       tempMetlId: 15
     Log Append 3 2:
       position:
-        x: -1810
-        "y": -130
+        x: -1970
+        "y": -280
       tempMetlId: 16
-    t_Stg_Supplier_to_Dim_Supplier_Scd1 2:
+    Append To Grid:
       position:
-        x: -1140
-        "y": -270
+        x: -1990
+        "y": -150
       tempMetlId: 17
+    Append To Grid 2:
+      position:
+        x: -1790
+        "y": -170
+      tempMetlId: 18

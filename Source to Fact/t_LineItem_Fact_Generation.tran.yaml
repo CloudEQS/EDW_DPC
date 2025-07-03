@@ -1,0 +1,92 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    DIM_ORDERS:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_ORDERS"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_ORDERS"
+        columnNames:
+        - "O_ORDERKEY"
+        timeOffset:
+    JUNK_FLAG_DIM:
+      type: "table-input"
+      parameters:
+        componentName: "JUNK_FLAG_DIM"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "JUNK_FLAG_DIM"
+        columnNames:
+        - "FLAG_JUNK_ID"
+        timeOffset:
+    DIM_PART_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PART_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_PART_SCD2"
+        columnNames:
+        - "P_SRGKEY"
+        timeOffset:
+    DIM_SUPPLIER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_SUPPLIER_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_SUPPLIER_SCD2"
+        columnNames:
+        - "S_SRGKEY"
+        timeOffset:
+    STAGE_LINEITEM:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_LINEITEM"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_LINEITEM"
+        columnNames:
+        - "L_ORDERKEY"
+        - "L_PARTKEY"
+        - "L_SUPPKEY"
+        - "L_LINENUMBER"
+        - "L_QUANTITY"
+        - "L_EXTENDEDPRICE"
+        - "L_DISCOUNT"
+        - "L_TAX"
+        - "L_SHIPDATE"
+        - "L_COMMITDATE"
+        - "L_RECEIPTDATE"
+        - "L_COMMENT"
+        timeOffset:
+design:
+  components:
+    DIM_ORDERS:
+      position:
+        x: -420
+        "y": -100
+      tempMetlId: 1
+    JUNK_FLAG_DIM:
+      position:
+        x: -410
+        "y": 180
+      tempMetlId: 2
+    DIM_PART_SCD2:
+      position:
+        x: -420
+        "y": 0
+      tempMetlId: 3
+    DIM_SUPPLIER_SCD2:
+      position:
+        x: -410
+        "y": 90
+      tempMetlId: 4
+    STAGE_LINEITEM:
+      position:
+        x: -410
+        "y": -190
+      tempMetlId: 5

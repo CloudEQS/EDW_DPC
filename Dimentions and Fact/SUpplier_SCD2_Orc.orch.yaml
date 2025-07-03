@@ -1,0 +1,33 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "t_Stg_Supplier_to_Dim_Supplier_Scd2"
+      parameters:
+        componentName: "Start"
+    t_Stg_Supplier_to_Dim_Supplier_Scd2:
+      type: "run-transformation"
+      parameters:
+        componentName: "t_Stg_Supplier_to_Dim_Supplier_Scd2"
+        transformationJob: "Dimentions and Fact/t_Stg_Supplier_to_Dim_Supplier_Scd2.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    t_Stg_Supplier_to_Dim_Supplier_Scd2:
+      position:
+        x: 160
+        "y": 0
+      tempMetlId: 2

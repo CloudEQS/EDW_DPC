@@ -1,0 +1,112 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Truncate input data"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Example SCD EVENT_DIM_T1:
+      type: "run-transformation"
+      skipped: false
+      parameters:
+        componentName: "Example SCD EVENT_DIM_T1"
+        transformationJob: "SCD Example - Physical/Physical SCD\
+          \ EVENT_DIM_T1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+    Example SCD EVENT_DIM_T2:
+      type: "run-transformation"
+      skipped: false
+      parameters:
+        componentName: "Example SCD EVENT_DIM_T2"
+        transformationJob: "SCD Example - Physical/Physical SCD\
+          \ EVENT_DIM_T2 (Low Code).tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+    Truncate input data:
+      type: "truncate-table"
+      transitions:
+        success:
+        - "Create test data"
+      skipped: false
+      parameters:
+        componentName: "Truncate input data"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable:
+        - "STG_EVENT_DIM_EXAMPLE"
+    Create test data:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Example SCD EVENT_DIM_T1"
+        - "Example SCD EVENT_DIM_T2"
+      parameters:
+        componentName: "Create test data"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO \"STG_EVENT_DIM_EXAMPLE\"\r\nSELECT 'e1' AS \"event_nk\"\
+          , RANDSTR(10, RANDOM()) AS \"event_type\", 'Event type always changes' AS\
+          \ \"event_category\"\r\nUNION ALL\r\nSELECT 'e2', 'Never Changes', 'Same'\r\
+          \nUNION ALL\r\nSELECT 'e3', 'Category changes half the time', CASE WHEN\
+          \ ABS(RANDOM()%2) = 0 THEN 'This' ELSE 'That' END\r\nUNION ALL\r\nSELECT\
+          \ j.* FROM (SELECT 'e4', 'Sometimes appears', 'Same') j JOIN (SELECT 1 AS\
+          \ x) k ON ABS(RANDOM()%2) = 0"
+      postProcessing:
+        updateScalarVariables:
+design:
+  components:
+    Start 0:
+      position:
+        x: -400
+        "y": 0
+      tempMetlId: 7746
+    Example SCD EVENT_DIM_T1:
+      position:
+        x: 100
+        "y": -100
+      tempMetlId: 7809
+    Example SCD EVENT_DIM_T2:
+      position:
+        x: 100
+        "y": 110
+      tempMetlId: 7814
+    Truncate input data:
+      position:
+        x: -260
+        "y": 0
+      tempMetlId: 7944
+    Create test data:
+      position:
+        x: -100
+        "y": 0
+      tempMetlId: 7945
+  notes:
+    "7839":
+      position:
+        x: -520
+        "y": -170
+      size:
+        height: 124
+        width: 398
+      theme: "green"
+      content: |-
+        Run this multiple times to send test data through the example pipelines.
+
+        The test data randomly changes every time.
+    "8073":
+      position:
+        x: 360
+        "y": 20
+      size:
+        height: 216
+        width: 262
+      theme: "yellow"
+      content: "Use either the Low Code or the High Code version here"

@@ -21,50 +21,116 @@ pipeline:
         - "O_COMMENT"
         - "LOAD_DATE"
         timeOffset:
-    Calculator:
-      type: "calculator"
+    DIM_CUSTOMER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_CUSTOMER_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        columnNames:
+        - "C_SRGKEY"
+        - "C_CUSTKEY"
+        - "C_ACTIVE_FLAG"
+        timeOffset:
+    Active Customers:
+      type: "join"
       sources:
       - "STAGE_ORDERS"
+      - "DIM_CUSTOMER_SCD2"
       parameters:
-        componentName: "Calculator"
-        includeInputColumns: "Yes"
-        calculations:
-        - - "CURRENT_TIMESTAMP()"
-          - "v_load_time"
-    DIM_ORDERS:
-      type: "table-output"
+        componentName: "Active Customers"
+        mainTable: "STAGE_ORDERS"
+        mainTableAlias: "ORDER"
+        joins:
+        - - "DIM_CUSTOMER_SCD2"
+          - "CUST"
+          - "Inner"
+        joinExpressions:
+        - - "\"ORDER\".\"O_CUSTKEY\"=\"CUST\".\"C_CUSTKEY\" and \"CUST\".\"C_ACTIVE_FLAG\"\
+            ='Y'"
+          - "ORDER_Inner_CUST"
+        columnMappings:
+        - - "ORDER.O_ORDERKEY"
+          - "V_ORDER.O_ORDERKEY"
+        - - "CUST.C_SRGKEY"
+          - "V_CUST.C_SRGKEY"
+        - - "ORDER.O_ORDERSTATUS"
+          - "ORDER.O_ORDERSTATUS"
+        - - "ORDER.O_TOTALPRICE"
+          - "ORDER.O_TOTALPRICE"
+        - - "ORDER.O_ORDERDATE"
+          - "ORDER.O_ORDERDATE"
+        - - "ORDER.O_ORDERPRIORITY"
+          - "ORDER.O_ORDERPRIORITY"
+        - - "ORDER.O_CLERK"
+          - "ORDER.O_CLERK"
+        - - "ORDER.O_SHIPPRIORITY"
+          - "ORDER.O_SHIPPRIORITY"
+        - - "ORDER.O_COMMENT"
+          - "ORDER.O_COMMENT"
+        - - "ORDER.LOAD_DATE"
+          - "ORDER.LOAD_DATE"
+    'Date check ':
+      type: "join"
       sources:
-      - "Calculator"
+      - "Active Customers"
+      - "DATE_DIMENSION"
       parameters:
-        componentName: "DIM_ORDERS"
+        componentName: "Date check "
+        mainTable: "Active Customers"
+        mainTableAlias: "cust_ord"
+        joins:
+        - - "DATE_DIMENSION"
+          - "dd"
+          - "Inner"
+        joinExpressions:
+        - - "\"cust_ord\".\"ORDER.O_ORDERDATE\"=\"dd\".\"DATE\""
+          - "cust_ord_Inner_dd"
+        columnMappings:
+        - - "dd.DATE"
+          - "DATE"
+        - - "cust_ord.V_ORDER.O_ORDERKEY"
+          - "V_ORDER.O_ORDERKEY"
+        - - "cust_ord.V_CUST.C_SRGKEY"
+          - "V_CUST.C_SRGKEY"
+        - - "cust_ord.ORDER.O_ORDERSTATUS"
+          - "ORDER.O_ORDERSTATUS"
+        - - "cust_ord.ORDER.O_TOTALPRICE"
+          - "ORDER.O_TOTALPRICE"
+        - - "cust_ord.ORDER.O_ORDERDATE"
+          - "ORDER.O_ORDERDATE"
+        - - "cust_ord.ORDER.O_ORDERPRIORITY"
+          - "ORDER.O_ORDERPRIORITY"
+        - - "cust_ord.ORDER.O_CLERK"
+          - "ORDER.O_CLERK"
+        - - "cust_ord.ORDER.O_SHIPPRIORITY"
+          - "ORDER.O_SHIPPRIORITY"
+        - - "cust_ord.ORDER.O_COMMENT"
+          - "ORDER.O_COMMENT"
+        - - "cust_ord.ORDER.LOAD_DATE"
+          - "ORDER.LOAD_DATE"
+    DATE_DIMENSION:
+      type: "table-input"
+      parameters:
+        componentName: "DATE_DIMENSION"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DATE_DIMENSION"
+        columnNames:
+        - "DATE"
+        timeOffset:
+    Rewrite Table:
+      type: "rewrite-table"
+      sources:
+      - "Date check "
+      parameters:
+        componentName: "Rewrite Table"
         warehouse: "[Environment Default]"
         database: "ANALYTICS_DB"
         schema: "ANALYTICS_SCHEMA"
-        targetTable: "DIM_ORDERS"
-        fixDataTypeMismatches: "No"
-        columnMapping:
-        - - "O_ORDERKEY"
-          - "O_ORDERKEY"
-        - - "O_CUSTKEY"
-          - "O_CUSTKEY"
-        - - "O_ORDERSTATUS"
-          - "O_ORDERSTATUS"
-        - - "O_TOTALPRICE"
-          - "O_TOTALPRICE"
-        - - "O_ORDERDATE"
-          - "O_ORDERDATE"
-        - - "O_ORDERPRIORITY"
-          - "O_ORDERPRIORITY"
-        - - "O_CLERK"
-          - "O_CLERK"
-        - - "O_SHIPPRIORITY"
-          - "O_SHIPPRIORITY"
-        - - "O_COMMENT"
-          - "O_COMMENT"
-        - - "v_load_time"
-          - "O_LOAD_TIME"
+        targetTable: "ACTIVE ORDERS"
         orderBy:
-        outputMode: "Append"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -72,16 +138,31 @@ design:
   components:
     STAGE_ORDERS:
       position:
-        x: -40
-        "y": 0
+        x: -220
+        "y": -10
       tempMetlId: 1
-    Calculator:
+    DIM_CUSTOMER_SCD2:
       position:
-        x: 120
-        "y": 0
-      tempMetlId: 2
-    DIM_ORDERS:
+        x: -210
+        "y": 80
+      tempMetlId: 4
+    Active Customers:
       position:
-        x: 280
-        "y": 0
-      tempMetlId: 3
+        x: 30
+        "y": 40
+      tempMetlId: 5
+    'Date check ':
+      position:
+        x: 230
+        "y": 80
+      tempMetlId: 6
+    DATE_DIMENSION:
+      position:
+        x: -210
+        "y": 180
+      tempMetlId: 7
+    Rewrite Table:
+      position:
+        x: 390
+        "y": 80
+      tempMetlId: 8

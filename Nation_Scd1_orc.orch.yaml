@@ -1,0 +1,101 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Log Started"
+      parameters:
+        componentName: "Start"
+    t_Stg_Nation_to_Dim_Nation_Scd1:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Completed"
+        failure:
+        - "Log Failed"
+      parameters:
+        componentName: "t_Stg_Nation_to_Dim_Nation_Scd1"
+        transformationJob: "Source to Fact/t_Stg_Nation_to_Dim_Nation_Scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.chi"
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${sysvar.childPipeline.vars.jv_updated_rows}"
+    Log Started:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "t_Stg_Nation_to_Dim_Nation_Scd1"
+      parameters:
+        componentName: "Log Started"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO EDW_LAB.STAGE_SCHEMA.LOAD_LOG_SCD1(LOAD_ID,JOB_NAME,TABLE_NAME,STATUS,START_TIME)\r\
+          \nVALUES('${sysvar.thisPipeline.executionId}','t_Stg_Customer_to_Dim_Customer_Scd2','DIM_CUSTOMER_SCD2','Job\
+          \ is Started',CURRENT_TIMESTAMP)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Completed:
+      type: "sql-executor"
+      parameters:
+        componentName: "Log Completed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.STAGE_SCHEMA.LOAD_LOG_SCD1\r\nSET\r\n    INSERTED_ROWS='${jv_inserted_rows}',\r\
+          \n    UPDATED_ROWS='${jv_updated_rows}',\r\n    STATUS='Completed Successfully',\r\
+          \n    END_TIME=CURRENT_TIMESTAMP\r\nwhere LOAD_ID='${sysvar.thisPipeline.executionId}'\
+          \ \r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Failed:
+      type: "sql-executor"
+      parameters:
+        componentName: "Log Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include all"
+        sqlScript: "update EDW_LAB.STAGE_SCHEMA.LOAD_LOG_SCD1\r\nSET\r\n    INSERTED_ROWS=${jv_inserted_rows},\r\
+          \n    UPDATED_ROWS=${jv_updated_rows},\r\n    STATUS='FAILED',\r\n    END_TIME=CURRENT_TIMESTAMP,ERROR_MESSAGE='${jv_error_message}'\r\
+          \nwhere LOAD_ID='${sysvar.thisPipeline.executionId}' \r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: -90
+        "y": -20
+      tempMetlId: 1
+    t_Stg_Nation_to_Dim_Nation_Scd1:
+      position:
+        x: 210
+        "y": -20
+      tempMetlId: 2
+    Log Started:
+      position:
+        x: 30
+        "y": -20
+      tempMetlId: 3
+    Log Completed:
+      position:
+        x: 380
+        "y": -20
+      tempMetlId: 4
+    Log Failed:
+      position:
+        x: 290
+        "y": 110
+      tempMetlId: 5

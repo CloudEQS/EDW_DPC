@@ -1,0 +1,141 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Fixed Flow:
+      type: "fixed-flow"
+      parameters:
+        componentName: "Fixed Flow"
+        columns:
+        - - "jv_load_id"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_table_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_inserted_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "jv_updated_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "jv_status"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_start_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "jv_end_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "jv_error_message"
+          - "VARIANT"
+          - ""
+          - ""
+        values:
+          fromGrid:
+            variable: "gv_load_log_scd"
+            columns:
+            - "jv_load_id"
+            - "jv_job_name"
+            - "jv_table_name"
+            - "jv_inserted_rows"
+            - "jv_updated_rows"
+            - "jv_status"
+            - "jv_start_time"
+            - "jv_end_time"
+            - "jv_error_message"
+    LOAD_LOG_SCD2:
+      type: "table-output"
+      sources:
+      - "Fixed Flow"
+      parameters:
+        componentName: "LOAD_LOG_SCD2"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "LOAD_LOG_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+        - - "jv_job_name"
+          - "JOB_NAME"
+        - - "jv_table_name"
+          - "TABLE_NAME"
+        - - "jv_inserted_rows"
+          - "INSERTED_ROWS"
+        - - "jv_updated_rows"
+          - "UPDATED_ROWS"
+        - - "jv_status"
+          - "STATUS"
+        - - "jv_start_time"
+          - "START_TIME"
+        - - "jv_end_time"
+          - "END_TIME"
+        - - "jv_error_message"
+          - "ERROR_MESSAGE"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_load_log_scd:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_table_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_error_message:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+design:
+  components:
+    Fixed Flow:
+      position:
+        x: 200
+        "y": 100
+      tempMetlId: 1
+    LOAD_LOG_SCD2:
+      position:
+        x: 360
+        "y": 100
+      tempMetlId: 2

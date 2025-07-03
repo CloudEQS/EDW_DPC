@@ -59,12 +59,12 @@ pipeline:
         - - "compare_START_TIME"
           - "NEW_LOAD"
         indicatorColumn: "Indicator"
-    Rank:
+    Find the duplicate:
       type: "rank"
       sources:
       - "STG_CUSTOMER_SCD2"
       parameters:
-        componentName: "Rank"
+        componentName: "Find the duplicate"
         includeInputColumns: "Yes"
         partitionData:
         - "C_CUSTKEY"
@@ -75,7 +75,6 @@ pipeline:
         - "C_ACCTBAL"
         - "C_MKTSEGMENT"
         - "C_COMMENT"
-        - "START_TIME"
         orderingWithinPartitions:
         - - "START_TIME"
           - "Descending"
@@ -85,7 +84,7 @@ pipeline:
     Filter:
       type: "filter"
       sources:
-      - "Rank"
+      - "Find the duplicate"
       parameters:
         componentName: "Filter"
         filterConditions:
@@ -124,12 +123,12 @@ pipeline:
           - "Equal to"
           - "C"
         combineCondition: "And"
-    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+    DIM_CUSTOMER_INESRT_UPDATE:
       type: "table-output"
       sources:
       - "Updated Time"
       parameters:
-        componentName: "DIM_PRODUCT_SCD2_HISTORY_UPDATE"
+        componentName: "DIM_CUSTOMER_INESRT_UPDATE"
         warehouse: "[Environment Default]"
         database: "ANALYTICS_DB"
         schema: "ANALYTICS_SCHEMA"
@@ -165,6 +164,8 @@ pipeline:
         updateScalarVariables:
         - - "jv_inserted_rows"
           - "${sysvar.thisComponent.rowCount}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
     DIM_CUSTOMER_INSERT_SCD TYP2:
       type: "table-output"
       sources:
@@ -206,6 +207,8 @@ pipeline:
         updateScalarVariables:
         - - "jv_inserted_rows"
           - "${sysvar.thisComponent.rowCount}"
+        - - "jv_errror_message"
+          - "${sysvar.thisComponent.message}"
     Updated load time:
       type: "calculator"
       sources:
@@ -234,12 +237,12 @@ pipeline:
           - "END_TIME_UP_V"
         - - "'Y'"
           - "ACTIVE_FLAG"
-    DIM_PRODUCT_SCD2 2:
+    DIM_CUSTOMERSCD2 2:
       type: "table-update"
       sources:
       - "Calculator 3"
       parameters:
-        componentName: "DIM_PRODUCT_SCD2 2"
+        componentName: "DIM_CUSTOMERSCD2 2"
         warehouse: "[Environment Default]"
         database: "ANALYTICS_DB"
         schema: "ANALYTICS_SCHEMA"
@@ -267,6 +270,8 @@ pipeline:
           - "${sysvar.thisComponent.rowsInserted}"
         - - "jv_updated_rows"
           - "${sysvar.thisComponent.rowsUpdated}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
     Calculator 3:
       type: "calculator"
       sources:
@@ -287,16 +292,16 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    v_error_message:
+    jv_inserted_rows:
       metadata:
-        type: "TEXT"
+        type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    jv_inserted_rows:
+    jv_error_message:
       metadata:
-        type: "NUMBER"
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
@@ -305,66 +310,66 @@ design:
   components:
     STG_CUSTOMER_SCD2:
       position:
-        x: -820
-        "y": -200
+        x: -880
+        "y": -110
       tempMetlId: 1
     Detect Changes:
       position:
-        x: -340
-        "y": -40
+        x: -410
+        "y": 10
       tempMetlId: 3
-    Rank:
+    Find the duplicate:
       position:
-        x: -650
-        "y": -190
+        x: -670
+        "y": -110
       tempMetlId: 4
     Filter:
       position:
-        x: -490
-        "y": -170
+        x: -520
+        "y": -110
       tempMetlId: 5
     Current Data of Target:
       position:
-        x: -780
-        "y": 30
+        x: -900
+        "y": 10
       tempMetlId: 6
     New data:
       position:
-        x: -200
-        "y": -180
+        x: -270
+        "y": -110
       tempMetlId: 7
     update:
       position:
-        x: -200
-        "y": 50
+        x: -250
+        "y": 110
       tempMetlId: 8
-    DIM_PRODUCT_SCD2_HISTORY_UPDATE:
+    DIM_CUSTOMER_INESRT_UPDATE:
       position:
-        x: 210
-        "y": -50
+        x: 160
+        "y": 30
       tempMetlId: 9
     DIM_CUSTOMER_INSERT_SCD TYP2:
       position:
-        x: 170
-        "y": -180
+        x: 150
+        "y": -110
       tempMetlId: 10
     Updated load time:
       position:
-        x: 10
-        "y": -190
+        x: -90
+        "y": -110
       tempMetlId: 11
     Updated Time:
       position:
-        x: 10
-        "y": -50
+        x: -110
+        "y": 30
       tempMetlId: 12
-    DIM_PRODUCT_SCD2 2:
+    DIM_CUSTOMERSCD2 2:
       position:
-        x: 270
-        "y": 160
+        x: 180
+        "y": 210
       tempMetlId: 19
     Calculator 3:
       position:
-        x: 20
-        "y": 170
+        x: -80
+        "y": 210
       tempMetlId: 20

@@ -1,0 +1,152 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Type 2 SCD logic:
+      type: "sql"
+      sources:
+      - "Add SCD timestamps"
+      parameters:
+        componentName: "Type 2 SCD logic"
+        query: |
+          WITH n AS (SELECT * FROM $T{Add SCD timestamps})
+
+          SELECT /* inserts */ n."event_nk", COALESCE(d."version" + 1, 1) AS "version",
+                n."event_type", n."event_category",
+                n."tsis", n."tswas", n."tsinf", n."falseflag", n."trueflag"
+          FROM n
+          LEFT JOIN "EVENT_DIM_T2" d
+                    ON d."event_nk" = n."event_nk" AND d."is_latest"
+          WHERE d."event_nk" IS NULL
+          OR   (d."event_nk" IS NOT NULL AND (   n."event_type"     != d."event_type"
+                                              OR n."event_category" != d."event_category"
+                                              OR CASE WHEN n."event_type"     IS NULL THEN 0 ELSE 1 END != CASE WHEN d."event_type"     IS NULL THEN 0 ELSE 1 END
+                                              OR CASE WHEN n."event_category" IS NULL THEN 0 ELSE 1 END != CASE WHEN d."event_category" IS NULL THEN 0 ELSE 1 END))
+
+          UNION ALL
+
+          SELECT /* updates */ n."event_nk", d."version",
+                 n."event_type", n."event_category",
+                 n."tsis", n."tswas", n."tsinf", n."falseflag", n."trueflag"
+          FROM n
+          JOIN "EVENT_DIM_T2" d
+                    ON d."event_nk" = n."event_nk" AND d."is_latest"
+          WHERE n."event_type"     != d."event_type"
+          OR    n."event_category" != d."event_category"
+          OR    CASE WHEN n."event_type"     IS NULL THEN 0 ELSE 1 END != CASE WHEN d."event_type"     IS NULL THEN 0 ELSE 1 END
+          OR    CASE WHEN n."event_category" IS NULL THEN 0 ELSE 1 END != CASE WHEN d."event_category" IS NULL THEN 0 ELSE 1 END
+    Add SCD timestamps:
+      type: "calculator"
+      sources:
+      - "STG_EVENT_DIM_EXAMPLE"
+      parameters:
+        componentName: "Add SCD timestamps"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "current_timestamp()::TIMESTAMP_NTZ(0)"
+          - "tsis"
+        - - "DATEADD(second, -1, current_timestamp()::TIMESTAMP_NTZ(0))"
+          - "tswas"
+        - - "DATE '2099-12-31'::TIMESTAMP_NTZ(0)"
+          - "tsinf"
+        - - "FALSE"
+          - "falseflag"
+        - - "TRUE"
+          - "trueflag"
+    Merge EVENT_DIM_T2:
+      type: "table-update"
+      sources:
+      - "Type 2 SCD logic"
+      parameters:
+        componentName: "Merge EVENT_DIM_T2"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "EVENT_DIM_T2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - |-
+            "target"."event_nk" = "input"."event_nk"
+            AND "target"."version" = "input"."version"
+          - "Join"
+        whenMatched:
+        - - "<none>"
+          - "Update"
+        updateMapping:
+        - - "falseflag"
+          - "is_latest"
+        - - "tswas"
+          - "valid_to"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "event_nk"
+          - "event_nk"
+        - - "event_type"
+          - "event_type"
+        - - "event_category"
+          - "event_category"
+        - - "tsis"
+          - "valid_from"
+        - - "tsinf"
+          - "valid_to"
+        - - "trueflag"
+          - "is_latest"
+        - - "version"
+          - "version"
+    STG_EVENT_DIM_EXAMPLE:
+      type: "table-input"
+      parameters:
+        componentName: "STG_EVENT_DIM_EXAMPLE"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "STG_EVENT_DIM_EXAMPLE"
+        columnNames:
+        - "event_nk"
+        - "event_type"
+        - "event_category"
+        timeOffset: ""
+design:
+  components:
+    Type 2 SCD logic:
+      position:
+        x: 1270
+        "y": 320
+      tempMetlId: 6526
+    Add SCD timestamps:
+      position:
+        x: 1104
+        "y": 320
+      tempMetlId: 6548
+    Merge EVENT_DIM_T2:
+      position:
+        x: 1456
+        "y": 320
+      tempMetlId: 6609
+    STG_EVENT_DIM_EXAMPLE:
+      position:
+        x: 896
+        "y": 320
+      tempMetlId: 7866
+  notes:
+    "6475":
+      position:
+        x: 780
+        "y": 210
+      size:
+        height: 205
+        width: 260
+      theme: "green"
+      content: |-
+        Example Type 2 dimension update.
+
+        Handles new and updated records from the "Example Data" source.
+    "6723":
+      position:
+        x: 1170
+        "y": 210
+      size:
+        height: 58
+        width: 153
+      theme: "green"
+      content: "High Code version"

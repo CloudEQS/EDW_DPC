@@ -1,0 +1,64 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "SUpplier_SCD2_Orc"
+        - "Customer_Scd2_Orc"
+      parameters:
+        componentName: "Start"
+    SUpplier_SCD2_Orc:
+      type: "run-orchestration"
+      parameters:
+        componentName: "SUpplier_SCD2_Orc"
+        orchestrationJob: "Dimentions and Fact/SUpplier_SCD2_Orc.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    t_Stg_Part_to_Dim_Part_Scd2:
+      type: "run-orchestration"
+      parameters:
+        componentName: "t_Stg_Part_to_Dim_Part_Scd2"
+        orchestrationJob: "Dimentions and Fact/t_Stg_Part_to_Dim_Part_Scd2.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Customer_Scd2_Orc:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Customer_Scd2_Orc"
+        orchestrationJob: "Dimentions and Fact/Customer_Scd2_Orc.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+design:
+  components:
+    Start:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId: 1
+    SUpplier_SCD2_Orc:
+      position:
+        x: 230
+        "y": 0
+      tempMetlId: 2
+    t_Stg_Part_to_Dim_Part_Scd2:
+      position:
+        x: 250
+        "y": -120
+      tempMetlId: 3
+    Customer_Scd2_Orc:
+      position:
+        x: 200
+        "y": 140
+      tempMetlId: 4

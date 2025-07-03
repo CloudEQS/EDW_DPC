@@ -2,41 +2,25 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    Rename:
-      type: "rename"
-      sources:
-      - "Join"
-      parameters:
-        componentName: "Rename"
-        columnMapping:
-        - - "L_LINESTATUS"
-          - "F_LINESTATUS"
-        - - "L_RETURNFLAG"
-          - "F_RETURNFLAG"
-        - - "L_SHIPINSTRUCT"
-          - "F_SHIPINSTRUCT"
-        - - "L_SHIPMODE"
-          - "F_SHIPMODE"
-        includeInputColumns: "No"
-    FLAG_JUNK_DIM:
+    JUNK_LINE_FLAG_DIM:
       type: "table-output"
       sources:
       - "Calculator"
       parameters:
-        componentName: "FLAG_JUNK_DIM"
+        componentName: "JUNK_LINE_FLAG_DIM"
         warehouse: "[Environment Default]"
         database: "ANALYTICS_DB"
         schema: "ANALYTICS_SCHEMA"
-        targetTable: "FLAG_JUNK_DIM"
+        targetTable: "JUNK_FLAG_DIM"
         fixDataTypeMismatches: "No"
         columnMapping:
-        - - "F_LINESTATUS"
+        - - "m_L_SHIPINSTRUCT"
           - "L_SHIPINSTRUCT"
-        - - "F_LINESTATUS"
+        - - "m_L_SHIPMODE"
           - "L_SHIPMODE"
-        - - "F_SHIPINSTRUCT"
+        - - "m_L_RETURNFLAG"
           - "L_RETURNFLAG"
-        - - "F_LINESTATUS"
+        - - "m_L_LINESTATUS"
           - "L_LINESTATUS"
         - - "active_flag"
           - "ACTIVE_FLAG"
@@ -50,7 +34,7 @@ pipeline:
     Calculator:
       type: "calculator"
       sources:
-      - "Rename"
+      - "Join"
       parameters:
         componentName: "Calculator"
         includeInputColumns: "Yes"
@@ -59,15 +43,6 @@ pipeline:
           - "active_flag"
         - - "CURRENT_DATE()"
           - "updated_date"
-    SQL:
-      type: "sql"
-      parameters:
-        componentName: "SQL"
-        query: "SELECT *\r\nFROM \r\n  (SELECT DISTINCT L_SHIPINSTRUCT FROM  SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM)\
-          \ A\r\nCROSS JOIN \r\n  (SELECT DISTINCT L_SHIPMODE FROM SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM)\
-          \ B\r\nCROSS JOIN \r\n  (SELECT DISTINCT L_RETURNFLAG FROM  SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM\
-          \ C\r\nCROSS JOIN \r\n  (SELECT DISTINCT L_LINESTATUS FROM  SNOWFLAKE_SAMPLE_DATA.TPCH_SF10.LINEITEM)\
-          \ D"
     Join:
       type: "join"
       sources:
@@ -81,9 +56,19 @@ pipeline:
           - "c"
           - "Full"
         joinExpressions:
-        - - "\"m\".\"L_RETURNFLAG\"=\"m\".\"L_LINESTATUS\""
+        - - "\"m\".\"L_RETURNFLAG\"=\"c\".\"L_RETURNFLAG\"AND\"m\".\"L_LINESTATUS\"\
+            =\"c\".\"L_LINESTATUS\"AND\"m\".\"L_SHIPINSTRUCT\"=\"c\".\"L_SHIPINSTRUCT\"\
+            AND\"c\".\"L_SHIPMODE\"=\"m\".\"L_SHIPMODE\""
           - "m_Full_c"
         columnMappings:
+        - - "m.L_RETURNFLAG"
+          - "m_L_RETURNFLAG"
+        - - "m.L_LINESTATUS"
+          - "m_L_LINESTATUS"
+        - - "m.L_SHIPINSTRUCT"
+          - "m_L_SHIPINSTRUCT"
+        - - "m.L_SHIPMODE"
+          - "m_L_SHIPMODE"
     LINEITEM:
       type: "table-input"
       parameters:
@@ -110,38 +95,28 @@ pipeline:
         - "L_SHIPMODE"
 design:
   components:
-    Rename:
+    JUNK_LINE_FLAG_DIM:
       position:
-        x: 50
-        "y": 20
-      tempMetlId: 4
-    FLAG_JUNK_DIM:
-      position:
-        x: 280
+        x: 350
         "y": 30
       tempMetlId: 5
     Calculator:
       position:
-        x: 160
-        "y": 20
+        x: 140
+        "y": 30
       tempMetlId: 6
-    SQL:
-      position:
-        x: 0
-        "y": 130
-      tempMetlId: 7
     Join:
       position:
         x: -30
-        "y": 20
+        "y": 30
       tempMetlId: 8
     LINEITEM:
       position:
-        x: -210
-        "y": 20
+        x: -360
+        "y": 30
       tempMetlId: 9
     Distinct:
       position:
-        x: -110
-        "y": 20
+        x: -200
+        "y": 30
       tempMetlId: 10

@@ -11,41 +11,58 @@ pipeline:
         componentName: "Start"
     Run Transformation:
       type: "run-transformation"
+      transitions:
+        success:
+        - "End Success"
+        failure:
+        - "End Failure"
       parameters:
         componentName: "Run Transformation"
-        transformationJob: "error_log_insert_trans1.tran.yaml"
+        transformationJob: "Dimentions and Fact/Load_log_scd2_trans.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
-    gv_error_log:
+    gv_parent_load_log_scd2:
       metadata:
         type: "GRID"
         description: ""
         scope: "COPIED"
         visibility: "PUBLIC"
         columns:
-          gv_load_id:
+          jv_load_id:
             columnType: "TEXT"
-          gv_job_name:
+          jv_job_name:
             columnType: "TEXT"
-          gv_job_parent:
+          jv_table_name:
             columnType: "TEXT"
-          gv_table_name:
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
             columnType: "TEXT"
-          gv_table_type:
+          jv_start_time:
             columnType: "TEXT"
-          gv_error_rows:
+          jv_end_time:
             columnType: "TEXT"
-          gv_run_date:
-            columnType: "TEXT"
-          gv_run_time:
-            columnType: "TEXT"
-          gv_status:
-            columnType: "TEXT"
-          gv_message:
+          jv_error_message:
             columnType: "TEXT"
       defaultValue: []
 design:
@@ -60,3 +77,13 @@ design:
         x: 160
         "y": 0
       tempMetlId: 2
+    End Failure:
+      position:
+        x: 290
+        "y": 120
+      tempMetlId: 3
+    End Success:
+      position:
+        x: 320
+        "y": -120
+      tempMetlId: 4

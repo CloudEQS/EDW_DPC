@@ -1,0 +1,53 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STAGE CUSTOMER:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE CUSTOMER"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_CUSTOMER_SCD2"
+        columnNames:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "START_TIME"
+        timeOffset:
+    DIM_CUSTOMER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_CUSTOMER_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        columnNames:
+        - "C_SRGKEY"
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "C_LOAD_TIME"
+        timeOffset:
+design:
+  components:
+    STAGE CUSTOMER:
+      position:
+        x: -430
+        "y": 30
+      tempMetlId: 1
+    DIM_CUSTOMER_SCD2:
+      position:
+        x: -430
+        "y": -110
+      tempMetlId: 2

@@ -1,0 +1,186 @@
+type: "transformation"
+version:
+pipeline:
+  components:
+    Source Data:
+      type: "table-input"
+      parameters:
+        componentName: "Source Data"
+        database: "INTERNAL_TRAINING"
+        schema: "EDP_CURATED"
+        targetTable: "DUMMY_SOURCE"
+        columnNames:
+        - "BUSINESS_KEY"
+        - "NAME"
+        - "ADDRESS"
+        - "PHONE"
+        - "EMAIL"
+    Dimension Table:
+      type: "table-input"
+      parameters:
+        componentName: "Dimension Table"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "DUMMY_DIM"
+        columnNames:
+        - "SURROGATE_KEY"
+        - "BUSINESS_KEY"
+        - "NAME"
+        - "ADDRESS"
+        - "PHONE"
+        - "EMAIL"
+        - "EFFECTIVE_START_DATE"
+        - "EFFECTIVE_END_DATE"
+        - "CURRENT_FLAG"
+    Identify Changes:
+      type: "detect-changes"
+      sources:
+      - "Dimension Table"
+      - "Source Data"
+      parameters:
+        componentName: "Identify Changes"
+        masterTable: "Source Data"
+        matchKeys:
+        - "BUSINESS_KEY"
+        compareColumns:
+        - "NAME"
+        - "ADDRESS"
+        - "PHONE"
+        - "EMAIL"
+        indicatorColumn: "CHANGE_TYPE"
+    Filter Changed Records:
+      type: "filter"
+      sources:
+      - "Identify Changes"
+      parameters:
+        componentName: "Filter Changed Records"
+        filterConditions:
+        - - "CHANGE_TYPE"
+          - "Is"
+          - "Equal to"
+          - "C"
+        - - "CHANGE_TYPE"
+          - "Is"
+          - "Equal to"
+          - "I"
+        combineCondition: "Or"
+    Generate SCD2 Metadata:
+      type: "calculator"
+      sources:
+      - "Filter Changed Records"
+      parameters:
+        componentName: "Generate SCD2 Metadata"
+        includeInputColumns: "Yes"
+        calculations:
+        - - |
+            ROW_NUMBER() OVER (ORDER BY "BUSINESS_KEY") + 1000
+          - "SURROGATE_KEY"
+        - - |
+            CURRENT_DATE()
+          - "EFFECTIVE_START_DATE"
+        - - |
+            NULL
+          - "EFFECTIVE_END_DATE"
+        - - |
+            TRUE
+          - "CURRENT_FLAG"
+        - - |
+            CURRENT_TIMESTAMP()
+          - "INSERT_DATE"
+    Expire Current Records:
+      type: "table-update"
+      sources:
+      - "Filter Changed Records"
+      parameters:
+        componentName: "Expire Current Records"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "DIMENSION_TABLE"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - |
+            "input"."BUSINESS_KEY" = "target"."BUSINESS_KEY" AND "input"."CHANGE_TYPE" = 'C'
+          - "Changed Records"
+        whenMatched:
+        - - "Changed Records"
+          - "Update"
+        updateMapping:
+        - - |
+            CURRENT_DATE() - 1
+          - "EFFECTIVE_END_DATE"
+        - - |
+            FALSE
+          - "CURRENT_FLAG"
+        includeNotMatched: "No"
+    Insert New Versions:
+      type: "table-output"
+      sources:
+      - "Generate SCD2 Metadata"
+      parameters:
+        componentName: "Insert New Versions"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "DIMENSION_TABLE"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "SURROGATE_KEY"
+          - "SURROGATE_KEY"
+        - - "BUSINESS_KEY"
+          - "BUSINESS_KEY"
+        - - "NAME"
+          - "NAME"
+        - - "ADDRESS"
+          - "ADDRESS"
+        - - "PHONE"
+          - "PHONE"
+        - - "EMAIL"
+          - "EMAIL"
+        - - "EFFECTIVE_START_DATE"
+          - "EFFECTIVE_START_DATE"
+        - - "EFFECTIVE_END_DATE"
+          - "EFFECTIVE_END_DATE"
+        - - "CURRENT_FLAG"
+          - "CURRENT_FLAG"
+        - - "INSERT_DATE"
+          - "INSERT_DATE"
+        outputMode: "Append"
+design:
+  components:
+    Source Data:
+      position:
+        x: 0
+        "y": 0
+      tempMetlId:
+    Dimension Table:
+      position:
+        x: 0
+        "y": 100
+      tempMetlId:
+    Identify Changes:
+      position:
+        x: 200
+        "y": 50
+      tempMetlId:
+    Filter Changed Records:
+      position:
+        x: 400
+        "y": 50
+      tempMetlId:
+    Generate SCD2 Metadata:
+      position:
+        x: 600
+        "y": 50
+      tempMetlId:
+    Expire Current Records:
+      position:
+        x: 600
+        "y": 150
+      tempMetlId:
+    Insert New Versions:
+      position:
+        x: 800
+        "y": 50
+      tempMetlId:

@@ -1,0 +1,279 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    max_event_sk:
+      type: "calculator"
+      sources:
+      - "Aggregate 0"
+      parameters:
+        componentName: "max_event_sk"
+        includeInputColumns: "No"
+        calculations:
+        - - |-
+            CASE WHEN "max_event_sk" = -1 THEN 0
+                 ELSE COALESCE("max_event_sk", 0)
+            END
+          - "max_event_sk"
+    Aggregate 0:
+      type: "aggregate"
+      sources:
+      - "EVENT_DIM_T1"
+      parameters:
+        componentName: "Aggregate 0"
+        groupings:
+        aggregations:
+        - - "event_sk"
+          - "Max"
+        groupingType: "Group By"
+    New Row Rank:
+      type: "rank"
+      sources:
+      - "New records"
+      parameters:
+        componentName: "New Row Rank"
+        includeInputColumns: "Yes"
+        partitionData:
+        orderingWithinPartitions:
+        - - "event_nk"
+          - "Asc"
+        functions:
+        - - "Row Number"
+          - "rn"
+    Join 1:
+      type: "join"
+      sources:
+      - "New Row Rank"
+      - "max_event_sk"
+      parameters:
+        componentName: "Join 1"
+        mainTable: "New Row Rank"
+        mainTableAlias: "n"
+        joins:
+        - - "max_event_sk"
+          - "mx"
+          - "Inner"
+        joinExpressions:
+        - - "1=1"
+          - "n_Inner_mx"
+        columnMappings:
+        - - "n.event_nk"
+          - "event_nk"
+        - - "n.event_type"
+          - "event_type"
+        - - "n.event_category"
+          - "event_category"
+        - - "n.rn"
+          - "rn"
+        - - "mx.max_event_sk"
+          - "max_event_sk"
+    Generate new SK:
+      type: "calculator"
+      sources:
+      - "Join 1"
+      parameters:
+        componentName: "Generate new SK"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "\"max_event_sk\" + \"rn\""
+          - "event_sk"
+    EVENT_DIM_T1:
+      type: "table-input"
+      parameters:
+        componentName: "EVENT_DIM_T1"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "EVENT_DIM_T1"
+        columnNames:
+        - "event_sk"
+        - "event_nk"
+        - "event_type"
+        - "event_category"
+        timeOffset: ""
+    Detect Changes 0:
+      type: "detect-changes"
+      sources:
+      - "EVENT_DIM_T1"
+      - "STG_EVENT_DIM_EXAMPLE"
+      parameters:
+        componentName: "Detect Changes 0"
+        masterTable: "EVENT_DIM_T1"
+        matchKeys:
+        - "event_nk"
+        compareColumns:
+        - "event_type"
+        - "event_category"
+        outputColumnMapping:
+        - - "master_event_sk"
+          - "event_sk"
+        - - "compare_event_type"
+          - "event_type"
+        - - "compare_event_category"
+          - "event_category"
+        indicatorColumn: "Indicator"
+    New records:
+      type: "filter"
+      sources:
+      - "Detect Changes 0"
+      parameters:
+        componentName: "New records"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "AND"
+    Updates:
+      type: "filter"
+      sources:
+      - "Detect Changes 0"
+      parameters:
+        componentName: "Updates"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "AND"
+    Unite 0:
+      type: "unite"
+      sources:
+      - "Updates"
+      - "Generate new SK"
+      parameters:
+        componentName: "Unite 0"
+        method: "Overlapping Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    Merge EVENT_DIM_T1:
+      type: "table-update"
+      sources:
+      - "Unite 0"
+      parameters:
+        componentName: "Merge EVENT_DIM_T1"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "EVENT_DIM_T1"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"target\".\"event_sk\" = \"input\".\"event_sk\""
+          - "Join"
+        whenMatched:
+        - - "<none>"
+          - "Update"
+        updateMapping:
+        - - "event_nk"
+          - "event_nk"
+        - - "event_type"
+          - "event_type"
+        - - "event_category"
+          - "event_category"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "event_sk"
+          - "event_sk"
+        - - "event_nk"
+          - "event_nk"
+        - - "event_type"
+          - "event_type"
+        - - "event_category"
+          - "event_category"
+    STG_EVENT_DIM_EXAMPLE:
+      type: "table-input"
+      parameters:
+        componentName: "STG_EVENT_DIM_EXAMPLE"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "STG_EVENT_DIM_EXAMPLE"
+        columnNames:
+        - "event_nk"
+        - "event_type"
+        - "event_category"
+        timeOffset: ""
+design:
+  components:
+    max_event_sk:
+      position:
+        x: 860
+        "y": 300
+      tempMetlId: 5758
+    Aggregate 0:
+      position:
+        x: 730
+        "y": 300
+      tempMetlId: 5801
+    New Row Rank:
+      position:
+        x: 864
+        "y": 208
+      tempMetlId: 5802
+    Join 1:
+      position:
+        x: 1000
+        "y": 250
+      tempMetlId: 5804
+    Generate new SK:
+      position:
+        x: 1110
+        "y": 250
+      tempMetlId: 5806
+    EVENT_DIM_T1:
+      position:
+        x: 410
+        "y": 300
+      tempMetlId: 5881
+    Detect Changes 0:
+      position:
+        x: 600
+        "y": 160
+      tempMetlId: 5952
+    New records:
+      position:
+        x: 752
+        "y": 208
+      tempMetlId: 6031
+    Updates:
+      position:
+        x: 752
+        "y": 112
+      tempMetlId: 6041
+    Unite 0:
+      position:
+        x: 1232
+        "y": 160
+      tempMetlId: 6087
+    Merge EVENT_DIM_T1:
+      position:
+        x: 1376
+        "y": 160
+      tempMetlId: 6114
+    STG_EVENT_DIM_EXAMPLE:
+      position:
+        x: 320
+        "y": 160
+      tempMetlId: 7803
+  notes:
+    "6219":
+      position:
+        x: 240
+        "y": 30
+      size:
+        height: 245
+        width: 240
+      theme: "green"
+      content: |-
+        Example Type 1 dimension update.
+
+        Handles new and updated records from the "Example Data" source.
+    "6277":
+      position:
+        x: 530
+        "y": 60
+      size:
+        height: 236
+        width: 304
+      theme: "yellow"
+      content: "This is the update or insert decision"

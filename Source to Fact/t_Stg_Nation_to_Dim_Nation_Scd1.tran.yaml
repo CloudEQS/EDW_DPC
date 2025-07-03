@@ -16,21 +16,10 @@ pipeline:
         - "N_COMMENT"
         - "N_START_TIME"
         timeOffset:
-    DIM_REGION:
-      type: "table-input"
-      parameters:
-        componentName: "DIM_REGION"
-        database: "ANALYTICS_DB"
-        schema: "ANALYTICS_SCHEMA"
-        targetTable: "DIM_REGION"
-        columnNames:
-        - "R_NAME"
-        - "R_REGIONKEY"
-        timeOffset:
     Load Date:
       type: "calculator"
       sources:
-      - "Join"
+      - "Filter"
       parameters:
         componentName: "Load Date"
         includeInputColumns: "Yes"
@@ -66,33 +55,6 @@ pipeline:
         updateScalarVariables:
         - - "jv_updated_rows"
           - "${sysvar.thisComponent.rowCount}"
-    Join:
-      type: "join"
-      sources:
-      - "DIM_REGION"
-      - "Filter"
-      parameters:
-        componentName: "Join"
-        mainTable: "Filter"
-        mainTableAlias: "nation"
-        joins:
-        - - "DIM_REGION"
-          - "region"
-          - "Left"
-        joinExpressions:
-        - - "\"nation\".\"N_REGIONKEY\"=\"region\".\"R_REGIONKEY\""
-          - "nation_Left_region"
-        columnMappings:
-        - - "nation.N_NATIONKEY"
-          - "N_NATIONKEY"
-        - - "nation.N_NAME"
-          - "N_NAME"
-        - - "nation.N_REGIONKEY"
-          - "N_REGIONKEY"
-        - - "nation.N_COMMENT"
-          - "N_COMMENT"
-        - - "nation.N_START_TIME"
-          - "N_START_TIME"
     Rank:
       type: "rank"
       sources:
@@ -132,14 +94,21 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "-1"
+      defaultValue: "0"
     jv_inserted_rows:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "-1"
+      defaultValue: "0"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
     STAGE_NATION:
@@ -147,26 +116,16 @@ design:
         x: -620
         "y": -40
       tempMetlId: 1
-    DIM_REGION:
-      position:
-        x: -620
-        "y": 90
-      tempMetlId: 2
     Load Date:
       position:
-        x: -70
-        "y": 70
+        x: -160
+        "y": -40
       tempMetlId: 3
     DIM_NATION:
       position:
-        x: 100
-        "y": 70
+        x: -10
+        "y": -40
       tempMetlId: 4
-    Join:
-      position:
-        x: -240
-        "y": 70
-      tempMetlId: 5
     Rank:
       position:
         x: -480

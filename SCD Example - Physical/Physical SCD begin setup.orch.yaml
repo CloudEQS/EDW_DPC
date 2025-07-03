@@ -1,0 +1,329 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start 0:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Create STG_EVENT_DIM_EXAMPLE"
+        - "Create EVENT_DIM_T1"
+        - "Create SEQ_EVENT_DIM"
+      skipped: false
+      parameters:
+        componentName: "Start 0"
+    Create EVENT_DIM_T1:
+      type: "create-table"
+      transitions:
+        success:
+        - "Initialize EVENT_DIM_T1"
+      skipped: false
+      parameters:
+        componentName: "Create EVENT_DIM_T1"
+        createReplace: "Replace"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        newTableName: "EVENT_DIM_T1"
+        tableType: "Transient"
+        columns:
+        - - "event_sk"
+          - "NUMBER"
+          - "8"
+          - "0"
+          - ""
+          - "Yes"
+          - "Yes"
+          - ""
+        - - "event_nk"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+        - - "event_type"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "No"
+          - "No"
+          - ""
+        - - "event_category"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "No"
+          - "No"
+          - ""
+        defaultDdlCollation: ""
+        primaryKeys:
+        clusteringKeys:
+        dataRetentionTimeInDays: ""
+        comment: "A type 1 Event Dimension"
+    Create EVENT_DIM_T2:
+      type: "create-table"
+      transitions:
+        success:
+        - "Initialize EVENT_DIM_T2"
+      skipped: false
+      parameters:
+        componentName: "Create EVENT_DIM_T2"
+        createReplace: "Replace"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        newTableName: "EVENT_DIM_T2"
+        tableType: "Transient"
+        columns:
+        - - "event_sk"
+          - "NUMBER"
+          - "8"
+          - "0"
+          - "\"SEQ_EVENT_DIM\".NEXTVAL"
+          - "Yes"
+          - "Yes"
+          - ""
+          - ""
+        - - "event_nk"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+          - ""
+        - - "event_type"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "No"
+          - "No"
+          - ""
+          - ""
+        - - "event_category"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "No"
+          - "No"
+          - ""
+          - ""
+        - - "valid_from"
+          - "TIMESTAMP"
+          - ""
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+          - ""
+        - - "valid_to"
+          - "TIMESTAMP"
+          - ""
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+          - ""
+        - - "is_latest"
+          - "BOOLEAN"
+          - ""
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+          - ""
+        - - "version"
+          - "NUMBER"
+          - "8"
+          - "0"
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+          - ""
+        defaultDdlCollation: ""
+        primaryKeys:
+        clusteringKeys:
+        dataRetentionTimeInDays: ""
+        comment: "A type 2 (SCD) Event Dimension"
+    Create STG_EVENT_DIM_EXAMPLE:
+      type: "create-table"
+      skipped: false
+      parameters:
+        componentName: "Create STG_EVENT_DIM_EXAMPLE"
+        createReplace: "Replace"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        newTableName: "STG_EVENT_DIM_EXAMPLE"
+        tableType: "Transient"
+        columns:
+        - - "event_nk"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "Yes"
+          - "Yes"
+          - "Natural key"
+        - - "event_type"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+        - - "event_category"
+          - "VARCHAR"
+          - "1024"
+          - ""
+          - ""
+          - "Yes"
+          - "No"
+          - ""
+        defaultDdlCollation: ""
+        primaryKeys:
+        clusteringKeys:
+        dataRetentionTimeInDays: ""
+        comment: ""
+    Create SEQ_EVENT_DIM:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Create EVENT_DIM_T2"
+      parameters:
+        componentName: "Create SEQ_EVENT_DIM"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "CREATE OR REPLACE SEQUENCE \"SEQ_EVENT_DIM\";"
+      postProcessing:
+        updateScalarVariables:
+    Initialize EVENT_DIM_T1:
+      type: "sql-executor"
+      parameters:
+        componentName: "Initialize EVENT_DIM_T1"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO \"EVENT_DIM_T1\" (\"event_sk\", \"event_nk\")\r\n\
+          VALUES (-1, 'Unknown')"
+      postProcessing:
+        updateScalarVariables:
+    Initialize EVENT_DIM_T2:
+      type: "sql-executor"
+      parameters:
+        componentName: "Initialize EVENT_DIM_T2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO \"EVENT_DIM_T2\" (\"event_sk\", \"event_nk\", \"valid_from\"\
+          , \"valid_to\", \"is_latest\", \"version\")\r\nVALUES (-1, 'Unknown', DATE\
+          \ '2000-01-01', DATE '2099-12-31', TRUE, 1)"
+      postProcessing:
+        updateScalarVariables:
+  variables:
+    i:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PRIVATE"
+      defaultValue: ""
+design:
+  components:
+    Start 0:
+      position:
+        x: -208
+        "y": -80
+      tempMetlId: 5613
+    Create EVENT_DIM_T1:
+      position:
+        x: 210
+        "y": -80
+      tempMetlId: 5685
+    Create EVENT_DIM_T2:
+      position:
+        x: 210
+        "y": 90
+      tempMetlId: 6329
+    Create STG_EVENT_DIM_EXAMPLE:
+      position:
+        x: 210
+        "y": -260
+      tempMetlId: 7666
+    Create SEQ_EVENT_DIM:
+      position:
+        x: 60
+        "y": 90
+      tempMetlId: 7667
+    Initialize EVENT_DIM_T1:
+      position:
+        x: 410
+        "y": -80
+      tempMetlId: 7668
+    Initialize EVENT_DIM_T2:
+      position:
+        x: 410
+        "y": 90
+      tempMetlId: 7669
+  notes:
+    "5763":
+      position:
+        x: 340
+        "y": -150
+      size:
+        height: 360
+        width: 178
+      theme: "yellow"
+      content: "Initialize with a -1 record for \"unknown\""
+    "6440":
+      position:
+        x: 110
+        "y": -150
+      size:
+        height: 145
+        width: 212
+      theme: "yellow"
+      content: "Surrogate key will be maintained manually"
+    "6444":
+      position:
+        x: 10
+        "y": 20
+      size:
+        height: 187
+        width: 312
+      theme: "yellow"
+      content: "Surrogate key will be maintained using a SEQUENCE object"
+    "7600":
+      position:
+        x: -330
+        "y": -340
+      size:
+        height: 203
+        width: 289
+      theme: "green"
+      content: |
+        Create the database tables for the physical SCD examples:
+
+        - STG_EVENT_DIM_EXAMPLE - new and updated data for the dimension tables
+        - EVENT_DIM_T1 - a type 1 dimension (with no history tracking)
+        - EVENT_DIM_T2 - a type 2 dimension (does record history)
+    "7895":
+      position:
+        x: -300
+        "y": 70
+      size:
+        height: 106
+        width: 232
+      theme: "green"
+      content: "Run this once, then repeatedly run `Physical SCD run` to try the pipelines\
+        \ with test data"

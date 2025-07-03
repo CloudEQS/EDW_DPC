@@ -1,0 +1,302 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Add SCD timestamps:
+      type: "calculator"
+      sources:
+      - "STG_EVENT_DIM_EXAMPLE"
+      parameters:
+        componentName: "Add SCD timestamps"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "current_timestamp()::TIMESTAMP_NTZ(0)"
+          - "tsis"
+        - - "DATEADD(second, -1, current_timestamp()::TIMESTAMP_NTZ(0))"
+          - "tswas"
+        - - "DATE '2099-12-31'::TIMESTAMP_NTZ(0)"
+          - "tsinf"
+        - - "FALSE"
+          - "falseflag"
+        - - "TRUE"
+          - "trueflag"
+    Merge EVENT_DIM_T2:
+      type: "table-update"
+      sources:
+      - "Unite 0"
+      parameters:
+        componentName: "Merge EVENT_DIM_T2"
+        warehouse: "[Environment Default]"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "EVENT_DIM_T2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - |-
+            "target"."event_nk" = "input"."event_nk"
+            AND "target"."version" = "input"."version"
+          - "Join"
+        whenMatched:
+        - - "<none>"
+          - "Update"
+        updateMapping:
+        - - "falseflag"
+          - "is_latest"
+        - - "tswas"
+          - "valid_to"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "event_nk"
+          - "event_nk"
+        - - "event_type"
+          - "event_type"
+        - - "event_category"
+          - "event_category"
+        - - "tsis"
+          - "valid_from"
+        - - "tsinf"
+          - "valid_to"
+        - - "trueflag"
+          - "is_latest"
+        - - "version"
+          - "version"
+    Latest EVENT_DIM_T2:
+      type: "sql"
+      sources:
+      - "EVENT_DIM_T2"
+      parameters:
+        componentName: "Latest EVENT_DIM_T2"
+        query: "SELECT * FROM $T{EVENT_DIM_T2} WHERE \"is_latest\""
+    EVENT_DIM_T2:
+      type: "table-input"
+      parameters:
+        componentName: "EVENT_DIM_T2"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "EVENT_DIM_T2"
+        columnNames:
+        - "event_sk"
+        - "event_nk"
+        - "event_type"
+        - "event_category"
+        - "valid_from"
+        - "valid_to"
+        - "is_latest"
+        - "version"
+        timeOffset: ""
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "Add SCD timestamps"
+      - "Latest EVENT_DIM_T2"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "Latest EVENT_DIM_T2"
+        matchKeys:
+        - "event_nk"
+        compareColumns:
+        - "event_type"
+        - "event_category"
+        outputColumnMapping:
+        - - "compare_event_type"
+          - "event_type"
+        - - "compare_event_category"
+          - "event_category"
+        - - "master_version"
+          - "master_version"
+        - - "compare_tsis"
+          - "tsis"
+        - - "compare_tswas"
+          - "tswas"
+        - - "compare_tsinf"
+          - "tsinf"
+        - - "compare_falseflag"
+          - "falseflag"
+        - - "compare_trueflag"
+          - "trueflag"
+        indicatorColumn: "Indicator"
+    C or N:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "C or N"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        combineCondition: "OR"
+    C only:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "C only"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "AND"
+    Calculator 0:
+      type: "calculator"
+      sources:
+      - "C or N"
+      parameters:
+        componentName: "Calculator 0"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "COALESCE(\"master_version\" + 1, 1)"
+          - "version"
+    Rename 0:
+      type: "rename"
+      sources:
+      - "C only"
+      parameters:
+        componentName: "Rename 0"
+        columnMapping:
+        - - "event_nk"
+          - "event_nk"
+        - - "event_type"
+          - "event_type"
+        - - "event_category"
+          - "event_category"
+        - - "master_version"
+          - "version"
+        - - "tsis"
+          - "tsis"
+        - - "tswas"
+          - "tswas"
+        - - "tsinf"
+          - "tsinf"
+        - - "falseflag"
+          - "falseflag"
+        - - "trueflag"
+          - "trueflag"
+        - - "Indicator"
+          - "Indicator"
+    Unite 0:
+      type: "unite"
+      sources:
+      - "Calculator 0"
+      - "Rename 0"
+      parameters:
+        componentName: "Unite 0"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    STG_EVENT_DIM_EXAMPLE:
+      type: "table-input"
+      parameters:
+        componentName: "STG_EVENT_DIM_EXAMPLE"
+        database: "[Environment Default]"
+        schema: "[Environment Default]"
+        targetTable: "STG_EVENT_DIM_EXAMPLE"
+        columnNames:
+        - "event_nk"
+        - "event_type"
+        - "event_category"
+        timeOffset: ""
+design:
+  components:
+    Add SCD timestamps:
+      position:
+        x: 1130
+        "y": 320
+      tempMetlId: 6733
+    Merge EVENT_DIM_T2:
+      position:
+        x: 1800
+        "y": 380
+      tempMetlId: 6735
+    Latest EVENT_DIM_T2:
+      position:
+        x: 1130
+        "y": 430
+      tempMetlId: 6779
+    EVENT_DIM_T2:
+      position:
+        x: 990
+        "y": 430
+      tempMetlId: 6788
+    Detect Changes:
+      position:
+        x: 1280
+        "y": 380
+      tempMetlId: 6792
+    C or N:
+      position:
+        x: 1420
+        "y": 330
+      tempMetlId: 6831
+    C only:
+      position:
+        x: 1420
+        "y": 430
+      tempMetlId: 7201
+    Calculator 0:
+      position:
+        x: 1520
+        "y": 330
+      tempMetlId: 7243
+    Rename 0:
+      position:
+        x: 1520
+        "y": 430
+      tempMetlId: 7273
+    Unite 0:
+      position:
+        x: 1670
+        "y": 380
+      tempMetlId: 7285
+    STG_EVENT_DIM_EXAMPLE:
+      position:
+        x: 850
+        "y": 320
+      tempMetlId: 7870
+  notes:
+    "6730":
+      position:
+        x: 780
+        "y": 210
+      size:
+        height: 205
+        width: 250
+      theme: "green"
+      content: |-
+        Example Type 2 dimension update.
+
+        Handles new and updated records from the "Example Data" source.
+    "6731":
+      position:
+        x: 1140
+        "y": 200
+      size:
+        height: 60
+        width: 153
+      theme: "green"
+      content: "Low Code version"
+    "7692":
+      position:
+        x: 1320
+        "y": 540
+      size:
+        height: 201
+        width: 373
+      theme: "yellow"
+      content: |
+        Updates (C) require two changes:
+
+        - An update to the previous "is_latest" record
+        - Insert a new "is_latest" record
+
+        Brand new business keys (N) require only one change:
+
+        - Insert a new "is_latest" record

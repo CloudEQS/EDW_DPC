@@ -700,7 +700,7 @@ pipelines:
         description: ""
         columns:
           gv_load_id:
-            columnType: NUMBER
+            columnType: TEXT
           gv_job_name:
             columnType: TEXT
           gv_job_parent:
@@ -711,14 +711,10 @@ pipelines:
             columnType: TEXT
           gv_error_rows:
             columnType: TEXT
-          gv_subject_area:
-            columnType: TEXT
           gv_run_date:
             columnType: TEXT
           gv_run_time:
             columnType: TEXT
-          gv_run_history_id:
-            columnType: NUMBER
           gv_status:
             columnType: TEXT
           gv_message:
@@ -727,4 +723,57 @@ pipelines:
     displayName: error_log_insert_orc1
     id: error_log_insert_orc
     enabled: true
-    parameters: {}
+    parameters:
+      gv_error_log:
+        type: GRID
+        exportAllowed: false
+        description: ""
+        columns:
+          gv_load_id:
+            columnType: TEXT
+          gv_job_name:
+            columnType: TEXT
+          gv_job_parent:
+            columnType: TEXT
+          gv_table_name:
+            columnType: TEXT
+          gv_table_type:
+            columnType: TEXT
+          gv_error_rows:
+            columnType: TEXT
+          gv_run_date:
+            columnType: TEXT
+          gv_run_time:
+            columnType: TEXT
+          gv_status:
+            columnType: TEXT
+          gv_message:
+            columnType: TEXT
+  - pipeline: Dimentions and Fact/Load_log_scd2_orc.orch.yaml
+    displayName: Load_log_scd2_orc
+    id: Load_log_scd2_orc
+    enabled: true
+    parameters:
+      gv_parent_load_log_scd2:
+        type: GRID
+        exportAllowed: false
+        description: ""
+        columns:
+          jv_load_id:
+            columnType: TEXT
+          jv_job_name:
+            columnType: TEXT
+          jv_table_name:
+            columnType: TEXT
+          jv_inserted_rows:
+            columnType: NUMBER
+          jv_updated_rows:
+            columnType: NUMBER
+          jv_status:
+            columnType: TEXT
+          jv_start_time:
+            columnType: TEXT
+          jv_end_time:
+            columnType: TEXT
+          jv_error_message:
+            columnType: TEXT
