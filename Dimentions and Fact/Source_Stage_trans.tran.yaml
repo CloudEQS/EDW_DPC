@@ -1,0 +1,120 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    SOURCE_CUSTOMER:
+      type: "table-input"
+      parameters:
+        componentName: "SOURCE_CUSTOMER"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "SOURCE_CUSTOMER"
+        columnNames:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "LOAD_TIME"
+        timeOffset:
+    Identify new records:
+      type: "filter"
+      sources:
+      - "SOURCE_CUSTOMER"
+      parameters:
+        componentName: "Identify new records"
+        filterConditions:
+        - - "LOAD_TIME"
+          - "Is"
+          - "Greater than"
+          - "${jv_last_load_time}"
+        combineCondition: "And"
+    STAGE_CUSTOMER:
+      type: "table-output"
+      sources:
+      - "Calculator"
+      parameters:
+        componentName: "STAGE_CUSTOMER"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_CUSTOMER"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "C_CUSTKEY"
+          - "C_CUSTKEY"
+        - - "C_NAME"
+          - "C_NAME"
+        - - "C_ADDRESS"
+          - "C_ADDRESS"
+        - - "C_NATIONKEY"
+          - "C_NATIONKEY"
+        - - "C_PHONE"
+          - "C_PHONE"
+        - - "C_ACCTBAL"
+          - "C_ACCTBAL"
+        - - "C_MKTSEGMENT"
+          - "C_MKTSEGMENT"
+        - - "C_COMMENT"
+          - "C_COMMENT"
+        - - "v_load_time"
+          - "LOAD_TIME"
+        orderBy:
+        outputMode: "Truncate"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_last_load_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_inserted_rows"
+          - "${sysvar.thisComponent.rowCount}"
+    Calculator:
+      type: "calculator"
+      sources:
+      - "Identify new records"
+      parameters:
+        componentName: "Calculator"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "v_load_time"
+  variables:
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_last_load_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2025-06-24 02:20:34.237 -0700"
+design:
+  components:
+    SOURCE_CUSTOMER:
+      position:
+        x: -620
+        "y": -180
+      tempMetlId: 1
+    Identify new records:
+      position:
+        x: -460
+        "y": -180
+      tempMetlId: 5
+    STAGE_CUSTOMER:
+      position:
+        x: -160
+        "y": -180
+      tempMetlId: 6
+    Calculator:
+      position:
+        x: -310
+        "y": -180
+      tempMetlId: 7

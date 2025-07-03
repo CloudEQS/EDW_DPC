@@ -812,7 +812,7 @@ pipelines:
     parameters:
       gv_parent_load_log_scd2:
         type: GRID
-        exportAllowed: true
+        exportAllowed: false
         description: ""
         columns:
           jv_load_id:

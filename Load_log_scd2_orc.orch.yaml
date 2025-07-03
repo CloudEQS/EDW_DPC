@@ -13,7 +13,7 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "End Success"
+        - "Print Variables 2"
         failure:
         - "End Failure"
       parameters:
@@ -37,7 +37,7 @@ pipeline:
               - "jv_end_time"
               - "jv_error_message"
       postProcessing:
-        updateOutputMessage:
+        updateOutputMessage: "gv_parent_load_log_scd2"
         updateScalarVariables:
     End Failure:
       type: "end-failure"
@@ -67,12 +67,26 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      transitions:
+        success:
+        - "End Success"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "gv_parent_load_log_scd2"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
   variables:
     gv_parent_load_log_scd2:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
           jv_load_id:
@@ -93,16 +107,7 @@ pipeline:
             columnType: "TEXT"
           jv_error_message:
             columnType: "TEXT"
-      defaultValue:
-      - - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
-        - "-1"
+      defaultValue: []
 design:
   components:
     Start:
@@ -112,7 +117,7 @@ design:
       tempMetlId: 1
     Run Transformation:
       position:
-        x: 160
+        x: 150
         "y": 0
       tempMetlId: 2
     End Failure:
@@ -122,11 +127,16 @@ design:
       tempMetlId: 3
     End Success:
       position:
-        x: 320
-        "y": -120
+        x: 410
+        "y": -60
       tempMetlId: 4
     Print Variables:
       position:
-        x: -20
+        x: 10
         "y": 0
       tempMetlId: 5
+    Print Variables 2:
+      position:
+        x: 270
+        "y": -60
+      tempMetlId: 6

@@ -15,7 +15,7 @@ pipeline:
         success:
         - "Append To Grid 2"
         failure:
-        - "Append To Grid 2 2"
+        - "Print Variables"
       parameters:
         componentName: "t_Stg_Customer_to_Dim_Customer_Scd2"
         transformationJob: "Dimentions and Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
@@ -48,7 +48,7 @@ pipeline:
       type: "print-variables"
       transitions:
         success:
-        - "Run Shared Pipeline 2"
+        - "Append To Grid 2 2"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
@@ -163,7 +163,7 @@ pipeline:
       type: "append-to-grid"
       transitions:
         success:
-        - "Print Variables"
+        - "Run Shared Pipeline 2"
       parameters:
         componentName: "Append To Grid 2 2"
         operation: "Append"
@@ -243,7 +243,7 @@ pipeline:
       metadata:
         type: "GRID"
         description: ""
-        scope: "SHARED"
+        scope: "COPIED"
         visibility: "PUBLIC"
         columns:
           jv_load_id:
@@ -289,7 +289,7 @@ design:
       tempMetlId: 7
     Print Variables:
       position:
-        x: 330
+        x: 180
         "y": 120
       tempMetlId: 9
     Append To Grid:
@@ -319,7 +319,7 @@ design:
       tempMetlId: 14
     Append To Grid 2 2:
       position:
-        x: 200
+        x: 310
         "y": 120
       tempMetlId: 15
     Run Shared Pipeline 2:

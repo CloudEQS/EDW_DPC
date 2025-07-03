@@ -1,0 +1,252 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "LOG START"
+      parameters:
+        componentName: "Start"
+    Query Result To Scalar:
+      type: "query-to-scalar"
+      transitions:
+        success:
+        - "Run Transformation"
+        - "Intial last update time"
+      parameters:
+        componentName: "Query Result To Scalar"
+        mode: "Advanced"
+        query: "select coalesce(max( last_run_time),'1900-06-24 08:18:05.524 -0700')\
+          \ as latest_run_time\r\nfrom EDW_LAB.STAGE_SCHEMA.LOAD_RUN_AUDIT\r\nwhere\
+          \ SOURCE_SYATEM_ID=1"
+        scalarVariableMapping:
+        - - "jv_last_load_time"
+          - "LATEST_RUN_TIME"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Python Pushdown"
+        failure:
+        - "SQL Script 2"
+      parameters:
+        componentName: "Run Transformation"
+        transformationJob: "Dimentions and Fact/Source_Stage_trans.tran.yaml"
+        setScalarVariables:
+        - - "jv_last_load_time"
+          - "${jv_last_load_time}"
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_rows_loaded"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+    Set last update time:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success"
+      parameters:
+        componentName: "Set last update time"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "update EDW_LAB.STAGE_SCHEMA.LOAD_RUN_AUDIT\r\nset \r\n    last_run_time\
+          \ ='${jv_current_run_time}',\r\n    STATUS='SUCCESS' ,        \r\n    END_TIME=CURRENT_TIMESTAMP(),\r\
+          \n     ROWS_LOADED='${jv_rows_loaded}'\r\nwhere batch_id = '${sysvar.rootPipeline.executionId}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Intial last update time:
+      type: "print-variables"
+      parameters:
+        componentName: "Intial last update time"
+        variablesToPrint:
+        - - "jv_last_load_time"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    'After loading ':
+      type: "print-variables"
+      parameters:
+        componentName: "After loading "
+        variablesToPrint:
+        - - "jv_current_run_time"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    LOG START:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Query Result To Scalar"
+      parameters:
+        componentName: "LOG START"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "insert into EDW_LAB.STAGE_SCHEMA.LOAD_RUN_AUDIT(BATCH_ID,SOURCE_SYATEM_ID,SOURCE_OBJECT_ID,STATUS,START_TIME)\r\
+          \nvalues('${sysvar.rootPipeline.executionId}',1,1,'Started',CURRENT_TIMESTAMP)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Python Pushdown:
+      type: "python-pushdown"
+      transitions:
+        success:
+        - "Set last update time"
+        - "After loading "
+      parameters:
+        componentName: "Python Pushdown"
+        warehouse: "[Environment Default]"
+        externalAccessIntegrations:
+        pythonVersion: "3.10"
+        packagesGrid:
+        scriptLocation: "Component"
+        pythonScript: |
+          ###
+          # Variables are directly accessible:
+          #   print (myvar)
+          # Updating a variable:
+          #   context.updateVariable('myvar', 'new-value')
+          # Updating a grid variable:
+          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
+          # Running SQL against Snowflake
+          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
+          # Using Data Frames
+          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
+          ###)
+
+          result = session.sql('select current_timestamp() as current_run_time').collect()
+          current_run_time = result[0]['CURRENT_RUN_TIME']
+          print('current run_time=', current_run_time)
+
+          context.updateVariable('jv_current_run_time', current_run_time)
+        scriptTimeout: "360"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    SQL Script 2:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Failure"
+      parameters:
+        componentName: "SQL Script 2"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude: []
+        sqlScript: "update EDW_LAB..LOAD_RUN_AUDIT\r\nset \r\n    STATUS='Failed'\
+          \ ,        \r\n    END_TIME=CURRENT_TIMESTAMP()\r\nwhere batch_id = '${sysvar.rootPipeline.executionId}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_source_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "SALESFORCE"
+    jv_last_load_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "2025-06-24 02:20:34.237 -0700"
+    jv_current_run_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_rows_loaded:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+design:
+  components:
+    Start:
+      position:
+        x: -730
+        "y": -180
+      tempMetlId: 1
+    Query Result To Scalar:
+      position:
+        x: -480
+        "y": -180
+      tempMetlId: 2
+    Run Transformation:
+      position:
+        x: -330
+        "y": -180
+      tempMetlId: 3
+    Set last update time:
+      position:
+        x: -110
+        "y": -180
+      tempMetlId: 4
+    Intial last update time:
+      position:
+        x: -430
+        "y": -320
+      tempMetlId: 5
+    'After loading ':
+      position:
+        x: -110
+        "y": -290
+      tempMetlId: 6
+    End Success:
+      position:
+        x: 0
+        "y": -180
+      tempMetlId: 7
+    End Failure:
+      position:
+        x: -70
+        "y": -60
+      tempMetlId: 8
+    LOG START:
+      position:
+        x: -620
+        "y": -180
+      tempMetlId: 10
+    Python Pushdown:
+      position:
+        x: -210
+        "y": -180
+      tempMetlId: 11
+    SQL Script 2:
+      position:
+        x: -240
+        "y": -60
+      tempMetlId: 12
