@@ -39,6 +39,10 @@ pipeline:
           - "VARIANT"
           - ""
           - ""
+        - - "jv_status"
+          - "VARCHAR"
+          - ""
+          - ""
         values:
           fromGrid:
             variable: "gv_load_log_scd"
@@ -48,10 +52,10 @@ pipeline:
             - "jv_table_name"
             - "jv_inserted_rows"
             - "jv_updated_rows"
-            - "jv_status"
             - "jv_start_time"
             - "jv_end_time"
             - "jv_error_message"
+            - "jv_status"
     LOAD_LOG_SCD2:
       type: "table-output"
       sources:
@@ -74,14 +78,14 @@ pipeline:
           - "INSERTED_ROWS"
         - - "jv_updated_rows"
           - "UPDATED_ROWS"
-        - - "jv_status"
-          - "STATUS"
         - - "jv_start_time"
           - "START_TIME"
         - - "jv_end_time"
           - "END_TIME"
         - - "jv_error_message"
           - "ERROR_MESSAGE"
+        - - "jv_status"
+          - "STATUS"
         orderBy:
         outputMode: "Append"
       postProcessing:
@@ -222,6 +226,8 @@ pipeline:
             columnType: "TEXT"
           jv_error_message:
             columnType: "TEXT"
+          jv_status:
+            columnType: "TEXT"
       defaultValue:
       - - "-1"
         - "-1"
@@ -231,6 +237,7 @@ pipeline:
         - "-1"
         - "-1"
         - "-1"
+        - ""
 design:
   components:
     Fixed Flow:

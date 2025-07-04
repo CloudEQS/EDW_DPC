@@ -13,9 +13,10 @@ pipeline:
       type: "run-transformation"
       transitions:
         success:
-        - "Append To Grid 2"
+        - "If"
+        - "Print Variables 4"
         failure:
-        - "Print Variables"
+        - "Or"
       parameters:
         componentName: "t_Stg_Customer_to_Dim_Customer_Scd2"
         transformationJob: "Dimentions and Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
@@ -73,7 +74,7 @@ pipeline:
           - "Stage customer to Dim Customer"
           - "0"
           - "0"
-          - "2025-07-03 09:51"
+          - "Job is  started"
           - "${sysvar.thisComponent.startedAt}"
           - ""
           - "meesage"
@@ -109,9 +110,9 @@ pipeline:
           - "stage customer to dim_cust"
           - "${v_inserted_rows}"
           - "${v_updated_rows}"
-          - "2025-07-03 09:51"
-          - " ${sysvar.thisComponent.startedAt}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+          - "Job is Completed"
+          - ""
+          - "${sysvar.thisComponent.startedAt}"
           - "${v_error_message}"
       postProcessing:
         updateOutputMessage:
@@ -175,9 +176,9 @@ pipeline:
           - "${v_inserted_rows}"
           - "${v_updated_rows}"
           - "Failed"
+          - ""
           - " ${sysvar.thisComponent.startedAt}"
-          - "${sysvar.thisComponent.mainTaskFinishedAt}"
-          - "${v_error_message}"
+          - "${detailed_error}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -209,6 +210,53 @@ pipeline:
               - "jv_error_message"
       postProcessing:
         updateOutputMessage:
+        updateScalarVariables:
+    If:
+      type: "if"
+      transitions:
+        "true":
+        - "Append To Grid 2"
+        "false":
+        - "Or"
+      parameters:
+        componentName: "If"
+        mode: "Simple"
+        condition:
+        - - "v_inserted_rows"
+          - "Is"
+          - "Greater than"
+          - "0"
+        - - "v_updated_rows"
+          - "Is"
+          - "Greater than"
+          - "0"
+        combineConditions: "And"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Or:
+      type: "or"
+      transitions:
+        unconditional:
+        - "Print Variables"
+      parameters:
+        componentName: "Or"
+      postProcessing:
+        updateOutputMessage: "Rows are updated: ${v_inserted_rows}\r\n\r\nRows are\
+          \ Insterted: ${v_updated_rows}"
+        updateScalarVariables:
+    Print Variables 4:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 4"
+        variablesToPrint:
+        - - "v_inserted_rows"
+        - - "v_updated_rows"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage: "Rows are updated :${v_updated_rows}\r\n\r\nRows are\
+          \ Inserted: ${v_inserted_rows}"
         updateScalarVariables:
   variables:
     v_inserted_rows:
@@ -305,17 +353,17 @@ design:
       tempMetlId: 2
     End Success:
       position:
-        x: 670
-        "y": -50
+        x: 690
+        "y": -70
       tempMetlId: 6
     End Failure:
       position:
-        x: 600
+        x: 720
         "y": 120
       tempMetlId: 7
     Print Variables:
       position:
-        x: 180
+        x: 270
         "y": 120
       tempMetlId: 9
     Append To Grid:
@@ -330,26 +378,41 @@ design:
       tempMetlId: 11
     Append To Grid 2:
       position:
-        x: 190
-        "y": -50
+        x: 230
+        "y": -70
       tempMetlId: 12
     Run Shared Pipeline:
       position:
-        x: 520
-        "y": -50
+        x: 540
+        "y": -70
       tempMetlId: 13
     Print Variables 3:
       position:
-        x: 360
-        "y": -50
+        x: 390
+        "y": -70
       tempMetlId: 14
     Append To Grid 2 2:
       position:
-        x: 310
+        x: 370
         "y": 120
       tempMetlId: 15
     Run Shared Pipeline 2:
       position:
-        x: 460
+        x: 520
         "y": 120
       tempMetlId: 16
+    If:
+      position:
+        x: 120
+        "y": -70
+      tempMetlId: 17
+    Or:
+      position:
+        x: 150
+        "y": 120
+      tempMetlId: 18
+    Print Variables 4:
+      position:
+        x: 10
+        "y": -120
+      tempMetlId: 19

@@ -43,7 +43,7 @@ pipeline:
       parameters:
         componentName: "update"
         filterConditions:
-        - - "Indicator"
+        - - ""
           - "Is"
           - "Equal to"
           - "C"
