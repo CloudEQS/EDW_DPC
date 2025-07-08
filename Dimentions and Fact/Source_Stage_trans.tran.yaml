@@ -89,6 +89,13 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    v_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     jv_last_load_time:
       metadata:
         type: "TEXT"

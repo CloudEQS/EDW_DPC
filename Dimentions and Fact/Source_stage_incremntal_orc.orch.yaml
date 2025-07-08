@@ -46,6 +46,8 @@ pipeline:
         updateScalarVariables:
         - - "jv_rows_loaded"
           - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
     Set last update time:
       type: "sql-executor"
       transitions:
@@ -160,7 +162,8 @@ pipeline:
         declareSqlVariables: "Include selected"
         variablesToInclude: []
         sqlScript: "update EDW_LAB..LOAD_RUN_AUDIT\r\nset \r\n    STATUS='Failed'\
-          \ ,        \r\n    END_TIME=CURRENT_TIMESTAMP()\r\nwhere batch_id = '${sysvar.rootPipeline.executionId}'"
+          \ , \r\n    ERROR_MESSAGE='${jv_error_      \r\n    END_TIME=CURRENT_TIMESTAMP()\r\
+          \nwhere batch_id = '${sysvar.rootPipeline.executionId}'"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -189,6 +192,13 @@ pipeline:
     jv_rows_loaded:
       metadata:
         type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"

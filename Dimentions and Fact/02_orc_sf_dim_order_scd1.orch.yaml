@@ -1,0 +1,289 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "Marked as Start"
+      parameters:
+        componentName: "Start"
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    "02_trf_sf_dim_orders_scd1":
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Mark Job Completed "
+        failure:
+        - "Update the load log"
+      parameters:
+        componentName: "02_trf_sf_dim_orders_scd1"
+        transformationJob: "Dimentions and Fact/02_trf_sf_dim_orders_scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_inserted_rows"
+          - "${(sysvar.childPipeline.vars.jv_inserted_rows) || -1}  "
+        - - "jv_duration_time"
+          - "${sysvar.thisComponent.mainTaskDurationMs}"
+        - - "jv_updated_rows"
+          - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}  "
+    Marked as Start:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "02_trf_sf_dim_orders_scd1"
+      parameters:
+        componentName: "Marked as Start"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO EDW_LAB.STAGE_SCHEMA.LOAD_LOG(LOAD_ID,MAIN_JOB_NAME,JOB_NAME,SOURCE_SYSTEM_ID,SOURCE_TABLE_NAME,TARGET_TABLE_NAME,ENVIRIONMENT,STATUS,START_TIME)\r\
+          \nVALUES('${sysvar.thisPipeline.executionId}','${sysvar.thisPipeline.fullName}','02_trf_sf_dim_orders_scd1',1,'STAGE_ORDERS','DIM_ORDERS','Developement','Job\
+          \ is Started',CURRENT_TIMESTAMP)"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    'Mark Job Completed ':
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Success"
+      parameters:
+        componentName: "Mark Job Completed "
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE EDW_LAB.STAGE_SCHEMA.LOAD_LOG set INSERTED_ROWS=${jv_inserted_rows},UPDATED_ROWS=${jv_updated_rows},STATUS='Job\
+          \ is Completed',\r\n    COMMENT='Data loading from Stage to Dimention Table\
+          \ using SCD Type2 Imeplention',\r\n\tlast_run_time=current_timestamp()\r\
+          \nwhere LOAD_ID='${sysvar.thisPipeline.executionId}'\r\n\r\n\r\n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Marked Failed:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "End Failure"
+      parameters:
+        componentName: "Marked Failed"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "INSERT INTO EDW_LAB.STAGE_SCHEMA.ERROR_LOG(LOAD_ID,MAIN_JOB_NAME,JOB_NAME,SOURCE_SYSTEM_ID,SOURCE_TABLE_NAME,TARGET_TABLE_NAME,INSERTED_ROWS,UPDATED_ROWS,STATUS,DURATION_IN_SECONDS,COMMENT,\r\
+          \nLAST_RUN_TIME,ERROR_MESSAGE)\r\nVALUES\r\n('${sysvar.thisPipeline.executionId}','${sysvar.thisPipeline.fullName}','02_trf_sf_dim_orders_scd1',1,'STAGE_ORDERS','DIM_ORDERS',${jv_inserted_rows},${jv_updated_rows},'Job\
+          \ has Failed',${jv_duration_time},'Data loading from Stage to Dimention\
+          \ Table using SCD Type2 Implention',current_timestamp(),'${jv_error_message}')\r\
+          \n"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Update the load log:
+      type: "sql-executor"
+      transitions:
+        success:
+        - "Marked Failed"
+      parameters:
+        componentName: "Update the load log"
+        scriptLocation: "Component"
+        declareSqlVariables: "Include selected"
+        variablesToInclude:
+        sqlScript: "UPDATE EDW_LAB.STAGE_SCHEMA.LOAD_LOG SET STATUS='FAILED'\r\nWHERE\
+          \ LOAD_ID='${sysvar.rootPipeline.executionId}'"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Execution_Time:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Error in parent"
+    p_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_last_run_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_source_object_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: "STAGE_CUSTOMER"
+    jv_duration_time:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_end_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_parent_load_log_scd2:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_table_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_error_message:
+            columnType: "TEXT"
+      defaultValue: []
+    gv_main_job_load_log_scd2:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_main_job_name:
+            columnType: "TEXT"
+          jv_source_system_id:
+            columnType: "NUMBER"
+          jv_source_object_name:
+            columnType: "NUMBER"
+          jv_target_object_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_end_time:
+            columnType: "TEXT"
+          jv_execution_time:
+            columnType: "TEXT"
+          jv_last_run_time:
+            columnType: "TEXT"
+          jv_created_log_at:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -370
+        "y": 30
+      tempMetlId: 1
+    End Success:
+      position:
+        x: 220
+        "y": 30
+      tempMetlId: 6
+    End Failure:
+      position:
+        x: 230
+        "y": 140
+      tempMetlId: 7
+    "02_trf_sf_dim_orders_scd1":
+      position:
+        x: -110
+        "y": 30
+      tempMetlId: 21
+    Marked as Start:
+      position:
+        x: -260
+        "y": 30
+      tempMetlId: 22
+    'Mark Job Completed ':
+      position:
+        x: 60
+        "y": 30
+      tempMetlId: 23
+    Marked Failed:
+      position:
+        x: 110
+        "y": 140
+      tempMetlId: 24
+    Update the load log:
+      position:
+        x: -20
+        "y": 140
+      tempMetlId: 25

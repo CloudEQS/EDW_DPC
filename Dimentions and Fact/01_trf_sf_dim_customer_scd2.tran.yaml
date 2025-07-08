@@ -2,10 +2,10 @@ type: "transformation"
 version: "1.0"
 pipeline:
   components:
-    STG_CUSTOMER_SCD2:
+    STG_CUSTOMER:
       type: "table-input"
       parameters:
-        componentName: "STG_CUSTOMER_SCD2"
+        componentName: "STG_CUSTOMER"
         database: "EDW_LAB"
         schema: "STAGE_SCHEMA"
         targetTable: "STAGE_CUSTOMER_SCD2"
@@ -36,14 +36,14 @@ pipeline:
           - "Equal to"
           - "C"
         combineCondition: "Or"
-    update:
+    Update:
       type: "filter"
       sources:
       - "Detect Changes"
       parameters:
-        componentName: "update"
+        componentName: "Update"
         filterConditions:
-        - - ""
+        - - "Indicator"
           - "Is"
           - "Equal to"
           - "C"
@@ -89,6 +89,10 @@ pipeline:
         updateScalarVariables:
         - - "jv_inserted_rows"
           - "${sysvar.thisComponent.rowCount}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_job_name"
+          - "${sysvar.thisPipeline.fullName}"
     Updated load time:
       type: "calculator"
       sources:
@@ -103,12 +107,12 @@ pipeline:
           - "END_TIME_IN_V"
         - - "TRUE"
           - "ACTIVE_FLAG"
-    Calculator 3:
+    Update Previous Inactive record:
       type: "calculator"
       sources:
-      - "update"
+      - "Update"
       parameters:
-        componentName: "Calculator 3"
+        componentName: "Update Previous Inactive record"
         includeInputColumns: "Yes"
         calculations:
         - - "CURRENT_TIMESTAMP()"
@@ -147,12 +151,12 @@ pipeline:
           - "Equal to"
           - "TRUE"
         combineCondition: "And"
-    Distinct:
+    Avoid duplicates:
       type: "distinct"
       sources:
-      - "STG_CUSTOMER_SCD2"
+      - "STG_CUSTOMER"
       parameters:
-        componentName: "Distinct"
+        componentName: "Avoid duplicates"
         columns:
         - "C_CUSTKEY"
         - "C_NAME"
@@ -166,7 +170,7 @@ pipeline:
     DIM_CUSTOMER_SCD2 2:
       type: "table-update"
       sources:
-      - "Calculator 3"
+      - "Update Previous Inactive record"
       parameters:
         componentName: "DIM_CUSTOMER_SCD2 2"
         warehouse: "[Environment Default]"
@@ -193,11 +197,13 @@ pipeline:
         - - "jv_updated_rows"
           - "${sysvar.thisComponent.rowsUpdated}"
         - - "jv_inserted_rows"
-          - "${sysvar.thisComponent.rowCount}"
+          - "${sysvar.thisComponent.rowsInserted}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
     Detect Changes:
       type: "detect-changes"
       sources:
-      - "Distinct"
+      - "Avoid duplicates"
       - "Get the Active Cstomer Records"
       parameters:
         componentName: "Detect Changes"
@@ -237,7 +243,7 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "0"
+      defaultValue: ""
     jv_inserted_rows:
       metadata:
         type: "NUMBER"
@@ -252,9 +258,16 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: "Failed Message Job"
+    jv_job_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
 design:
   components:
-    STG_CUSTOMER_SCD2:
+    STG_CUSTOMER:
       position:
         x: -880
         "y": -110
@@ -264,10 +277,10 @@ design:
         x: -360
         "y": -100
       tempMetlId: 7
-    update:
+    Update:
       position:
         x: -350
-        "y": 90
+        "y": 100
       tempMetlId: 8
     DIM_CUSTOMER_INSERT_SCD TYP2:
       position:
@@ -279,10 +292,10 @@ design:
         x: -90
         "y": -100
       tempMetlId: 11
-    Calculator 3:
+    Update Previous Inactive record:
       position:
         x: -120
-        "y": 90
+        "y": 100
       tempMetlId: 20
     DIM_CUSTOMER_SCD2:
       position:
@@ -294,15 +307,15 @@ design:
         x: -720
         "y": 60
       tempMetlId: 22
-    Distinct:
+    Avoid duplicates:
       position:
         x: -730
         "y": -110
       tempMetlId: 23
     DIM_CUSTOMER_SCD2 2:
       position:
-        x: 90
-        "y": 90
+        x: 80
+        "y": 100
       tempMetlId: 24
     Detect Changes:
       position:

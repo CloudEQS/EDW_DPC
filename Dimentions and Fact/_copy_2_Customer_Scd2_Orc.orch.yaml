@@ -6,7 +6,7 @@ pipeline:
       type: "start"
       transitions:
         unconditional:
-        - "Append To Grid"
+        - "t_Stg_Customer_to_Dim_Customer_Scd2"
       parameters:
         componentName: "Start"
     End Success:
@@ -26,72 +26,41 @@ pipeline:
     Print Variables:
       type: "print-variables"
       transitions:
-        success:
+        failure:
         - "Append To Grid 2 2"
       parameters:
         componentName: "Print Variables"
         variablesToPrint:
-        - - "p_error_message"
+        - - "jv_error_message"
         prefixText:
         includeVariableName: "No"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Append To Grid:
+    Log Append 1:
       type: "append-to-grid"
       transitions:
         success:
-        - "Print Variables 2"
+        - "t_Stg_Supplier_to_Dim_Supplier_Scd2"
       parameters:
-        componentName: "Append To Grid"
+        componentName: "Log Append 1"
         operation: "Append"
         targetGridVariable: "gv_main_job_load_log_scd2"
         valuesGrid:
         - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
           - "${sysvar.thisPipeline.fullName}"
-          - "Stage customer to Dim Customer"
-          - "0"
-          - "0"
-          - "Job is  started"
+          - "1"
+          - "Stage_Customer"
+          - "Dim_Customer"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration}"
           - "${sysvar.thisComponent.startedAt}"
           - ""
-          - "meesage"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Print Variables 2:
-      type: "print-variables"
-      transitions:
-        success:
-        - "Run Transformation"
-      parameters:
-        componentName: "Print Variables 2"
-        variablesToPrint:
-        - - "gv_main_job_load_log_scd2"
-        prefixText:
-        includeVariableName: "No"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
-    Append To Grid 2:
-      type: "append-to-grid"
-      transitions:
-        success:
-        - "Run Transformation 2"
-      parameters:
-        componentName: "Append To Grid 2"
-        operation: "Append"
-        targetGridVariable: "gv_main_job_load_log_scd2"
-        valuesGrid:
-        - - "${sysvar.thisPipeline.executionId}"
-          - "${sysvar.thisPipeline.fullName}"
-          - "stage customer to dim_cust"
-          - "${v_inserted_rows1}"
-          - "${v_updated_rows1}"
-          - "Job is Completed"
-          - "${sysvar.thisComponent.startedAt}"
-          - "${sysvar.thisComponent.startedAt}"
-          - "${v_error_message}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -129,6 +98,7 @@ pipeline:
       transitions:
         success:
         - "Run Shared Pipeline"
+      skipped: false
       parameters:
         componentName: "Print Variables 3"
         variablesToPrint:
@@ -151,12 +121,12 @@ pipeline:
         - - "${sysvar.thisPipeline.executionId}"
           - "${sysvar.thisPipeline.fullName}"
           - "stage customer to dim_cust"
-          - "${v_inserted_rows}"
-          - "${v_updated_rows}"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
           - "Failed"
-          - "${sysvar.thisComponent.startedAt}"
+          - ""
           - " ${sysvar.thisComponent.startedAt}"
-          - "${p_error_message}"
+          - "${jv_error_message}"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -189,97 +159,160 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Python Pushdown:
-      type: "python-pushdown"
-      transitions:
-        success:
-        - "Print Variables"
-      parameters:
-        componentName: "Python Pushdown"
-        warehouse: "[Environment Default]"
-        externalAccessIntegrations:
-        pythonVersion: "3.10"
-        packagesGrid:
-        scriptLocation: "Component"
-        pythonScript: |-
-          ###
-          # Variables are directly accessible:
-          #   print (myvar)
-          # Updating a variable:
-          #   context.updateVariable('myvar', 'new-value')
-          # Updating a grid variable:
-          #   context.updateGridVariable('mygridvar',[['list','of'],['lists','!']])
-          # Running SQL against Snowflake
-          #   session.sql('CREATE sample_product_data (id INT, name VARCHAR, serial_number VARCHAR)').collect()
-          # Using Data Frames
-          #   See here: https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes
-          ###)
-          context.updateVariable(p_error_message,v_error_message)
-          print(p_error_message)
-        scriptTimeout: "360"
-      postProcessing:
-        updateOutputMessage: "p_error_message"
-        updateScalarVariables:
-    Run Transformation:
+    t_Stg_Customer_to_Dim_Customer_Scd2:
       type: "run-transformation"
       transitions:
         success:
-        - "Append To Grid 2"
+        - "Log Append 1"
       parameters:
-        componentName: "Run Transformation"
+        componentName: "t_Stg_Customer_to_Dim_Customer_Scd2"
         transformationJob: "Dimentions and Fact/t_Stg_Customer_to_Dim_Customer_Scd2.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-        - - "v_error_message"
+        - - "jv_error_message"
           - "${sysvar.thisComponent.message}"
-        - - "v_inserted_rows1"
+        - - "jv_inserted_rows"
           - "${sysvar.childPipeline.vars.jv_inserted_rows}"
-        - - "v_updated_rows1"
-          - "${sysvar.childPipeline.vars.jv_updated_rows}"
-    Run Transformation 2:
+        - - "jv_updated_rows"
+          - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_duration_time"
+          - "${sysvar.thisComponent.mainTaskDurationMs}"
+    t_Stg_Supplier_to_Dim_Supplier_Scd2:
       type: "run-transformation"
       transitions:
         success:
-        - "Append To Grid 2 3"
+        - "Log Append 1 3"
       parameters:
-        componentName: "Run Transformation 2"
+        componentName: "t_Stg_Supplier_to_Dim_Supplier_Scd2"
+        transformationJob: "Dimentions and Fact/t_Stg_Supplier_to_Dim_Supplier_Scd2.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_inserted_rows"
+          - "${sysvar.childPipeline.vars.jv_inserted_rows}"
+        - - "jv_updated_rows"
+          - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_duration_time"
+          - "${sysvar.thisComponent.mainTaskDurationMs}"
+    Run Transformation:
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Append 1 3 2"
+      parameters:
+        componentName: "Run Transformation"
         transformationJob: "Dimentions and Fact/t_Stg_Part_to_Dim_Part_Scd2.tran.yaml"
         setScalarVariables:
         setGridVariables:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    Append To Grid 2 3:
+    Log Append 1 3:
       type: "append-to-grid"
+      transitions:
+        success:
+        - "Run Transformation"
       parameters:
-        componentName: "Append To Grid 2 3"
+        componentName: "Log Append 1 3"
         operation: "Append"
         targetGridVariable: "gv_main_job_load_log_scd2"
         valuesGrid:
         - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
           - "${sysvar.thisPipeline.fullName}"
-          - "stage customer to dim_cust"
-          - "${v_inserted_rows1}"
-          - "${v_updated_rows1}"
-          - "Job is Completed"
+          - "1"
+          - "Stage_Spplier"
+          - "Dim_Supllier"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration}"
           - "${sysvar.thisComponent.startedAt}"
+          - ""
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Append 1 3 2:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Print Variables 3"
+      parameters:
+        componentName: "Log Append 1 3 2"
+        operation: "Append"
+        targetGridVariable: "gv_main_job_load_log_scd2"
+        valuesGrid:
+        - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "1"
+          - "Stage_Spplier"
+          - "Dim_Supllier"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration}"
           - "${sysvar.thisComponent.startedAt}"
-          - "${v_error_message}"
+          - ""
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
   variables:
-    v_inserted_rows1:
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_duration:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    v_error_message:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    Execution_Time:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
       metadata:
         type: "TEXT"
         description: ""
@@ -293,9 +326,16 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
-    v_updated_rows1:
+    jv_last_run_time:
       metadata:
-        type: "NUMBER"
+        type: "TEXT"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_end_time:
+      metadata:
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
@@ -337,7 +377,13 @@ pipeline:
             columnType: "TEXT"
           jv_job_name:
             columnType: "TEXT"
-          jv_table_name:
+          jv_main_job_name:
+            columnType: "TEXT"
+          jv_source_system_id:
+            columnType: "NUMBER"
+          jv_source_object_name:
+            columnType: "NUMBER"
+          jv_target_object_name:
             columnType: "TEXT"
           jv_inserted_rows:
             columnType: "NUMBER"
@@ -349,7 +395,11 @@ pipeline:
             columnType: "TEXT"
           jv_end_time:
             columnType: "TEXT"
-          jv_error_message:
+          jv_execution_time:
+            columnType: "TEXT"
+          jv_last_run_time:
+            columnType: "TEXT"
+          jv_created_log_at:
             columnType: "TEXT"
       defaultValue: []
 design:
@@ -361,71 +411,66 @@ design:
       tempMetlId: 1
     End Success:
       position:
-        x: 690
-        "y": -70
+        x: 730
+        "y": 30
       tempMetlId: 6
     End Failure:
       position:
-        x: 720
-        "y": 60
+        x: 700
+        "y": 170
       tempMetlId: 7
     Print Variables:
       position:
-        x: 360
-        "y": 60
+        x: 380
+        "y": 210
       tempMetlId: 9
-    Append To Grid:
+    Log Append 1:
       position:
-        x: -280
-        "y": 30
-      tempMetlId: 10
-    Print Variables 2:
-      position:
-        x: -150
-        "y": 40
-      tempMetlId: 11
-    Append To Grid 2:
-      position:
-        x: 90
-        "y": 30
+        x: -110
+        "y": 0
       tempMetlId: 12
     Run Shared Pipeline:
       position:
-        x: 540
-        "y": -70
+        x: 610
+        "y": 30
       tempMetlId: 13
     Print Variables 3:
       position:
-        x: 390
-        "y": -70
+        x: 470
+        "y": 30
       tempMetlId: 14
     Append To Grid 2 2:
       position:
-        x: 470
-        "y": 60
+        x: 490
+        "y": 120
       tempMetlId: 15
     Run Shared Pipeline 2:
       position:
         x: 590
-        "y": 60
+        "y": 170
       tempMetlId: 16
-    Python Pushdown:
+    t_Stg_Customer_to_Dim_Customer_Scd2:
       position:
-        x: 240
-        "y": 210
-      tempMetlId: 20
-    Run Transformation:
-      position:
-        x: -40
+        x: -260
         "y": 30
       tempMetlId: 21
-    Run Transformation 2:
+    t_Stg_Supplier_to_Dim_Supplier_Scd2:
       position:
-        x: 200
+        x: 10
         "y": 30
       tempMetlId: 22
-    Append To Grid 2 3:
+    Run Transformation:
       position:
-        x: 290
+        x: 250
         "y": 30
-      tempMetlId: 23
+      tempMetlId: 24
+    Log Append 1 3:
+      position:
+        x: 140
+        "y": 0
+      tempMetlId: 25
+    Log Append 1 3 2:
+      position:
+        x: 370
+        "y": 0
+      tempMetlId: 26

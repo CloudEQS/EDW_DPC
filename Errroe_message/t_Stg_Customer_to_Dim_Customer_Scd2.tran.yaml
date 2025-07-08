@@ -1,0 +1,315 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    STG_CUSTOMER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "STG_CUSTOMER_SCD2"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_CUSTOMER_SCD2"
+        columnNames:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "START_TIME"
+        timeOffset:
+    New data:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "New data"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "N"
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "Or"
+    update:
+      type: "filter"
+      sources:
+      - "Detect Changes"
+      parameters:
+        componentName: "update"
+        filterConditions:
+        - - "Indicator"
+          - "Is"
+          - "Equal to"
+          - "C"
+        combineCondition: "And"
+    DIM_CUSTOMER_INSERT_SCD TYP2:
+      type: "table-output"
+      sources:
+      - "Updated load time"
+      parameters:
+        componentName: "DIM_CUSTOMER_INSERT_SCD TYP2"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "C_CUSTKEY"
+          - "C_CUSTKEY"
+        - - "compare_C_NAME"
+          - "C_NAME"
+        - - "compare_C_ADDRESS"
+          - "C_ADDRESS"
+        - - "compare_C_NATIONKEY"
+          - "C_NATIONKEY"
+        - - "compare_C_PHONE"
+          - "C_PHONE"
+        - - "compare_C_ACCTBAL"
+          - "C_ACCTBAL"
+        - - "compare_C_MKTSEGMENT"
+          - "C_MKTSEGMENT"
+        - - "compare_C_COMMENT"
+          - "C_COMMENT"
+        - - "LOAD_TIME_V"
+          - "C_LOAD_TIME"
+        - - "END_TIME_IN_V"
+          - "C_END_TIME"
+        - - "ACTIVE_FLAG"
+          - "C_ACTIVE_FLAG"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_inserted_rows"
+          - "${sysvar.thisComponent.rowCount}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Updated load time:
+      type: "calculator"
+      sources:
+      - "New data"
+      parameters:
+        componentName: "Updated load time"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "LOAD_TIME_V"
+        - - "NULL"
+          - "END_TIME_IN_V"
+        - - "TRUE"
+          - "ACTIVE_FLAG"
+    Calculator 3:
+      type: "calculator"
+      sources:
+      - "update"
+      parameters:
+        componentName: "Calculator 3"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CURRENT_TIMESTAMP()"
+          - "END_TIME_OLD"
+        - - "FALSE"
+          - "AVTIVE_FLAG"
+    DIM_CUSTOMER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_CUSTOMER_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        columnNames:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "C_END_TIME"
+        - "C_ACTIVE_FLAG"
+        - "C_SRGKEY"
+        timeOffset:
+    Get the Active Cstomer Records:
+      type: "filter"
+      sources:
+      - "DIM_CUSTOMER_SCD2"
+      parameters:
+        componentName: "Get the Active Cstomer Records"
+        filterConditions:
+        - - "C_ACTIVE_FLAG"
+          - "Is"
+          - "Equal to"
+          - "TRUE"
+        combineCondition: "And"
+    Distinct:
+      type: "distinct"
+      sources:
+      - "STG_CUSTOMER_SCD2"
+      parameters:
+        componentName: "Distinct"
+        columns:
+        - "C_CUSTKEY"
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        - "START_TIME"
+    DIM_CUSTOMER_SCD2 2:
+      type: "table-update"
+      sources:
+      - "Calculator 3"
+      parameters:
+        componentName: "DIM_CUSTOMER_SCD2 2"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_CUSTOMER_SCD2"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"master_C_SRGKEY\"=\"target\".\"C_SRGKEY\""
+          - "Case"
+        whenMatched:
+        - - "\"input\".\"master_C_SRGKEY\"=\"target\".\"C_SRGKEY\""
+          - "Update"
+        updateMapping:
+        - - "END_TIME_OLD"
+          - "C_END_TIME"
+        - - "AVTIVE_FLAG"
+          - "C_ACTIVE_FLAG"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_updated_rows"
+          - "${sysvar.thisComponent.rowsUpdated}"
+        - - "jv_inserted_rows"
+          - "${sysvar.thisComponent.rowCount}"
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+    Detect Changes:
+      type: "detect-changes"
+      sources:
+      - "Distinct"
+      - "Get the Active Cstomer Records"
+      parameters:
+        componentName: "Detect Changes"
+        masterTable: "Get the Active Cstomer Records"
+        matchKeys:
+        - "C_CUSTKEY"
+        compareColumns:
+        - "C_NAME"
+        - "C_ADDRESS"
+        - "C_NATIONKEY"
+        - "C_PHONE"
+        - "C_ACCTBAL"
+        - "C_MKTSEGMENT"
+        - "C_COMMENT"
+        outputColumnMapping:
+        - - "compare_C_NAME"
+          - "compare_C_NAME"
+        - - "compare_C_ADDRESS"
+          - "compare_C_ADDRESS"
+        - - "compare_C_NATIONKEY"
+          - "compare_C_NATIONKEY"
+        - - "compare_C_PHONE"
+          - "compare_C_PHONE"
+        - - "compare_C_ACCTBAL"
+          - "compare_C_ACCTBAL"
+        - - "compare_C_MKTSEGMENT"
+          - "compare_C_MKTSEGMENT"
+        - - "compare_C_COMMENT"
+          - "compare_C_COMMENT"
+        - - "master_C_SRGKEY"
+          - "master_C_SRGKEY"
+        indicatorColumn: "Indicator"
+  variables:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "0"
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: "Failed Message Job"
+design:
+  components:
+    STG_CUSTOMER_SCD2:
+      position:
+        x: -880
+        "y": -110
+      tempMetlId: 1
+    New data:
+      position:
+        x: -360
+        "y": -100
+      tempMetlId: 7
+    update:
+      position:
+        x: -350
+        "y": 100
+      tempMetlId: 8
+    DIM_CUSTOMER_INSERT_SCD TYP2:
+      position:
+        x: 100
+        "y": -100
+      tempMetlId: 10
+    Updated load time:
+      position:
+        x: -90
+        "y": -100
+      tempMetlId: 11
+    Calculator 3:
+      position:
+        x: -120
+        "y": 100
+      tempMetlId: 20
+    DIM_CUSTOMER_SCD2:
+      position:
+        x: -880
+        "y": 60
+      tempMetlId: 21
+    Get the Active Cstomer Records:
+      position:
+        x: -720
+        "y": 60
+      tempMetlId: 22
+    Distinct:
+      position:
+        x: -730
+        "y": -110
+      tempMetlId: 23
+    DIM_CUSTOMER_SCD2 2:
+      position:
+        x: 80
+        "y": 100
+      tempMetlId: 24
+    Detect Changes:
+      position:
+        x: -540
+        "y": -10
+      tempMetlId: 27

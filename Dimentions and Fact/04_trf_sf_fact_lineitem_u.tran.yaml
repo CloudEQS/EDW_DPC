@@ -1,0 +1,357 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    DIM_ORDERS:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_ORDERS"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "DIM_ORDERS_U"
+        columnNames:
+        - "ORDER_ID"
+        - "CUSTOMER_ID"
+        - "ORDER_DATE"
+        timeOffset:
+    DIM_PART_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PART_SCD2"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "DIM_PRODUCT_U"
+        columnNames:
+        - "PART_SK"
+        - "PRODUCT_KEY"
+        - "ACTIVE_FLAG"
+        timeOffset:
+    DIM_SUPPLIER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_SUPPLIER_SCD2"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "DIM_SUPPLIER_U"
+        columnNames:
+        - "SUPPLIER_SK"
+        - "SUPPLIER_ID"
+        - "ACTIVE_FLAG"
+        timeOffset:
+    STAGE_LINEITEM:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_LINEITEM"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STG_LINEITEM"
+        columnNames:
+        - "ORDER_ID"
+        - "PRODUCT_ID"
+        - "SUPPLIER_ID"
+        - "QUANTITY"
+        - "PRICE_PER_UNIT"
+        - "DISCOUNT_AMOUNT"
+        - "SHIP_DATE"
+        - "RETURN_FLAG"
+        - "LINE_STATUS"
+        - "SHIP_MODE"
+        timeOffset:
+    Active orders:
+      type: "join"
+      sources:
+      - "ACTIVE SUPPLIER"
+      - "ACTIVE PART"
+      - "Active Customers"
+      - "DIM_JUNK_FLAGS"
+      - "STAGE_LINEITEM"
+      - "DIM_ORDERS"
+      parameters:
+        componentName: "Active orders"
+        mainTable: "STAGE_LINEITEM"
+        mainTableAlias: "sl"
+        joins:
+        - - "DIM_ORDERS"
+          - "o"
+          - "Left"
+        - - "ACTIVE PART"
+          - "p"
+          - "Left"
+        - - "ACTIVE SUPPLIER"
+          - "s"
+          - "Left"
+        - - "Active Customers"
+          - "c"
+          - "Left"
+        - - "DIM_JUNK_FLAGS"
+          - "jk"
+          - "Left"
+        joinExpressions:
+        - - "\"sl\".\"ORDER_ID\"=\"o\".\"ORDER_ID\""
+          - "sl_Left_o"
+        - - "\"sl\".\"PRODUCT_ID\"=\"p\".\"PRODUCT_KEY\""
+          - "sl_Left_p"
+        - - "\"sl\".\"SUPPLIER_ID\"=\"s\".\"SUPPLIER_ID\""
+          - "sl_Left_s"
+        - - "\"o\".\"CUSTOMER_ID\"=\"c\".\"CUSTOMER_ID\""
+          - "sl_Left_c"
+        - - "\"sl\".\"RETURN_FLAG\"=\"jk\".\"RETURN_FLAG\" and\"sl\".\"LINE_STATUS\"\
+            \ =\"jk\".\"LINE_STATUS\"AND\"sl\".\"SHIP_MODE\"=\"jk\".\"SHIP_MODE\""
+          - "sl_Left_jk"
+        columnMappings:
+        - - "p.PART_SK"
+          - "PART_SK"
+        - - "p.PRODUCT_KEY"
+          - "PRODUCT_KEY"
+        - - "p.ACTIVE_FLAG"
+          - "p_ACTIVE_FLAG"
+        - - "jk.JUNK_KEY"
+          - "JUNK_KEY"
+        - - "s.SUPPLIER_SK"
+          - "SUPPLIER_SK"
+        - - "s.SUPPLIER_ID"
+          - "s_SUPPLIER_ID"
+        - - "s.ACTIVE_FLAG"
+          - "s_ACTIVE_FLAG"
+        - - "c.CUSTOMER_SK"
+          - "CUSTOMER_SK"
+        - - "c.CUSTOMER_ID"
+          - "c_CUSTOMER_ID"
+        - - "sl.ORDER_ID"
+          - "sl_ORDER_ID"
+        - - "sl.PRODUCT_ID"
+          - "PRODUCT_ID"
+        - - "sl.SUPPLIER_ID"
+          - "sl_SUPPLIER_ID"
+        - - "sl.QUANTITY"
+          - "QUANTITY"
+        - - "sl.PRICE_PER_UNIT"
+          - "PRICE_PER_UNIT"
+        - - "sl.DISCOUNT_AMOUNT"
+          - "DISCOUNT_AMOUNT"
+        - - "sl.SHIP_DATE"
+          - "SHIP_DATE"
+        - - "sl.RETURN_FLAG"
+          - "sl_RETURN_FLAG"
+        - - "sl.LINE_STATUS"
+          - "sl_LINE_STATUS"
+        - - "sl.SHIP_MODE"
+          - "sl_SHIP_MODE"
+        - - "o.ORDER_ID"
+          - "o_ORDER_ID"
+        - - "o.ORDER_DATE"
+          - "ORDER_DATE"
+    Surrogate Keys:
+      type: "calculator"
+      sources:
+      - "Generate Line Number"
+      parameters:
+        componentName: "Surrogate Keys"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CASE When \"s_SUPPLIER_ID\" is null then\r\n-1\r\nelse \r\n\"SUPPLIER_SK\"\
+            \r\nend\r\n"
+          - "v_supp_sk"
+        - - "CASE When \"PRODUCT_KEY\" is null then\r\n-1\r\nelse \r\n\"PART_SK\"\r\
+            \nend\r\n"
+          - "v_part_sk"
+        - - "CASE When \"o_ORDER_ID\" is null then\r\n-1\r\nelse \r\n\"o_ORDER_ID\"\
+            \ \r\nend\r\n"
+          - "v_order_sk"
+        - - "CASE When \"c_CUSTOMER_ID\" is null then\r\n-1\r\nelse \r\n\"CUSTOMER_SK\"\
+            \r\nend"
+          - "v_customer_sk"
+        - - "current_timestamp()"
+          - "v_load_time"
+        - - "(\"PRICE_PER_UNIT\"*\"QUANTITY\")-\"DISCOUNT_AMOUNT\""
+          - "v_total_price"
+    FACT_LINEITEM:
+      type: "table-output"
+      sources:
+      - "Surrogate Keys"
+      parameters:
+        componentName: "FACT_LINEITEM"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "FACT_LINEITEM_U"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "v_order_sk"
+          - "ORDER_ID"
+        - - "v_customer_sk"
+          - "CUSTOMER_SK"
+        - - "v_part_sk"
+          - "PRODUCT_SK"
+        - - "v_supp_sk"
+          - "SUPPLIER_SK"
+        - - "QUANTITY"
+          - "QUANTITY"
+        - - "PRICE_PER_UNIT"
+          - "PRICE_PER_UNIT"
+        - - "DISCOUNT_AMOUNT"
+          - "DISCOUNT_AMOUNT"
+        - - "v_load_time"
+          - "LOAD_TIMESTAMP"
+        - - "Line_number"
+          - "LINE_NUMBER"
+        - - "JUNK_KEY"
+          - "JUNK_KEY"
+        - - "v_total_price"
+          - "TOTAL_PRICE"
+        - - "order_date_DATEKEY"
+          - "ORDER_DATE_KEY"
+        - - "ship_DATEKEY"
+          - "SHIP_DATE_KEY"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    ACTIVE SUPPLIER:
+      type: "filter"
+      sources:
+      - "DIM_SUPPLIER_SCD2"
+      parameters:
+        componentName: "ACTIVE SUPPLIER"
+        filterConditions:
+        - - "ACTIVE_FLAG"
+          - "Is"
+          - "Equal to"
+          - "Y"
+        combineCondition: "And"
+    ACTIVE PART:
+      type: "filter"
+      sources:
+      - "DIM_PART_SCD2"
+      parameters:
+        componentName: "ACTIVE PART"
+        filterConditions:
+        - - "ACTIVE_FLAG"
+          - "Is"
+          - "Equal to"
+          - "Y"
+        combineCondition: "And"
+    DIM_SUPPLIER_SCD2 2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_SUPPLIER_SCD2 2"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "DIM_CUSTOMER_U"
+        columnNames:
+        - "CUSTOMER_SK"
+        - "CUSTOMER_ID"
+        - "CUSTOMER_NAME"
+        - "REGION"
+        - "LOAD_TIME"
+        - "END_TIME"
+        - "ACTIVE_FLAG"
+        timeOffset:
+    Active Customers:
+      type: "filter"
+      sources:
+      - "DIM_SUPPLIER_SCD2 2"
+      parameters:
+        componentName: "Active Customers"
+        filterConditions:
+        - - "ACTIVE_FLAG"
+          - "Is"
+          - "Equal to"
+          - "Y"
+        combineCondition: "And"
+    Generate Line Number:
+      type: "rank"
+      sources:
+      - "Active orders"
+      parameters:
+        componentName: "Generate Line Number"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "sl_ORDER_ID"
+        orderingWithinPartitions:
+        - - "PRODUCT_KEY"
+          - "Ascending"
+        functions:
+        - - "Row Number"
+          - "Line_number"
+    DIM_JUNK_FLAGS:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_JUNK_FLAGS"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "DIM_JUNK_FLAGS"
+        columnNames:
+        - "JUNK_KEY"
+        - "RETURN_FLAG"
+        - "LINE_STATUS"
+        - "SHIP_MODE"
+        timeOffset:
+design:
+  components:
+    DIM_ORDERS:
+      position:
+        x: -770
+        "y": -340
+      tempMetlId: 1
+    DIM_PART_SCD2:
+      position:
+        x: -770
+        "y": -250
+      tempMetlId: 2
+    DIM_SUPPLIER_SCD2:
+      position:
+        x: -770
+        "y": -160
+      tempMetlId: 3
+    STAGE_LINEITEM:
+      position:
+        x: -770
+        "y": -420
+      tempMetlId: 4
+    Active orders:
+      position:
+        x: -430
+        "y": -260
+      tempMetlId: 5
+    Surrogate Keys:
+      position:
+        x: -160
+        "y": -250
+      tempMetlId: 10
+    FACT_LINEITEM:
+      position:
+        x: -10
+        "y": -250
+      tempMetlId: 11
+    ACTIVE SUPPLIER:
+      position:
+        x: -640
+        "y": -160
+      tempMetlId: 13
+    ACTIVE PART:
+      position:
+        x: -640
+        "y": -250
+      tempMetlId: 14
+    DIM_SUPPLIER_SCD2 2:
+      position:
+        x: -760
+        "y": -40
+      tempMetlId: 15
+    Active Customers:
+      position:
+        x: -650
+        "y": -70
+      tempMetlId: 16
+    Generate Line Number:
+      position:
+        x: -280
+        "y": -250
+      tempMetlId: 17
+    DIM_JUNK_FLAGS:
+      position:
+        x: -680
+        "y": 40
+      tempMetlId: 18

@@ -88,14 +88,14 @@ pipeline:
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "0"
+      defaultValue: ""
     jv_inserted_rows:
       metadata:
         type: "NUMBER"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
-      defaultValue: "0"
+      defaultValue: ""
 design:
   components:
     STAGE_ORDERS:

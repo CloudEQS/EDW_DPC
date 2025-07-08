@@ -1,0 +1,90 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "01_trf_job_status_log"
+      parameters:
+        componentName: "Start"
+    "01_trf_job_status_log":
+      type: "run-transformation"
+      parameters:
+        componentName: "01_trf_job_status_log"
+        transformationJob: "00_common/01_trf_job_status_log.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_job_status_log"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_parent"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_main_job_name"
+              - "jv_source_system_id"
+              - "jv_source_object_name"
+              - "jv_target_object_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_start_time"
+              - "jv_execution_time"
+              - "jv_last_run_time"
+              - "jv_comment"
+              - "jv_environment"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_load_log_parent:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_main_job_name:
+            columnType: "TEXT"
+          jv_source_system_id:
+            columnType: "NUMBER"
+          jv_source_object_name:
+            columnType: "NUMBER"
+          jv_target_object_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_execution_time:
+            columnType: "TEXT"
+          jv_last_run_time:
+            columnType: "TEXT"
+          jv_comment:
+            columnType: "TEXT"
+          jv_environment:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -250
+        "y": -60
+      tempMetlId: 1
+    "01_trf_job_status_log":
+      position:
+        x: -130
+        "y": -60
+      tempMetlId: 2

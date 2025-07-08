@@ -1,0 +1,306 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    DIM_ORDERS:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_ORDERS"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_ORDERS_SCD1"
+        columnNames:
+        - "O_ORDERKEY"
+        timeOffset:
+    DIM_PART_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_PART_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_PART_SCD2"
+        columnNames:
+        - "P_SRGKEY"
+        - "P_PARTKEY"
+        timeOffset:
+    DIM_SUPPLIER_SCD2:
+      type: "table-input"
+      parameters:
+        componentName: "DIM_SUPPLIER_SCD2"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "DIM_SUPPLIER_SCD2"
+        columnNames:
+        - "S_SRGKEY"
+        - "S_SUPPKEY"
+        timeOffset:
+    STAGE_LINEITEM:
+      type: "table-input"
+      parameters:
+        componentName: "STAGE_LINEITEM"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "STAGE_LINEITEM"
+        columnNames:
+        - "L_ORDERKEY"
+        - "L_PARTKEY"
+        - "L_SUPPKEY"
+        - "L_LINENUMBER"
+        - "L_QUANTITY"
+        - "L_EXTENDEDPRICE"
+        - "L_DISCOUNT"
+        - "L_TAX"
+        - "L_RETURNFLAG"
+        - "L_LINESTATUS"
+        - "L_SHIPDATE"
+        - "L_COMMITDATE"
+        - "L_RECEIPTDATE"
+        - "L_SHIPINSTRUCT"
+        - "L_SHIPMODE"
+        - "L_COMMENT"
+        timeOffset:
+    Active orders:
+      type: "join"
+      sources:
+      - "DIM_ORDERS"
+      - "STAGE_LINEITEM"
+      - "DIM_PART_SCD2"
+      - "DIM_SUPPLIER_SCD2"
+      - "JUNK_FLAG_DIM"
+      parameters:
+        componentName: "Active orders"
+        mainTable: "STAGE_LINEITEM"
+        mainTableAlias: "sl"
+        joins:
+        - - "DIM_ORDERS"
+          - "O"
+          - "Left"
+        - - "DIM_PART_SCD2"
+          - "p"
+          - "Left"
+        - - "DIM_SUPPLIER_SCD2"
+          - "s"
+          - "Left"
+        - - "JUNK_FLAG_DIM"
+          - "jd"
+          - "Left"
+        joinExpressions:
+        - - "\"sl\".\"L_ORDERKEY\"=\"O\".\"O_ORDERKEY\" "
+          - "sl_Left_O"
+        - - "\"sl\".\"L_PARTKEY\"=\"p\".\"P_PARTKEY\""
+          - "sl_Left_p"
+        - - " \"sl\".\"L_SUPPKEY\" =\"s\".\"S_SUPPKEY\""
+          - "sl_Left_s"
+        - - "\"sl\".\"L_LINESTATUS\"=\"jd\".\"L_LINESTATUS\"AND \"sl\".\"L_RETURNFLAG\"\
+            =\"jd\".\"L_RETURNFLAG\" AND \"sl\".\"L_SHIPMODE\"=\"jd\".\"L_SHIPMODE\"\
+            \ AND \"sl\".\"L_SHIPINSTRUCT\"=\"jd\".\"L_SHIPINSTRUCT\""
+          - "sl_Left_jd"
+        columnMappings:
+        - - "p.P_SRGKEY"
+          - "P_SRGKEY"
+        - - "p.P_PARTKEY"
+          - "P_PARTKEY"
+        - - "s.S_SRGKEY"
+          - "S_SRGKEY"
+        - - "s.S_SUPPKEY"
+          - "S_SUPPKEY"
+        - - "sl.L_ORDERKEY"
+          - "L_ORDERKEY"
+        - - "sl.L_PARTKEY"
+          - "L_PARTKEY"
+        - - "sl.L_SUPPKEY"
+          - "L_SUPPKEY"
+        - - "sl.L_LINENUMBER"
+          - "L_LINENUMBER"
+        - - "sl.L_QUANTITY"
+          - "L_QUANTITY"
+        - - "sl.L_EXTENDEDPRICE"
+          - "L_EXTENDEDPRICE"
+        - - "sl.L_DISCOUNT"
+          - "L_DISCOUNT"
+        - - "sl.L_TAX"
+          - "L_TAX"
+        - - "sl.L_RETURNFLAG"
+          - "sl_L_RETURNFLAG"
+        - - "sl.L_LINESTATUS"
+          - "sl_L_LINESTATUS"
+        - - "sl.L_SHIPDATE"
+          - "L_SHIPDATE"
+        - - "sl.L_COMMITDATE"
+          - "L_COMMITDATE"
+        - - "sl.L_RECEIPTDATE"
+          - "L_RECEIPTDATE"
+        - - "sl.L_SHIPINSTRUCT"
+          - "sl_L_SHIPINSTRUCT"
+        - - "sl.L_SHIPMODE"
+          - "sl_L_SHIPMODE"
+        - - "sl.L_COMMENT"
+          - "L_COMMENT"
+        - - "jd.FLAG_JUNK_ID"
+          - "FLAG_JUNK_ID"
+        - - "jd.L_SHIPINSTRUCT"
+          - "jd_L_SHIPINSTRUCT"
+        - - "jd.L_SHIPMODE"
+          - "jd_L_SHIPMODE"
+        - - "jd.L_RETURNFLAG"
+          - "jd_L_RETURNFLAG"
+        - - "jd.L_LINESTATUS"
+          - "jd_L_LINESTATUS"
+        - - "jd.ACTIVE_FLAG"
+          - "ACTIVE_FLAG"
+        - - "jd.UPDATED_DATE"
+          - "UPDATED_DATE"
+        - - "O.O_ORDERKEY"
+          - "O_ORDERKEY"
+    Surrogate Keys:
+      type: "calculator"
+      sources:
+      - "Active orders"
+      parameters:
+        componentName: "Surrogate Keys"
+        includeInputColumns: "Yes"
+        calculations:
+        - - "CASE When \"S_SUPPKEY\" is null then\r\n-1\r\nelse \r\n\"S_SRGKEY\"\r\
+            \nend\r\n"
+          - "v_supp_sk"
+        - - "CASE When \"P_PARTKEY\" is null then\r\n-1\r\nelse \r\n\"P_SRGKEY\"\r\
+            \nend\r\n"
+          - "v_part_sk"
+        - - "CASE When \"O_ORDERKEY\" is null then\r\n-1\r\nelse \r\n\"O_ORDERKEY\"\
+            \r\nend\r\n"
+          - "v_order_sk"
+    FACT_LINEITEM:
+      type: "table-output"
+      sources:
+      - "Combine all sources"
+      parameters:
+        componentName: "FACT_LINEITEM"
+        warehouse: "[Environment Default]"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "FACT_LINEITEM"
+        fixDataTypeMismatches: "No"
+        columnMapping:
+        - - "v_order_sk"
+          - "L_ORDERKEY"
+        - - "v_part_sk"
+          - "L_PART_SK"
+        - - "v_supp_sk"
+          - "L_SUPPLIER_SK"
+        - - "Line_number"
+          - "L_LNIE_NUMBER"
+        - - "L_QUANTITY"
+          - "L_QUANTITY"
+        - - "L_EXTENDEDPRICE"
+          - "L_EXTENDEDPRICE"
+        - - "L_DISCOUNT"
+          - "L_DISCOUNT"
+        - - "L_TAX"
+          - "L_TAX"
+        - - "FLAG_JUNK_ID"
+          - "JUNK_ID"
+        - - "L_SHIPDATE"
+          - "L_SHIPDATE"
+        - - "L_COMMITDATE"
+          - "L_COMMITDATE"
+        - - "L_RECEIPTDATE"
+          - "L_RECEIPTDATE"
+        orderBy:
+        outputMode: "Append"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Genarate line numbers:
+      type: "rank"
+      sources:
+      - "Active orders"
+      parameters:
+        componentName: "Genarate line numbers"
+        includeInputColumns: "Yes"
+        partitionData:
+        - "O_ORDERKEY"
+        orderingWithinPartitions:
+        - - "O_ORDERKEY"
+          - "Ascending"
+        functions:
+        - - "Row Number"
+          - "Line_number"
+    Combine all sources:
+      type: "unite"
+      sources:
+      - "Genarate line numbers"
+      - "Surrogate Keys"
+      parameters:
+        componentName: "Combine all sources"
+        method: "All Columns"
+        castTypes: "Yes"
+        addSourceComponentColumn: "No"
+        removeDuplicates: "No"
+    JUNK_FLAG_DIM:
+      type: "table-input"
+      parameters:
+        componentName: "JUNK_FLAG_DIM"
+        database: "ANALYTICS_DB"
+        schema: "ANALYTICS_SCHEMA"
+        targetTable: "JUNK_FLAG_DIM"
+        columnNames:
+        - "FLAG_JUNK_ID"
+        - "L_SHIPINSTRUCT"
+        - "L_SHIPMODE"
+        - "L_RETURNFLAG"
+        - "L_LINESTATUS"
+        - "ACTIVE_FLAG"
+        - "UPDATED_DATE"
+        timeOffset:
+design:
+  components:
+    DIM_ORDERS:
+      position:
+        x: -770
+        "y": -340
+      tempMetlId: 1
+    DIM_PART_SCD2:
+      position:
+        x: -770
+        "y": -250
+      tempMetlId: 2
+    DIM_SUPPLIER_SCD2:
+      position:
+        x: -770
+        "y": -160
+      tempMetlId: 3
+    STAGE_LINEITEM:
+      position:
+        x: -770
+        "y": -420
+      tempMetlId: 4
+    Active orders:
+      position:
+        x: -450
+        "y": -250
+      tempMetlId: 5
+    Surrogate Keys:
+      position:
+        x: -230
+        "y": -310
+      tempMetlId: 10
+    FACT_LINEITEM:
+      position:
+        x: 220
+        "y": -290
+      tempMetlId: 11
+    Genarate line numbers:
+      position:
+        x: -240
+        "y": -200
+      tempMetlId: 12
+    Combine all sources:
+      position:
+        x: 50
+        "y": -290
+      tempMetlId: 13
+    JUNK_FLAG_DIM:
+      position:
+        x: -760
+        "y": -60
+      tempMetlId: 14

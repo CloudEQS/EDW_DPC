@@ -1,0 +1,193 @@
+type: "transformation"
+version: "1.0"
+pipeline:
+  components:
+    Assign Variables to Grid Variables:
+      type: "fixed-flow"
+      parameters:
+        componentName: "Assign Variables to Grid Variables"
+        columns:
+        - - "jv_load_id"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_main_job_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_source_system_id"
+          - "Number"
+          - ""
+          - ""
+        - - "jv_source_object_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_target_object_name"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_inserted_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "jv_updated_rows"
+          - "Number"
+          - ""
+          - ""
+        - - "jv_status"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_execution_time"
+          - "NUMBER"
+          - ""
+          - ""
+        - - "jv_environement"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_start_time"
+          - "VARCHAR"
+          - ""
+          - ""
+        - - "jv_last_run_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "jv_comment"
+          - "VARCHAR"
+          - ""
+          - ""
+        values:
+          fromGrid:
+            variable: "gv_job_status_log"
+            columns:
+            - "jv_load_id"
+            - "jv_job_name"
+            - "jv_main_job_name"
+            - "jv_source_system_id"
+            - "jv_source_object_name"
+            - "jv_target_object_name"
+            - "jv_inserted_rows"
+            - "jv_updated_rows"
+            - "jv_status"
+            - "jv_start_time"
+            - "jv_environment"
+            - "jv_start_time"
+            - "jv_last_run_time"
+            - "jv_comment"
+    LOAD_LOG:
+      type: "table-update"
+      sources:
+      - "Assign Variables to Grid Variables"
+      parameters:
+        componentName: "LOAD_LOG"
+        warehouse: "[Environment Default]"
+        database: "EDW_LAB"
+        schema: "STAGE_SCHEMA"
+        targetTable: "LOAD_LOG"
+        targetAlias: "target"
+        sourceAlias: "input"
+        joinExpression:
+        - - "\"input\".\"jv_load_id\"=\"target\".\"LOAD_ID\""
+          - "Case"
+        whenMatched:
+        updateMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+        - - "jv_main_job_name"
+          - "MAIN_JOB_NAME"
+        - - "jv_job_name"
+          - "JOB_NAME"
+        - - "jv_source_system_id"
+          - "SOURCE_SYSTEM_ID"
+        - - "jv_environement"
+          - "ENVIRIONMENT"
+        - - "jv_source_object_name"
+          - "SOURCE_TABLE_NAME"
+        - - "jv_target_object_name"
+          - "TARGET_TABLE_NAME"
+        - - "jv_inserted_rows"
+          - "INSERTED_ROWS"
+        - - "jv_updated_rows"
+          - "UPDATED_ROWS"
+        - - "jv_status"
+          - "STATUS"
+        - - "jv_start_time"
+          - "START_TIME"
+        - - "jv_last_run_time"
+          - "LAST_RUN_TIME"
+        - - "jv_comment"
+          - "COMMENT"
+        includeNotMatched: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    gv_job_status_log:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_main_job_name:
+            columnType: "TEXT"
+          jv_source_system_id:
+            columnType: "NUMBER"
+          jv_source_object_name:
+            columnType: "NUMBER"
+          jv_target_object_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_execution_time:
+            columnType: "TEXT"
+          jv_last_run_time:
+            columnType: "TEXT"
+          jv_comment:
+            columnType: "TEXT"
+          jv_environment:
+            columnType: "TEXT"
+      defaultValue:
+      - - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - "-1"
+        - ""
+        - ""
+design:
+  components:
+    Assign Variables to Grid Variables:
+      position:
+        x: -220
+        "y": 0
+      tempMetlId: 1
+    LOAD_LOG:
+      position:
+        x: 100
+        "y": 0
+      tempMetlId: 3

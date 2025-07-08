@@ -1,0 +1,239 @@
+type: "orchestration"
+version: "1.0"
+pipeline:
+  components:
+    Start:
+      type: "start"
+      transitions:
+        unconditional:
+        - "01_trf_sf_stg_customer"
+      parameters:
+        componentName: "Start"
+    Log Customer:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "02_trf_sf_dim_orders_scd1"
+      parameters:
+        componentName: "Log Customer"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_main"
+        valuesGrid:
+        - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "1"
+          - "Stage_Customer"
+          - "Dim_Customer"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration}"
+          - "Loading the data from Stage to Dimention"
+          - "Development"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Success:
+      type: "end-success"
+      parameters:
+        componentName: "End Success"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    "01_trf_sf_stg_customer":
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Customer"
+      parameters:
+        componentName: "01_trf_sf_stg_customer"
+        transformationJob: "Dimentions and Fact/01_trf_sf_dim_customer_scd2.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_inserted_rows"
+          - "${(sysvar.childPipeline.vars.jv_inserted_rows) || -1}"
+        - - "jv_updated_rows"
+          - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}"
+        - - "jv_duration_time"
+          - "${sysvar.thisComponent.mainTaskDurationMs}"
+    Log Order:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Run Shared Pipeline"
+      parameters:
+        componentName: "Log Order"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_main"
+        valuesGrid:
+        - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "1"
+          - "Stage_Customer"
+          - "Dim_Customer"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration}"
+          - "Loading the data from Stage to Dimention"
+          - "Development"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    "02_trf_sf_dim_orders_scd1":
+      type: "run-transformation"
+      transitions:
+        success:
+        - "Log Order"
+      parameters:
+        componentName: "02_trf_sf_dim_orders_scd1"
+        transformationJob: "Dimentions and Fact/02_trf_sf_dim_orders_scd1.tran.yaml"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+        - - "jv_error_message"
+          - "${sysvar.thisComponent.message}"
+        - - "jv_inserted_rows"
+          - "${(sysvar.childPipeline.vars.jv_inserted_rows) || -1}  "
+        - - "jv_duration_time"
+          - "${sysvar.thisComponent.mainTaskDurationMs}"
+        - - "jv_updated_rows"
+          - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}  "
+    Run Shared Pipeline:
+      type: "run-shared-pipeline"
+      parameters:
+        componentName: "Run Shared Pipeline"
+        pipelineName: "00_common"
+        version: "[Latest]"
+        setScalarVariables:
+        setGridVariables:
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+  variables:
+    jv_updated_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_inserted_rows:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_duration_time:
+      metadata:
+        type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    gv_load_log_main:
+      metadata:
+        type: "GRID"
+        description: ""
+        scope: "COPIED"
+        visibility: "PUBLIC"
+        columns:
+          jv_load_id:
+            columnType: "TEXT"
+          jv_job_name:
+            columnType: "TEXT"
+          jv_main_job_name:
+            columnType: "TEXT"
+          jv_source_system_id:
+            columnType: "NUMBER"
+          jv_source_object_name:
+            columnType: "NUMBER"
+          jv_target_object_name:
+            columnType: "TEXT"
+          jv_inserted_rows:
+            columnType: "NUMBER"
+          jv_updated_rows:
+            columnType: "NUMBER"
+          jv_status:
+            columnType: "TEXT"
+          jv_start_time:
+            columnType: "TEXT"
+          jv_execution_time:
+            columnType: "TEXT"
+          jv_last_run_time:
+            columnType: "TEXT"
+          jv_comment:
+            columnType: "TEXT"
+          jv_environment:
+            columnType: "TEXT"
+      defaultValue: []
+design:
+  components:
+    Start:
+      position:
+        x: -570
+        "y": -90
+      tempMetlId: 1
+    Log Customer:
+      position:
+        x: -300
+        "y": -90
+      tempMetlId: 4
+    End Success:
+      position:
+        x: 290
+        "y": -80
+      tempMetlId: 12
+    End Failure:
+      position:
+        x: 470
+        "y": 90
+      tempMetlId: 13
+    "01_trf_sf_stg_customer":
+      position:
+        x: -440
+        "y": -90
+      tempMetlId: 14
+    Log Order:
+      position:
+        x: -10
+        "y": -90
+      tempMetlId: 15
+    "02_trf_sf_dim_orders_scd1":
+      position:
+        x: -150
+        "y": -90
+      tempMetlId: 16
+    Run Shared Pipeline:
+      position:
+        x: 150
+        "y": -90
+      tempMetlId: 17
