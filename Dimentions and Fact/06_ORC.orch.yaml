@@ -98,46 +98,12 @@ pipeline:
           - "${sysvar.thisComponent.mainTaskDurationMs}"
         - - "jv_updated_rows"
           - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}  "
-    Success Log Insert:
-      type: "run-shared-pipeline"
-      transitions:
-        success:
-        - "End Success"
-      parameters:
-        componentName: "Success Log Insert"
-        pipelineName: "EDW_LAB#01_orc_job_status_log"
-        version: "[Latest]"
-        setScalarVariables:
-        setGridVariables:
-        - variable: "gv_load_log_parent"
-          status: "grid"
-          gridValues:
-            fromGrid:
-              variable: "gv_load_log_main"
-              columns:
-              - "jv_load_id"
-              - "jv_job_name"
-              - "jv_main_job_name"
-              - "jv_source_system_id"
-              - "jv_source_object_name"
-              - "jv_target_object_name"
-              - "jv_inserted_rows"
-              - "jv_updated_rows"
-              - "jv_status"
-              - "jv_start_time"
-              - "jv_execution_time"
-              - "jv_last_run_time"
-              - "jv_comment"
-              - "jv_environment"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     Log Orders:
       type: "append-to-grid"
       transitions:
         success:
-        - "Success Log Insert"
         - "Print Variables 2"
+        - "Log Insert"
       parameters:
         componentName: "Log Orders"
         operation: "Append"
@@ -193,6 +159,36 @@ pipeline:
         - - "gv_load_log_main"
         prefixText:
         includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Insert:
+      type: "run-orchestration"
+      parameters:
+        componentName: "Log Insert"
+        orchestrationJob: "01_orc_job_status_log.orch.yaml"
+        setScalarVariables:
+        setGridVariables:
+        - variable: "gv_load_log_parent"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_main"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_main_job_name"
+              - "jv_source_system_id"
+              - "jv_source_object_name"
+              - "jv_target_object_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_start_time"
+              - "jv_execution_time"
+              - "jv_last_run_time"
+              - "jv_comment"
+              - "jv_environment"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
@@ -316,11 +312,6 @@ design:
         x: -150
         "y": -90
       tempMetlId: 16
-    Success Log Insert:
-      position:
-        x: 150
-        "y": -90
-      tempMetlId: 17
     Log Orders:
       position:
         x: -20
@@ -328,8 +319,8 @@ design:
       tempMetlId: 18
     End Failure:
       position:
-        x: -330
-        "y": 10
+        x: -370
+        "y": 0
       tempMetlId: 19
     End Failure 2:
       position:
@@ -346,3 +337,8 @@ design:
         x: 140
         "y": -210
       tempMetlId: 22
+    Log Insert:
+      position:
+        x: 140
+        "y": -90
+      tempMetlId: 23

@@ -84,7 +84,7 @@ pipeline:
     LOAD_LOG:
       type: "table-update"
       sources:
-      - "Assign Variables to Grid Variables"
+      - "Convert Type"
       parameters:
         componentName: "LOAD_LOG"
         warehouse: "[Environment Default]"
@@ -124,10 +124,52 @@ pipeline:
           - "LAST_RUN_TIME"
         - - "jv_comment"
           - "COMMENT"
-        includeNotMatched: "No"
+        includeNotMatched: "Yes"
+        insertMapping:
+        - - "jv_load_id"
+          - "LOAD_ID"
+        - - "jv_job_name"
+          - "MAIN_JOB_NAME"
+        - - "jv_job_name"
+          - "JOB_NAME"
+        - - "jv_source_system_id"
+          - "SOURCE_SYSTEM_ID"
+        - - "jv_environement"
+          - "ENVIRIONMENT"
+        - - "jv_source_object_name"
+          - "SOURCE_TABLE_NAME"
+        - - "jv_target_object_name"
+          - "TARGET_TABLE_NAME"
+        - - "jv_inserted_rows"
+          - "INSERTED_ROWS"
+        - - "jv_updated_rows"
+          - "UPDATED_ROWS"
+        - - "jv_status"
+          - "STATUS"
+        - - "jv_start_time"
+          - "START_TIME"
+        - - "jv_last_run_time"
+          - "LAST_RUN_TIME"
+        - - "jv_comment"
+          - "COMMENT"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
+    Convert Type:
+      type: "convert-type"
+      sources:
+      - "Assign Variables to Grid Variables"
+      parameters:
+        componentName: "Convert Type"
+        conversions:
+        - - "jv_start_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
+        - - "jv_last_run_time"
+          - "TIMESTAMP"
+          - ""
+          - ""
   variables:
     gv_job_status_log:
       metadata:
@@ -191,3 +233,8 @@ design:
         x: 100
         "y": 0
       tempMetlId: 3
+    Convert Type:
+      position:
+        x: -70
+        "y": 0
+      tempMetlId: 5
