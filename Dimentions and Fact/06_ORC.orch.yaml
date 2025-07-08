@@ -123,7 +123,7 @@ pipeline:
       type: "run-shared-pipeline"
       parameters:
         componentName: "Run Shared Pipeline"
-        pipelineName: "00_common"
+        pipelineName: "EDW_LAB#01_orc_job_status_log"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
