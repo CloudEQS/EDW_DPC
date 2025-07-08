@@ -52,7 +52,7 @@ pipeline:
           - ""
           - ""
         - - "jv_start_time"
-          - "VARCHAR"
+          - "TIMESTAMP"
           - ""
           - ""
         - - "jv_last_run_time"

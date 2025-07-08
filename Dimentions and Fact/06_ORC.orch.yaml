@@ -14,6 +14,7 @@ pipeline:
       transitions:
         success:
         - "02_trf_sf_dim_orders_scd1"
+        - "Print Variables"
       parameters:
         componentName: "Log Customer"
         operation: "Append"
@@ -30,7 +31,7 @@ pipeline:
           - "Success"
           - "${jv_start_time}"
           - "${jv_end_time}"
-          - "${jv_duration}"
+          - "${jv_duration_time}"
           - "Loading the data from Stage to Dimention"
           - "Development"
       postProcessing:
@@ -43,18 +44,13 @@ pipeline:
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
-    End Failure:
-      type: "end-failure"
-      parameters:
-        componentName: "End Failure"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
     "01_trf_sf_stg_customer":
       type: "run-transformation"
       transitions:
         success:
         - "Log Customer"
+        failure:
+        - "End Failure"
       parameters:
         componentName: "01_trf_sf_stg_customer"
         transformationJob: "Dimentions and Fact/01_trf_sf_dim_customer_scd2.tran.yaml"
@@ -71,38 +67,21 @@ pipeline:
           - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}"
         - - "jv_duration_time"
           - "${sysvar.thisComponent.mainTaskDurationMs}"
-    Log Order:
-      type: "append-to-grid"
-      transitions:
-        success:
-        - "Run Shared Pipeline"
-      parameters:
-        componentName: "Log Order"
-        operation: "Append"
-        targetGridVariable: "gv_load_log_main"
-        valuesGrid:
-        - - "${sysvar.thisPipeline.executionId}"
-          - "${jv_job_name}"
+        - - "jv_start_time"
+          - "${sysvar.thisComponent.startedAt}"
+        - - "jv_end_time"
+          - "${sysvar.thisComponent.mainTaskFinishedAt}"
+        - - "jv_job_name"
           - "${sysvar.thisPipeline.fullName}"
-          - "1"
-          - "Stage_Customer"
-          - "Dim_Customer"
-          - "${jv_inserted_rows}"
-          - "${jv_updated_rows}"
-          - "Success"
-          - "${jv_start_time}"
-          - "${jv_end_time}"
-          - "${jv_duration}"
-          - "Loading the data from Stage to Dimention"
-          - "Development"
-      postProcessing:
-        updateOutputMessage:
-        updateScalarVariables:
+        - - "jv_component_name"
+          - "${sysvar.thisComponent.name}"
     "02_trf_sf_dim_orders_scd1":
       type: "run-transformation"
       transitions:
         success:
-        - "Log Order"
+        - "Log Orders"
+        failure:
+        - "End Failure 2"
       parameters:
         componentName: "02_trf_sf_dim_orders_scd1"
         transformationJob: "Dimentions and Fact/02_trf_sf_dim_orders_scd1.tran.yaml"
@@ -119,18 +98,112 @@ pipeline:
           - "${sysvar.thisComponent.mainTaskDurationMs}"
         - - "jv_updated_rows"
           - "${(sysvar.childPipeline.vars.jv_updated_rows) || -1}  "
-    Run Shared Pipeline:
+    Success Log Insert:
       type: "run-shared-pipeline"
+      transitions:
+        success:
+        - "End Success"
       parameters:
-        componentName: "Run Shared Pipeline"
+        componentName: "Success Log Insert"
         pipelineName: "EDW_LAB#01_orc_job_status_log"
         version: "[Latest]"
         setScalarVariables:
         setGridVariables:
+        - variable: "gv_load_log_parent"
+          status: "grid"
+          gridValues:
+            fromGrid:
+              variable: "gv_load_log_main"
+              columns:
+              - "jv_load_id"
+              - "jv_job_name"
+              - "jv_main_job_name"
+              - "jv_source_system_id"
+              - "jv_source_object_name"
+              - "jv_target_object_name"
+              - "jv_inserted_rows"
+              - "jv_updated_rows"
+              - "jv_status"
+              - "jv_start_time"
+              - "jv_execution_time"
+              - "jv_last_run_time"
+              - "jv_comment"
+              - "jv_environment"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Log Orders:
+      type: "append-to-grid"
+      transitions:
+        success:
+        - "Success Log Insert"
+        - "Print Variables 2"
+      parameters:
+        componentName: "Log Orders"
+        operation: "Append"
+        targetGridVariable: "gv_load_log_main"
+        valuesGrid:
+        - - "${sysvar.thisPipeline.executionId}"
+          - "${jv_job_name}"
+          - "${sysvar.thisPipeline.fullName}"
+          - "1"
+          - "Stage_Customer"
+          - "Dim_Customer"
+          - "${jv_inserted_rows}"
+          - "${jv_updated_rows}"
+          - "Success"
+          - "${jv_start_time}"
+          - "${jv_end_time}"
+          - "${jv_duration_time}"
+          - "Loading the data from Stage to Dimention"
+          - "Development"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    End Failure 2:
+      type: "end-failure"
+      parameters:
+        componentName: "End Failure 2"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables"
+        variablesToPrint:
+        - - "gv_load_log_main"
+        prefixText:
+        includeVariableName: "No"
+      postProcessing:
+        updateOutputMessage:
+        updateScalarVariables:
+    Print Variables 2:
+      type: "print-variables"
+      parameters:
+        componentName: "Print Variables 2"
+        variablesToPrint:
+        - - "gv_load_log_main"
+        prefixText:
+        includeVariableName: "No"
       postProcessing:
         updateOutputMessage:
         updateScalarVariables:
   variables:
+    jv_start_time:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     jv_updated_rows:
       metadata:
         type: "NUMBER"
@@ -145,7 +218,21 @@ pipeline:
         scope: "SHARED"
         visibility: "PUBLIC"
       defaultValue: ""
+    jv_component_name:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
     jv_error_message:
+      metadata:
+        type: "TEXT"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_job_name:
       metadata:
         type: "TEXT"
         description: ""
@@ -155,6 +242,13 @@ pipeline:
     jv_duration_time:
       metadata:
         type: "NUMBER"
+        description: ""
+        scope: "SHARED"
+        visibility: "PUBLIC"
+      defaultValue: ""
+    jv_end_time:
+      metadata:
+        type: "TEXT"
         description: ""
         scope: "SHARED"
         visibility: "PUBLIC"
@@ -210,30 +304,45 @@ design:
     End Success:
       position:
         x: 290
-        "y": -80
+        "y": -90
       tempMetlId: 12
-    End Failure:
-      position:
-        x: 470
-        "y": 90
-      tempMetlId: 13
     "01_trf_sf_stg_customer":
       position:
         x: -440
         "y": -90
       tempMetlId: 14
-    Log Order:
-      position:
-        x: -10
-        "y": -90
-      tempMetlId: 15
     "02_trf_sf_dim_orders_scd1":
       position:
         x: -150
         "y": -90
       tempMetlId: 16
-    Run Shared Pipeline:
+    Success Log Insert:
       position:
         x: 150
         "y": -90
       tempMetlId: 17
+    Log Orders:
+      position:
+        x: -20
+        "y": -90
+      tempMetlId: 18
+    End Failure:
+      position:
+        x: -330
+        "y": 10
+      tempMetlId: 19
+    End Failure 2:
+      position:
+        x: -30
+        "y": 20
+      tempMetlId: 20
+    Print Variables:
+      position:
+        x: -190
+        "y": -220
+      tempMetlId: 21
+    Print Variables 2:
+      position:
+        x: 140
+        "y": -210
+      tempMetlId: 22
